@@ -10,6 +10,7 @@ import (
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
 	"github.com/up-zero/my-proxy/service/serve"
+	"github.com/up-zero/my-proxy/service/user"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
 	"io/fs"
@@ -34,6 +35,10 @@ func router() *gin.Engine {
 
 	// 详细信息
 	api.POST("/info", info.Info)
+	// 登录
+	api.POST("/login", BindH(user.Login))
+	// 刷新token
+	api.POST("/refresh/token", BindH(user.RefreshToken))
 
 	auth := api.Group("/")
 	auth.Use(middleware.LoginAuthCheck())

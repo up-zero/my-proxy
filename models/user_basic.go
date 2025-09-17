@@ -21,6 +21,9 @@ func (table *UserBasic) First() error {
 	if table.Username != "" {
 		tx = tx.Where("username = ?", table.Username)
 	}
+	if table.Password != "" {
+		tx = tx.Where("password = ?", table.Password)
+	}
 	if table.Level != "" {
 		tx = tx.Where("level = ?", table.Level)
 	}

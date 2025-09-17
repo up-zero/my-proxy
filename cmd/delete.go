@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// delCmd represents the del command
-var delCmd = &cobra.Command{
-	Use:   "del <name>",
+// deleteCmd represents the del command
+var deleteCmd = &cobra.Command{
+	Use:   "delete <name>",
 	Short: "delete the existing proxy service",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -27,5 +27,5 @@ var delCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(delCmd)
+	rootCmd.AddCommand(deleteCmd)
 }
