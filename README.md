@@ -1,6 +1,23 @@
-# MyProxy
+<h1 align="center">
+    <img width="300" src="./assets/logo.png" alt="">
+</h1>
 
-> 局域网代理工具，支持 TCP、UDP 等协议的代理转发，适用于绝大多数网络环境。提供了命令行、WebUI 两种配置代理的方法，极大地简化了代理配置的步骤。
+<p align="center">
+   <a href="https://github.com/up-zero/my-proxy/fork" target="blank">
+      <img src="https://img.shields.io/github/forks/up-zero/my-proxy?style=for-the-badge" alt="LocalAI forks"/>
+   </a>
+   <a href="https://github.com/up-zero/my-proxy/stargazers" target="blank">
+      <img src="https://img.shields.io/github/stars/up-zero/my-proxy?style=for-the-badge" alt="LocalAI stars"/>
+   </a>
+   <a href="https://github.com/up-zero/my-proxy/pulls" target="blank">
+      <img src="https://img.shields.io/github/issues-pr/up-zero/my-proxy?style=for-the-badge" alt="LocalAI pull-requests"/>
+   </a>
+   <a href='https://github.com/up-zero/my-proxy/releases'>
+      <img src='https://img.shields.io/github/release/up-zero/my-proxy?&label=Latest&style=for-the-badge'>
+   </a>
+</p>
+
+局域网代理工具，支持 TCP、UDP 等协议的代理转发，适用于绝大多数网络环境。提供了命令行、WebUI 两种配置代理的方法，极大地简化了代理配置的步骤。
 
 ## WebUI 模式
 
