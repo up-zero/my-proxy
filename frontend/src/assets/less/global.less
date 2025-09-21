@@ -1,0 +1,415 @@
+::-webkit-scrollbar {
+  display: none;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+// 列表
+ol,
+ul,
+li {
+  list-style: none;
+}
+// 表格
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+caption,
+th,
+td {
+  text-align: left;
+}
+ 
+// 表单
+button {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+input,
+textarea {
+  width: 0;
+  border: 0.01rem solid #ccc;
+  outline: none;
+  line-height: normal;
+  border-radius: 0;
+  -webkit-border-radius: 0;
+  appearance: none;
+  background-color: transparent;
+  resize: none;
+}
+input[type="button"],
+input[type="submit"] {
+  appearance: none;
+}
+input::-webkit-input-placeholder {
+  color: #999;
+}
+input[type="file"] {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+select {
+  border: none;
+  border-radius: 0;
+  appearance: none;
+  background-color: transparent;
+}
+// 文本
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+del,
+caption,
+th,
+td,
+strong,
+em,
+i {
+  font-size: 100%;
+  font-style: normal;
+}
+del,
+ins {
+  text-decoration: none;
+}
+span,
+label {
+  display: inline-block;
+}
+// 超链接
+a {
+  text-decoration: none;
+}
+a:active {
+  outline: 0;
+}
+// 图片
+img {
+  border: none;
+  -webkit-touch-callout: none;
+}
+
+/***************************** 容器 ***********************************/
+
+// .f-container {
+// }
+
+/***************************** 文本对齐 ***********************************/
+// 文字靠左对齐
+.f-text-left {
+  text-align: left;
+}
+// 文字居中对齐
+.f-text-center {
+  text-align: center;
+}
+// 文字靠右对齐
+.f-text-right {
+  text-align: right;
+}
+// 基准线居中
+.f-text-vam {
+  vertical-align: middle;
+}
+
+/***************************** 省略文本 ***********************************/
+// 隐藏单行文本(需搭配设置width)
+.f-text-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+// 多行文本
+.lines(@i) when (@i > 0) {
+  .f-text-lines-@{i} {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: @i;
+    -webkit-box-orient: vertical;
+  }
+  .lines((@i - 1));
+}
+.lines(5);
+
+/***************************** 背景 ***********************************/
+// icon图标(需要额外设置图片)
+.f-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+// 背景图片(需要额外设置图片)
+.f-bg {
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 100% 100%;
+}
+// 几种颜色用于测试
+@bgs: #d2691e, #bc8f8f, #fa8072, #ff4500, #ff7f50, #f4a460, #d2b48c, #cd5c5c, #f08080, #ffa07a;
+.bgFn(@arr, @i: 1) when(@i =< length(@arr)) {
+  @item: extract(@arr, @i);
+  .f-bg@{i} {
+    background-color: @item;
+  }
+  .bgFn(@arr, (@i + 1));
+}
+.bgFn(@bgs);
+
+/***************************** 箭头 ***********************************/
+// 箭头
+.arrows(@i) when (@i > 0) {
+  @px: @i + 0px;
+  .f-arrow-@{i} {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border: @px solid transparent;
+    border-top: @px solid #000;
+    transform: translateY(25%);
+  }
+  .arrows((@i - 1));
+}
+.arrows(20);
+
+// 旋转方向
+.f-rotate-90 {
+  transform: rotate(90deg);
+}
+.f-rotate-180 {
+  transform: rotate(180deg) translateY(25%);
+}
+.f-rotate-270 {
+  transform: rotate(270deg);
+}
+
+/***************************** 边距 ***********************************/
+
+/***************************** 布局 ***********************************/
+// flex
+.f-flex {
+  display: flex;
+}
+.f-flex-direction-column {
+  flex-direction: column;
+}
+.f-flex-wrap {
+  flex-wrap: wrap;
+}
+.f-flex-justify-between {
+  justify-content: space-between;
+}
+.f-flex-justify-around {
+  justify-content: space-around;
+}
+.f-flex-justify-center {
+  justify-content: center;
+}
+.f-flex-aligm-start {
+  align-items: flex-start;
+}
+.f-flex-aligm-center {
+  align-items: center;
+}
+.f-flex-aligm-start {
+  align-items: flex-end;
+}
+.f-flex-item-grow-on {
+  flex-grow: 1;
+}
+.f-flex-item-grow-off {
+  flex-grow: 0;
+}
+.f-flex-item-shrink-on {
+  flex-shrink: 1;
+}
+.f-flex-item-shrink-off {
+  flex-shrink: 0;
+}
+// 垂直居中
+.f-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+// between
+.f-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+// around
+.f-around {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+// margin
+.f-margin-center {
+  margin: 0 auto;
+}
+// 定位居中
+.f-pos-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.f-pos-hcenter {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.f-pos-vcenter {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/***************************** 浮动 ***********************************/
+
+// 浮动
+.f-float-left {
+  float: left;
+}
+
+// 清除浮动
+.f-clear {
+  &::after {
+    display: block;
+    content: "";
+    clear: both;
+  }
+}
+
+/***************************** 定位 ***********************************/
+// 相对定位
+.f-relative {
+  position: relative;
+}
+// 绝对定位(需搭配设置定位)
+.f-absolute-flex {
+  display: flex;
+  width: 100%;
+  position: absolute;
+}
+.f-absolute-inlineflex {
+  display: inline-flex;
+  position: absolute;
+}
+// fixed定位(需搭配设置定位)
+.f-fixed-flex {
+  display: flex;
+  width: 100%;
+  position: fixed;
+}
+.f-fixed-inlineflex {
+  display: inline-flex;
+  position: fixed;
+}
+// stick(需搭配设置定位)
+.f-sticky-block {
+  display: block;
+  position: sticky;
+}
+.f-sticky-flex {
+  display: flex;
+  position: sticky;
+}
+.f-sticky-inlineflex {
+  display: inline-flex;
+  position: sticky;
+}
+
+// 分层(1-10)
+.indexs(@i) when (@i > 0) {
+  .f-z-@{i} {
+    z-index: @i;
+  }
+  .indexs((@i - 1));
+}
+.indexs(10);
+
+/***************************** 动画 ****************************************/
+// 反弹显示
+.a-bounce-in {
+  animation: bounceIn 0.5s;
+}
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3);
+  }
+  20% {
+    transform: scale3d(1.05, 1.05, 1.05);
+  }
+  40% {
+    transform: scale3d(0.95, 0.95, 0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: scale3d(1.01, 1.01, 1.01);
+  }
+  80% {
+    transform: scale3d(0.99, 0.99, 0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+// 渐变显示
+.a-fade-in {
+  animation: fadeIn 0.1s;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/***************************** 其他 ***********************************/
+// 不要状态栏高度(用于页面组件第一个元素)
+.f-nobar {
+  padding-top: var(--status-bar-height);
+}
+// 允许事件
+.f-hasevent {
+  pointer-events: auto;
+}
+// 禁止事件
+.f-noevent {
+  pointer-events: none;
+}
+// 禁止
+.f-disable {
+  pointer-events: none;
+  filter: grayscale(1); /* W3C */
+}
+
+/***************************** 覆盖elementUI默认样式 ***********************************/
+:root {
+  --el-color-primary: #7472f6 !important;
+  --el-color-primary-light-3: rgba(116, 114, 246, 0.8) !important;
+  --el-color-primary-light-9: rgba(116, 114, 246, 0.08) !important;
+}
