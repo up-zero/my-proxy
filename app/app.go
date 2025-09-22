@@ -62,18 +62,30 @@ func router() *gin.Engine {
 		authProxy.POST("/restart", BindH(proxy.Restart))
 	}
 
-	// 前端静态文件
+	// 前端静态代理
 	subFS, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
 		logger.Error("[sys] failed to create sub file system", zap.Error(err))
 	}
+	// 创建一个 FileServer
 	fileServer := http.FileServer(http.FS(subFS))
+
+	// 处理所有未匹配的路由
 	r.NoRoute(func(c *gin.Context) {
+		// 只处理非 API 请求
 		if !strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			filePath := c.Request.URL.Path
+			_, err := subFS.Open(strings.TrimPrefix(filePath, "/"))
+			if err != nil {
+				// history router
+				c.Request.URL.Path = "/"
+				fileServer.ServeHTTP(c.Writer, c.Request)
+				return
+			}
+			// 文件代理
 			fileServer.ServeHTTP(c.Writer, c.Request)
 		} else {
-			// 如果是未匹配的 API 路径，返回 404
-			c.AbortWithStatus(http.StatusNotFound)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "API route not found"})
 		}
 	})
 

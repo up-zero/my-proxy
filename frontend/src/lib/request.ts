@@ -27,6 +27,7 @@ request.interceptors.response.use(
       toast("请登录!");
       return {};
     } else if (data.code !== 200) {
+      toast(data.msg, 'error');
       throw new ApiError("系统错误，api链接：" + response.config.url);
     }
     return data;

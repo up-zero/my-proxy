@@ -22,8 +22,10 @@
 ## WebUI 模式
 
 + 登录
+![webui_login.png](./assets/webui_login.png)
 
 + 代理管理
+![webui_proxy.png](./assets/webui_proxy.png)
 
 ## 命令模式
 

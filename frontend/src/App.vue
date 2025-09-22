@@ -9,7 +9,7 @@
       <a-affix :offset="0">
         <div class="m-header f-between">
           <div class="u-icon f-icon icon-logo">
-            <img src="@/assets/logo.png" alt="" />My Proxy
+            <img src="@/assets/favicon.ico" alt="" />My Proxy
           </div>
           <a-dropdown trigger="hover">
             <div class="m-user f-between f-flex-aligm-center">
@@ -131,15 +131,15 @@ async function logout() {
   height: @headerHeight;
   background: #ffffff;
   box-shadow: inset 0px -1px 0px 0px #e7e7e7;
-  padding-left: 40px;
+  padding-left: 20px;
   padding-right: 24px;
   .u-icon {
     display: flex;
     align-items: center;
     width: 180px;
     img {
-      width: 40px;
-      
+      width: 25px;
+      margin-right: 10px;
     }
   }
   .m-user {
