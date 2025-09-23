@@ -157,8 +157,14 @@ func Delete(c *gin.Context, in *DeleteRequest) {
 	if err := task.Stop(); err != nil {
 		logger.Error("[sys] proxy task stop error.", zap.Error(err))
 	}
+
 	// 移除代理
 	task.Remove()
+	if err := models.DB.Delete(new(models.ProxyBasic), "uuid = ?", pb.Uuid).Error; err != nil {
+		logger.Error("[sys] proxy basic delete error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
 
 	util.ResponseOk(c)
 }
