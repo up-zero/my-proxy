@@ -18,6 +18,7 @@
         <a-select v-model:value="ruleForm.type" placeholder="please select">
           <a-select-option value="TCP">TCP</a-select-option>
           <a-select-option value="UDP">UDP</a-select-option>
+          <a-select-option value="HTTP">HTTP</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item ref="listen_port" label="监听端口" name="listen_port">

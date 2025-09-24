@@ -3,6 +3,7 @@ package serve
 import (
 	"github.com/up-zero/my-proxy/models"
 	"net"
+	"net/http"
 	"sync"
 )
 
@@ -16,4 +17,6 @@ type ProxyTask struct {
 
 	udpListener *net.UDPConn
 	udpSessions map[string]net.Conn
+
+	httpServer *http.Server
 }

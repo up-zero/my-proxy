@@ -30,11 +30,24 @@ func initialModel(pb *models.ProxyBasic) model {
 		inputs:  make([]textinput.Model, 4),
 		focused: 0,
 		selector: selector{
-			options: []string{"TCP", "UDP"},
+			options: []string{"TCP", "UDP", "HTTP"},
 			cursor:  0,
 		},
 		pb: pb,
 	}
+
+	// 类型
+	if pb != nil {
+		switch pb.Type {
+		case models.ProxyTypeTcp:
+			m.selector.cursor = 0
+		case models.ProxyTypeUdp:
+			m.selector.cursor = 1
+		case models.ProxyTypeHttp:
+			m.selector.cursor = 2
+		}
+	}
+
 	var t textinput.Model
 	for i := range m.inputs {
 		t = textinput.New()

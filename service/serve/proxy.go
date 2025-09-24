@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/up-zero/my-proxy/logger"
@@ -8,6 +9,9 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -27,6 +31,8 @@ func (task *ProxyTask) Start() error {
 		err = task.startTcp()
 	case models.ProxyTypeUdp:
 		err = task.startUdp()
+	case models.ProxyTypeHttp:
+		err = task.startHttp()
 	default:
 		err = fmt.Errorf("proxy type(%s) not support", task.Type)
 	}
@@ -73,16 +79,8 @@ func (task *ProxyTask) startTcp() error {
 }
 
 func (task *ProxyTask) handleConnection(clientConn net.Conn) {
-	task.mu.Lock()
-	task.tcpActiveConn[clientConn] = struct{}{}
-	task.mu.Unlock()
-
-	defer func() {
-		clientConn.Close()
-		task.mu.Lock()
-		delete(task.tcpActiveConn, clientConn)
-		task.mu.Unlock()
-	}()
+	task.registerTcpConn(clientConn)
+	defer task.unregisterTcpConn(clientConn)
 
 	targetConn, err := net.DialTimeout("tcp", task.TargetAddress+":"+task.TargetPort, 5*time.Second)
 	if err != nil {
@@ -99,6 +97,52 @@ func (task *ProxyTask) handleConnection(clientConn net.Conn) {
 	<-done
 }
 
+func (task *ProxyTask) startHttp() error {
+	scheme := "http"
+	if task.TargetPort == "443" {
+		scheme = "https"
+	}
+	targetURLStr := fmt.Sprintf("%s://%s", scheme, task.TargetAddress)
+	// 仅在端口不是协议默认端口时才追加端口号
+	if task.TargetPort != "" {
+		if (scheme == "https" && task.TargetPort != "443") || (scheme == "http" && task.TargetPort != "80") {
+			targetURLStr += ":" + task.TargetPort
+		}
+	}
+
+	targetURL, err := url.Parse(targetURLStr)
+	if err != nil {
+		logger.Error("[sys] reverse proxy invalid target URL", zap.String("url", targetURLStr), zap.Error(err))
+		return err
+	}
+
+	// 创建一个反向代理处理器
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	// 修改Host头
+	director := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		director(req)
+		req.Host = targetURL.Host
+	}
+
+	listenAddr := ":" + task.ListenPort
+	server := &http.Server{
+		Addr:    listenAddr,
+		Handler: proxy, // 将处理器设置为我们的反向代理
+	}
+	task.httpServer = server
+	task.State = models.ProxyStateRunning
+	proxyTaskMap.Store(task.Uuid, task)
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("[sys] reverse http proxy ListenAndServe error", zap.Error(err))
+		}
+	}()
+
+	return nil
+}
+
 func (task *ProxyTask) copyData(dst, src net.Conn, done chan struct{}) {
 	defer func() {
 		select {
@@ -107,6 +151,19 @@ func (task *ProxyTask) copyData(dst, src net.Conn, done chan struct{}) {
 		}
 	}()
 	io.Copy(dst, src)
+}
+
+func (task *ProxyTask) registerTcpConn(conn net.Conn) {
+	task.mu.Lock()
+	defer task.mu.Unlock()
+	task.tcpActiveConn[conn] = struct{}{}
+}
+
+func (task *ProxyTask) unregisterTcpConn(conn net.Conn) {
+	conn.Close()
+	task.mu.Lock()
+	defer task.mu.Unlock()
+	delete(task.tcpActiveConn, conn)
 }
 
 func (task *ProxyTask) startUdp() error {
@@ -227,6 +284,8 @@ func (task *ProxyTask) Stop() error {
 		err = proxyTask.stopTcp()
 	case models.ProxyTypeUdp:
 		err = proxyTask.stopUdp()
+	case models.ProxyTypeHttp:
+		err = proxyTask.stopHttpProxy()
 	default:
 		err = fmt.Errorf("proxy type(%s) not support", task.Type)
 	}
@@ -268,6 +327,20 @@ func (task *ProxyTask) stopUdp() error {
 		conn.Close()
 	}
 
+	return nil
+}
+
+func (task *ProxyTask) stopHttpProxy() error {
+	close(task.stopChan)
+	if task.httpServer != nil {
+		// 优雅关闭
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := task.httpServer.Shutdown(ctx); err != nil {
+			logger.Error("[sys] reverse http proxy shutdown error", zap.Error(err))
+			return err
+		}
+	}
 	return nil
 }
 

@@ -2,8 +2,9 @@ package models
 
 // 代理类型
 const (
-	ProxyTypeTcp = "TCP"
-	ProxyTypeUdp = "UDP"
+	ProxyTypeTcp  = "TCP"
+	ProxyTypeUdp  = "UDP"
+	ProxyTypeHttp = "HTTP"
 )
 
 // 代理状态
