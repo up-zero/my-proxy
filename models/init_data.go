@@ -9,12 +9,13 @@ func initData() {
 }
 
 func initUserData() {
+	// admin
 	ub := &UserBasic{
 		Username: "admin",
 		Password: randomutil.RandomAlphaNumber(8),
 		Level:    "root",
 	}
-	if err := DB.FirstOrCreate(ub, &UserBasic{Level: "root"}).Error; err != nil {
+	if err := DB.FirstOrCreate(ub, &UserBasic{Username: ub.Username}).Error; err != nil {
 		panic(err)
 	}
 }

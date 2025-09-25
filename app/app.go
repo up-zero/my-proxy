@@ -42,6 +42,8 @@ func router() *gin.Engine {
 
 	auth := api.Group("/")
 	auth.Use(middleware.LoginAuthCheck())
+	// 修改密码
+	auth.POST("/edit/password", BindH(user.EditPassword))
 
 	// 代理管理
 	{

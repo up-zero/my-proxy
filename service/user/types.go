@@ -15,3 +15,8 @@ type LoginResponse struct {
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"` // 用于延期的 token
 }
+
+type EditPasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"` // 老密码
+	NewPassword string `json:"new_password" binding:"required"` // 新密码
+}

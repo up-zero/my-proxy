@@ -25,6 +25,7 @@ const (
 	MsgErrDB                 = "数据库异常"
 	MsgErrNet                = "网络异常"
 	MsgErrUsernameOrPassword = "用户名或密码错误"
+	MsgErrOldPasswordWrong   = "旧密码错误"
 	MsgErrNameExist          = "名称已存在"
 	MsgErrDataNotExist       = "暂无数据"
 )

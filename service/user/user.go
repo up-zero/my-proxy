@@ -90,3 +90,23 @@ func RefreshToken(c *gin.Context, in *RefreshTokenRequest) {
 		Level:        uc.Level,
 	})
 }
+
+// EditPassword 修改密码
+func EditPassword(c *gin.Context, in *EditPasswordRequest) {
+	uc := c.MustGet("UserClaim").(*util.UserClaim)
+	// 判断旧密码是否一致
+	if err := (&models.UserBasic{Username: uc.Username, Password: in.OldPassword}).First(); err != nil {
+		logger.Error("[db] get user basic error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErr, util.MsgErrOldPasswordWrong)
+		return
+	}
+	// 落库
+	if err := models.DB.Model(new(models.UserBasic)).Where("username = ?", uc.Username).
+		Update("password", in.NewPassword).Error; err != nil {
+		logger.Error("[db] update user password error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+
+	util.ResponseOk(c)
+}
