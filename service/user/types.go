@@ -1,5 +1,7 @@
 package user
 
+import "github.com/up-zero/my-proxy/models"
+
 type LoginRequest struct {
 	Username string `json:"username"` // 用户名
 	Password string `json:"password"` // 密码
@@ -19,4 +21,22 @@ type RefreshTokenRequest struct {
 type EditPasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"` // 老密码
 	NewPassword string `json:"new_password" binding:"required"` // 新密码
+}
+
+type ListReply struct {
+	*models.UserBasic
+}
+
+type CreateRequest struct {
+	Username string `json:"username" binding:"required"` // 用户名,必填
+	Password string `json:"password" binding:"required"` // 密码,必填
+}
+
+type UpdateRequest struct {
+	Uuid string `json:"uuid" binding:"required"` // 用户uuid,必填
+	*CreateRequest
+}
+
+type DeleteRequest struct {
+	Uuid []string `json:"uuid" binding:"required"` // 用户唯一标识
 }

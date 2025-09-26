@@ -64,6 +64,20 @@ func router() *gin.Engine {
 		authProxy.POST("/restart", BindH(proxy.Restart))
 	}
 
+	// 用户管理
+	{
+		authUser := auth.Group("/user")
+		authUser.Use(middleware.AdminAuthCheck())
+		// 用户列表
+		authUser.POST("/list", user.List)
+		// 新增用户
+		authUser.POST("/create", BindH(user.Create))
+		// 修改用户
+		authUser.POST("/update", BindH(user.Update))
+		// 删除用户
+		authUser.POST("/delete", BindH(user.Delete))
+	}
+
 	// 前端静态代理
 	subFS, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {

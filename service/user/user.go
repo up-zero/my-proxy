@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/convertutil"
+	"github.com/up-zero/gotool/idutil"
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/util"
@@ -108,5 +109,92 @@ func EditPassword(c *gin.Context, in *EditPasswordRequest) {
 		return
 	}
 
+	util.ResponseOk(c)
+}
+
+// List 用户列表
+func List(c *gin.Context) {
+	list := make([]*models.UserBasic, 0)
+	if err := models.DB.Model(new(models.UserBasic)).Where("level != ?", models.UserLevelRoot).
+		Find(&list).Error; err != nil {
+		logger.Error("[db] get user list error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+
+	util.ResponseOkWithList(c, list)
+}
+
+// Create 创建用户
+func Create(c *gin.Context, in *CreateRequest) {
+	ub := &models.UserBasic{
+		Uuid:     idutil.UUIDGenerate(),
+		Username: in.Username,
+		Password: in.Password,
+		Level:    models.UserLevelUser,
+	}
+	// 用户名判重
+	cnt, err := ub.CountForSave()
+	if err != nil {
+		logger.Error("[db] get user count for save error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	if cnt > 0 {
+		util.ResponseMsg(c, util.CodeErr, util.MsgErrNameExist)
+		return
+	}
+	// 落库
+	err = models.DB.Create(ub).Error
+	if err != nil {
+		logger.Error("[db] user create error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+
+	util.ResponseOk(c)
+}
+
+// Update 编辑用户
+func Update(c *gin.Context, in *UpdateRequest) {
+	ub := &models.UserBasic{
+		Uuid:     in.Uuid,
+		Username: in.Username,
+	}
+	// 用户名判重
+	cnt, err := ub.CountForSave()
+	if err != nil {
+		logger.Error("[db] get user count for save error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	if cnt > 0 {
+		util.ResponseMsg(c, util.CodeErr, util.MsgErrNameExist)
+		return
+	}
+	// 落库
+	err = models.DB.Model(new(models.UserBasic)).Where("uuid = ?", in.Uuid).Updates(map[string]interface{}{
+		"username": in.Username,
+		"password": in.Password,
+	}).Error
+	if err != nil {
+		logger.Error("[db] user update error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+
+	util.ResponseOk(c)
+}
+
+// Delete 删除用户
+func Delete(c *gin.Context, in *DeleteRequest) {
+	// 删除数据
+	err := models.DB.Where("uuid in ?", in.Uuid).
+		Delete(new(models.UserBasic)).Error
+	if err != nil {
+		logger.Error("[db] user delete error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
 	util.ResponseOk(c)
 }
