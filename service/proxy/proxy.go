@@ -169,6 +169,27 @@ func Delete(c *gin.Context, in *DeleteRequest) {
 	util.ResponseOk(c)
 }
 
+// BatchDelete 批量删除
+func BatchDelete(c *gin.Context, in *BatchDeleteRequest) {
+	// 批量停止
+	for _, uuid := range in.Uuid {
+		task := serve.ProxyTask{
+			ProxyBasic: models.ProxyBasic{Uuid: uuid},
+		}
+		if err := task.Stop(); err != nil {
+			logger.Error("[sys] proxy task stop error.", zap.Error(err))
+		}
+		task.Remove()
+	}
+	// 移除代理
+	if err := models.DB.Delete(new(models.ProxyBasic), "uuid in ?", in.Uuid).Error; err != nil {
+		logger.Error("[sys] proxy basic delete error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+	util.ResponseOk(c)
+}
+
 // Start 启动代理
 func Start(c *gin.Context, in *StartRequest) {
 	// 判断代理是否存在

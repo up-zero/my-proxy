@@ -56,6 +56,8 @@ func router() *gin.Engine {
 		authProxy.POST("/edit", BindH(proxy.Edit))
 		// 删除代理
 		authProxy.POST("/delete", BindH(proxy.Delete))
+		// 批量删除
+		authProxy.POST("/batch/delete", BindH(proxy.BatchDelete))
 		// 启动代理
 		authProxy.POST("/start", BindH(proxy.Start))
 		// 停止代理

@@ -25,6 +25,10 @@ type DeleteRequest struct {
 	Name string `json:"name" binding:"required"` // 代理名称
 }
 
+type BatchDeleteRequest struct {
+	Uuid []string `json:"uuid" binding:"required"` // 代理唯一标识
+}
+
 type StartRequest struct {
 	Name string `json:"name" binding:"required"` // 代理名称
 }
@@ -35,4 +39,8 @@ type StopRequest struct {
 
 type RestartRequest struct {
 	Name string `json:"name" binding:"required"` // 代理名称
+}
+
+type ExportRequest struct {
+	Uuid []string `json:"uuid" binding:"required"` // 代理唯一标识
 }
