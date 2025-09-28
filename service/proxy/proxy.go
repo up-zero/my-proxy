@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/convertutil"
 	"github.com/up-zero/gotool/idutil"
@@ -33,6 +35,54 @@ func Status(c *gin.Context, in *StatusRequest) {
 	util.ResponseOkWithList(c, tasks)
 }
 
+// savePreValid 判断代理信息是否有效
+func savePreValid(pb *models.ProxyBasic) error {
+	// 名称判重
+	count, err := pb.CountForName()
+	if err != nil {
+		logger.Error("[sys] proxy basic count for name error.", zap.Error(err))
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("name(%s) already exists", pb.Name)
+	}
+	// 端口判重
+	count, err = pb.CountForPort()
+	if err != nil {
+		logger.Error("[sys] proxy basic count for port error.", zap.Error(err))
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("listen_port(%s) already exists", pb.ListenPort)
+	}
+	return nil
+}
+
+// create 创建代理
+func create(pb *models.ProxyBasic) error {
+	// 代理信息校验
+	if err := savePreValid(pb); err != nil {
+		return err
+	}
+
+	// 启动代理任务
+	task := serve.ProxyTask{
+		ProxyBasic: *pb,
+	}
+	if err := task.Start(); err != nil {
+		logger.Error("[sys] proxy task start error.", zap.Error(err))
+		return err
+	}
+
+	// 落库
+	if err := models.DB.Create(pb).Error; err != nil {
+		logger.Error("[sys] proxy basic create error.", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
 // Create 创建代理
 func Create(c *gin.Context, in *CreateRequest) {
 	pb := new(models.ProxyBasic)
@@ -44,41 +94,8 @@ func Create(c *gin.Context, in *CreateRequest) {
 	pb.Uuid = idutil.UUIDGenerate()
 	pb.State = models.ProxyStateStopped
 
-	// 名称判重
-	count, err := pb.CountForName()
-	if err != nil {
-		logger.Error("[sys] proxy basic count for name error.", zap.Error(err))
-		util.ResponseError(c, err)
-		return
-	}
-	if count > 0 {
-		util.ResponseError(c, util.ErrNameExists)
-		return
-	}
-	// 端口判重
-	count, err = pb.CountForPort()
-	if err != nil {
-		logger.Error("[sys] proxy basic count for port error.", zap.Error(err))
-		util.ResponseError(c, err)
-		return
-	}
-	if count > 0 {
-		util.ResponseError(c, util.ErrListenPortExists)
-		return
-	}
-
-	// 启动代理任务
-	task := serve.ProxyTask{
-		ProxyBasic: *pb,
-	}
-	if err := task.Start(); err != nil {
-		logger.Error("[sys] proxy task start error.", zap.Error(err))
-		util.ResponseError(c, err)
-		return
-	}
-
-	// 落库
-	if err := models.DB.Create(pb).Error; err != nil {
+	// 创建代理
+	if err := create(pb); err != nil {
 		logger.Error("[sys] proxy basic create error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return
@@ -97,26 +114,10 @@ func Edit(c *gin.Context, in *EditRequest) {
 	}
 	pb.State = models.ProxyStateStopped
 
-	// 名称判重
-	count, err := pb.CountForName()
-	if err != nil {
-		logger.Error("[sys] proxy basic count for name error.", zap.Error(err))
+	// 代理信息校验
+	if err := savePreValid(pb); err != nil {
+		logger.Error("[sys] proxy basic save pre valid error.", zap.Error(err))
 		util.ResponseError(c, err)
-		return
-	}
-	if count > 0 {
-		util.ResponseError(c, util.ErrNameExists)
-		return
-	}
-	// 端口判重
-	count, err = pb.CountForPort()
-	if err != nil {
-		logger.Error("[sys] proxy basic count for port error.", zap.Error(err))
-		util.ResponseError(c, err)
-		return
-	}
-	if count > 0 {
-		util.ResponseError(c, util.ErrListenPortExists)
 		return
 	}
 
@@ -135,6 +136,53 @@ func Edit(c *gin.Context, in *EditRequest) {
 		logger.Error("[sys] proxy basic updates error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return
+	}
+
+	util.ResponseOk(c)
+}
+
+// Export 导出代理
+func Export(c *gin.Context, in *ExportRequest) {
+	list := make([]*models.ProxyBasic, 0)
+	if err := models.DB.Model(new(models.ProxyBasic)).Where("uuid IN ?", in.Uuid).Find(&list).Error; err != nil {
+		logger.Error("[db] proxy basic find error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+
+	b, err := json.MarshalIndent(list, "", "\t")
+	if err != nil {
+		logger.Error("[sys] json marshal indent error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+
+	util.ResponseFile(c, b, "proxy_list.json")
+}
+
+// Import 导入代理
+func Import(c *gin.Context) {
+	b, err := util.FormFileReadAll(c, "file")
+	if err != nil {
+		logger.Error("[util] form file read all error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+	list := make([]*models.ProxyBasic, 0)
+	if err := json.Unmarshal(b, &list); err != nil {
+		logger.Error("[sys] json unmarshal error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+
+	for _, pb := range list {
+		// 创建代理
+		pb.Uuid = idutil.UUIDGenerate()
+		if err := create(pb); err != nil {
+			logger.Error("[sys] proxy basic create error.", zap.Error(err))
+			util.ResponseError(c, err)
+			return
+		}
 	}
 
 	util.ResponseOk(c)

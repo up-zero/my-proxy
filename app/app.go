@@ -54,6 +54,10 @@ func router() *gin.Engine {
 		authProxy.POST("/create", BindH(proxy.Create))
 		// 编辑代理
 		authProxy.POST("/edit", BindH(proxy.Edit))
+		// 批量导出
+		authProxy.POST("/export", BindH(proxy.Export))
+		// 批量导入
+		authProxy.POST("/import", proxy.Import)
 		// 删除代理
 		authProxy.POST("/delete", BindH(proxy.Delete))
 		// 批量删除
