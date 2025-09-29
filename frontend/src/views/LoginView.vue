@@ -18,7 +18,7 @@
           </a-input>
         </a-form-item>
         <a-form-item name="password">
-          <a-input
+          <a-input-password
           placeholder="请输入密码"
             v-model:value="ruleForm.password"
             size="large"
@@ -27,7 +27,7 @@
             <template #prefix>
               <KeyOutlined />
             </template>
-          </a-input>
+          </a-input-password>
         </a-form-item>
 
         <div>

@@ -16,42 +16,48 @@
       :pagination="false"
       class="m-table"
     >
-      <template #state="{ text }">
-        <span class="state-span danger" v-if="text === 'STOPPED'">已停止</span>
-        <span class="state-span success" v-else-if="text === 'RUNNING'"
-          >运行中</span
-        >
-      </template>
-      <template #operation="{ record }">
-        <a-popconfirm
-          v-if="state.list.length"
-          title="确定删除?"
-          @confirm="delItem(record)"
-        >
-          <a-button type="link">删除</a-button>
-        </a-popconfirm>
-        <a-button type="link" @click="editItem(record)">编辑</a-button>
-        <a-popconfirm
-          v-if="record.state === 'STOPPED'"
-          title="是否启动?"
-          @confirm="startItem(record)"
-        >
-          <a-button type="link">启动</a-button>
-        </a-popconfirm>
-        <a-popconfirm
-          v-if="record.state === 'RUNNING'"
-          title="是否停止?"
-          @confirm="stopItem(record)"
-        >
-          <a-button type="link">停止</a-button>
-        </a-popconfirm>
-        <a-popconfirm
-          v-if="state.list.length"
-          title="是否重启?"
-          @confirm="restartItem(record)"
-        >
-          <a-button type="link">重启</a-button>
-        </a-popconfirm>
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'state'">
+          <span class="state-span danger" v-if="record.state === 'STOPPED'"
+            >已停止</span
+          >
+          <span
+            class="state-span success"
+            v-else-if="record.state === 'RUNNING'"
+            >运行中</span
+          >
+        </template>
+        <template v-else-if="column.key === 'operation'">
+          <a-popconfirm
+            v-if="state.list.length"
+            title="确定删除?"
+            @confirm="delItem(record)"
+          >
+            <a-button type="link">删除</a-button>
+          </a-popconfirm>
+          <a-button type="link" @click="editItem(record)">编辑</a-button>
+          <a-popconfirm
+            v-if="record.state === 'STOPPED'"
+            title="是否启动?"
+            @confirm="startItem(record)"
+          >
+            <a-button type="link">启动</a-button>
+          </a-popconfirm>
+          <a-popconfirm
+            v-if="record.state === 'RUNNING'"
+            title="是否停止?"
+            @confirm="stopItem(record)"
+          >
+            <a-button type="link">停止</a-button>
+          </a-popconfirm>
+          <a-popconfirm
+            v-if="state.list.length"
+            title="是否重启?"
+            @confirm="restartItem(record)"
+          >
+            <a-button type="link">重启</a-button>
+          </a-popconfirm>
+        </template>
       </template>
     </a-table>
 
@@ -101,14 +107,11 @@ onMounted(() => {
   getList();
 });
 const columns = [
-     {
-    title: '序号',
-    dataIndex: 'index',
-    key: 'index',
+  {
+    title: "序号",
+    dataIndex: "index",
+    key: "index",
     width: 80,
-    
-
-     
   },
   {
     dataIndex: "name",
@@ -129,7 +132,6 @@ const columns = [
     title: "目标地址",
     key: "target_address",
     dataIndex: "target_address",
-    slots: { customRender: "target_address" },
   },
   {
     title: "目标端口",
@@ -139,12 +141,14 @@ const columns = [
   {
     title: "状态",
     dataIndex: "state",
-    slots: { customRender: "state" },
+    key: "state",
+    // slots: { customRender: "state" },
   },
   {
     title: "操作",
     dataIndex: "operation",
-    slots: { customRender: "operation" },
+    key: "operation",
+    // slots: { customRender: "operation" },
   },
 ];
 /*****************表格******************* */
@@ -155,11 +159,11 @@ async function getList() {
     state.isLoading = true;
     const res = await getProxyStatus(state.query);
     if (!res.data) return;
-    state.list = res.data.map((it: any,index: number)=>{
-        return {
-            ...it,
-            index:index+1
-        }
+    state.list = res.data.map((it: any, index: number) => {
+      return {
+        ...it,
+        index: index + 1,
+      };
     });
     state.total = res.data?.length;
   } finally {

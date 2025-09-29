@@ -1,5 +1,5 @@
 <template>
-  <a-config-provider>
+  <a-config-provider :locale="locale">
     <!-- 登录页面 -->
     <RouterView v-if="route.path == '/login'" />
 
@@ -19,9 +19,12 @@
               <p class="w1">管理员</p>
             </div>
             <template #overlay>
-              <a-menu>
-                <a-menu-item>
-                  <a-button type="link" @click="logout">退出登录</a-button>
+              <a-menu @click="topMenuClick">
+                <a-menu-item key="cp">
+                  <a-button type="link">修改密码</a-button>
+                </a-menu-item>
+                <a-menu-item key="out">
+                  <a-button type="link">退出登录</a-button>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -32,26 +35,31 @@
       <div class="m-main f-flex">
         <!-- 菜单 -->
         <div class="m-side">
-          <a-menu :default-active="route.path" router>
+          <a-menu
+            :default-active="route.path"
+            :selectedKeys="[route.path]"
+            @click="routerTo"
+          >
             <template v-for="item in menus">
               <a-menu-item
                 v-if="!item.children || item.children.length == 0"
-                :index="item.path"
+                :key="item.path"
                 >{{ item.name }}</a-menu-item
               >
-              <a-sub-menu v-else :key="item.path" :index="item.path">
-                <template #title>
-                  <!-- <div class="u-icon f-icon" :class="[`z-${menu.menu_icon}`]"></div> -->
-                  <span>{{ item.name }}</span>
-                </template>
-                <a-menu-item
-                  v-for="sub of item.children"
-                  :key="sub.path"
-                  v-show="!sub.meta?.hidden"
-                  :index="sub.path"
-                  >{{ sub.name }}</a-menu-item
-                >
-              </a-sub-menu>
+              <template v-else>
+                <a-sub-menu :key="item.path">
+                  <template #title>
+                    <span>{{ item.name }}</span>
+                  </template>
+                  <a-menu-item
+                    v-for="sub of item.children"
+                    :key="sub.path"
+                    v-show="!sub.meta?.hidden"
+                    :index="sub.path"
+                    >{{ sub.name }}</a-menu-item
+                  >
+                </a-sub-menu>
+              </template>
             </template>
           </a-menu>
         </div>
@@ -71,10 +79,14 @@
 </template>
 
 <script setup lang="ts">
+import zhCN from "ant-design-vue/es/locale/zh_CN";
+import dayjs from "dayjs";
+import "dayjs/locale/zh-cn";
+dayjs.locale("zh-cn");
 import { useRoute, useRouter } from "vue-router";
 import store from "./stores";
-import { computed } from "vue";
-
+import { computed, ref } from "vue";
+const locale = ref(zhCN);
 const user = store.useUserStore();
 const route = useRoute();
 const router = useRouter();
@@ -111,6 +123,17 @@ const menus = computed(() => {
 async function logout() {
   await user.logout();
 }
+const routerTo = ({ key }: any) => {
+  router.push(key);
+};
+const topMenuClick = ({ key }: any) => {
+  console.log(key);
+  if (key === "out") {
+    logout();
+  } else if (key === "cp") {
+    router.push("/changePassword");
+  }
+};
 </script>
 
 <style lang="less">

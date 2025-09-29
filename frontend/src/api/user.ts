@@ -7,3 +7,8 @@ export function login(data: any) {
         data
     })
 }
+
+// 修改密码
+export function changePassword(data: Record<string, any>): Promise<any> {
+  return request.post("/v1/edit/password", data);
+}
