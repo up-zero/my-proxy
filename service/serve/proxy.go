@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,6 +24,8 @@ var proxyTaskMap = new(sync.Map)
 func (task *ProxyTask) Start() error {
 	// 初始化 task
 	task.stopChan = make(chan struct{})
+	task.bytesIn.Store(0)
+	task.bytesOut.Store(0)
 
 	// 启动服务
 	var err error
@@ -91,9 +94,9 @@ func (task *ProxyTask) handleConnection(clientConn net.Conn) {
 
 	done := make(chan struct{}, 2)
 	// client -> target
-	go task.copyData(targetConn, clientConn, done)
+	go task.copyData(targetConn, clientConn, &task.bytesIn, done)
 	// target -> client
-	go task.copyData(clientConn, targetConn, done)
+	go task.copyData(clientConn, targetConn, &task.bytesOut, done)
 	<-done
 }
 
@@ -143,14 +146,31 @@ func (task *ProxyTask) startHttp() error {
 	return nil
 }
 
-func (task *ProxyTask) copyData(dst, src net.Conn, done chan struct{}) {
+func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, done chan struct{}) {
 	defer func() {
 		select {
 		case done <- struct{}{}:
 		default:
 		}
 	}()
-	io.Copy(dst, src)
+	writer := &statsWriter{
+		Writer:  dst,
+		counter: counter,
+	}
+	io.Copy(writer, src)
+}
+
+type statsWriter struct {
+	io.Writer
+	counter *atomic.Int64
+}
+
+func (sw *statsWriter) Write(p []byte) (int, error) {
+	n, err := sw.Writer.Write(p)
+	if err == nil {
+		sw.counter.Add(int64(n))
+	}
+	return n, err
 }
 
 func (task *ProxyTask) registerTcpConn(conn net.Conn) {
@@ -203,6 +223,7 @@ func (task *ProxyTask) startUdp() error {
 				logger.Error("[sys] read from udp error.", zap.Error(err))
 				continue
 			}
+			task.bytesIn.Add(int64(n))
 
 			clientAddrStr := clientAddr.String()
 			task.mu.Lock()
@@ -259,6 +280,7 @@ func (task *ProxyTask) handleUdpResponse(clientAddr net.Addr, targetConn *net.UD
 			return
 		}
 
+		task.bytesOut.Add(int64(n))
 		_, err = task.udpListener.WriteTo(respBuffer[:n], clientAddr)
 		if err != nil {
 			return
@@ -358,7 +380,10 @@ func (task *ProxyTask) Status() ([]*ProxyTask, error) {
 		if !ok {
 			return nil, fmt.Errorf("task(%s) not found", task.Name)
 		}
-		return []*ProxyTask{value.(*ProxyTask)}, nil
+		proxyTask := value.(*ProxyTask)
+		proxyTask.TrafficIn = proxyTask.bytesIn.Load()
+		proxyTask.TrafficOut = proxyTask.bytesOut.Load()
+		return []*ProxyTask{proxyTask}, nil
 	} else {
 		// 获取所有任务
 		list := make([]*ProxyTask, 0)
@@ -370,6 +395,10 @@ func (task *ProxyTask) Status() ([]*ProxyTask, error) {
 		sort.Slice(list, func(i, j int) bool {
 			return list[i].Name < list[j].Name
 		})
+		for _, item := range list {
+			item.TrafficIn = item.bytesIn.Load()
+			item.TrafficOut = item.bytesOut.Load()
+		}
 		return list, nil
 	}
 }
