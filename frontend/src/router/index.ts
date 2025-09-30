@@ -30,6 +30,11 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: "/changePassword",
+      name: "修改密码",
+      component: () => import("../views/userManage/changePassword.vue"),
+    },
   ],
 });
 

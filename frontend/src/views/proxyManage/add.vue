@@ -1,5 +1,5 @@
 <template>
-  <a-modal v-model:visible="showbox" title="添加代理" width="500px" center>
+  <a-modal v-model:open="showbox" title="添加代理" width="500px" center>
     <a-form
       ref="ruleFormRef"
       style="max-width: 600px"
