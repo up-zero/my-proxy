@@ -38,7 +38,7 @@ export const parseTime = (date: any, fmt?: string) => {
       (date.getFullYear() + "").substr(4 - RegExp.$1.length)
     );
   }
-  let o = {
+  let o: any = {
     "M+": date.getMonth() + 1,
     "d+": date.getDate(),
     "h+": date.getHours(),
