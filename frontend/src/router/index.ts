@@ -31,6 +31,24 @@ const router = createRouter({
       ],
     },
     {
+      path: "/userManage",
+      name: "用户管理",
+      meta: {
+        isMenu: true,
+      },
+      redirect: "/userManage/index",
+      children: [
+        {
+          path: "/userManage/index",
+          name: "用户列表",
+          meta: {
+            isMenu: true,
+          },
+          component: () => import("../views/userManage/user/index.vue"),
+        },
+      ],
+    },
+    {
       path: "/changePassword",
       name: "修改密码",
       component: () => import("../views/userManage/changePassword.vue"),
