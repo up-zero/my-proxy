@@ -114,6 +114,18 @@ func router() *gin.Engine {
 	return r
 }
 
+func showAdminInfo() {
+	ub := &models.UserBasic{
+		Username: "admin",
+	}
+	if err := models.DB.Model(new(models.UserBasic)).Where("username = ?", ub.Username).
+		First(ub).Error; err != nil {
+		logger.Error("[sys] get admin info error.", zap.Error(err))
+		return
+	}
+	logger.Info("admin info", zap.String("username", ub.Username), zap.String("password", ub.Password))
+}
+
 // NewApp 创建服务
 func NewApp(port string) {
 	// 保存服务端口
@@ -140,7 +152,8 @@ func NewApp(port string) {
 		}
 	}()
 	// 启动成功
-	logger.LOGGER.Info(fmt.Sprintf("%s started successfully", util.AppName), zap.String("port", port))
+	showAdminInfo()
+	logger.Info(fmt.Sprintf("%s started successfully", util.AppName), zap.String("port", port))
 	<-quit
-	logger.LOGGER.Error(fmt.Sprintf("%s stopped successfully", util.AppName))
+	logger.Error(fmt.Sprintf("%s stopped successfully", util.AppName))
 }

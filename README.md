@@ -114,3 +114,23 @@ my-proxy 1.0.0
 | Password | KDi7tW6Y                |
 +----------+-------------------------+
 ```
+
+## Docker 部署
+
+通过 `docker run` 的方式运行：
+
+```bash
+# 创建挂载目录
+mkdir -p my-proxy/data
+
+# 启动容器
+docker run -d \
+    --name my-proxy-service \
+    --restart always \
+    --network host \
+    -v "./my-proxy/data:/root/.config/my-proxy" \
+    getcharzp/my-proxy:1.0.0
+
+# 查看登录账号
+docker logs my-proxy-service | grep "admin"
+```
