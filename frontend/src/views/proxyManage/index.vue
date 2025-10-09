@@ -124,6 +124,11 @@ const columns = [
     key: "type",
   },
   {
+    title: "监听地址",
+    dataIndex: "listen_address",
+    key: "listen_address",
+  },
+  {
     title: "监听端口",
     dataIndex: "listen_port",
     key: "listen_port",

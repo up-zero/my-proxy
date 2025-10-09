@@ -30,13 +30,15 @@ var statusCmd = &cobra.Command{
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"#", "Name", "Type", "Status", "Listen Port", "Target Address", "Target Port"})
+		table.SetHeader([]string{"#", "Name", "Type", "Status", "Listen Address", "Listen Port", "Target Address", "Target Port"})
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
 		for idx, task := range tasks {
 			table.Append([]string{
 				strconv.Itoa(idx + 1),
 				task.Name,
 				task.Type,
 				task.State,
+				task.ListenAddress,
 				task.ListenPort,
 				task.TargetAddress,
 				task.TargetPort,

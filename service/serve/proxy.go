@@ -45,7 +45,7 @@ func (task *ProxyTask) Start() error {
 // startTcp 启动TCP代理
 func (task *ProxyTask) startTcp() error {
 	task.tcpActiveConn = make(map[net.Conn]struct{})
-	listener, err := net.Listen("tcp", ":"+task.ListenPort)
+	listener, err := net.Listen("tcp", net.JoinHostPort(task.ListenAddress, task.ListenPort))
 	if err != nil {
 		logger.Error("[sys] proxy task start error", zap.Error(err))
 		return err
@@ -128,9 +128,8 @@ func (task *ProxyTask) startHttp() error {
 		req.Host = targetURL.Host
 	}
 
-	listenAddr := ":" + task.ListenPort
 	server := &http.Server{
-		Addr:    listenAddr,
+		Addr:    net.JoinHostPort(task.ListenAddress, task.ListenPort),
 		Handler: proxy, // 将处理器设置为我们的反向代理
 	}
 	task.httpServer = server
@@ -187,7 +186,7 @@ func (task *ProxyTask) unregisterTcpConn(conn net.Conn) {
 }
 
 func (task *ProxyTask) startUdp() error {
-	udpAddr, err := net.ResolveUDPAddr("udp", ":"+task.ListenPort)
+	udpAddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(task.ListenAddress, task.ListenPort))
 	if err != nil {
 		logger.Error("[sys] udp proxy failed to resolve listen address", zap.Error(err))
 		return err

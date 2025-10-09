@@ -17,6 +17,7 @@ type ProxyBasic struct {
 	Uuid          string `json:"uuid"`                                                      // 唯一标识
 	Name          string `json:"name"`                                                      // 代理名称
 	Type          string `json:"type"`                                                      // 代理类型
+	ListenAddress string `json:"listen_address"`                                            // 监听地址
 	ListenPort    string `json:"listen_port"`                                               // 监听端口
 	TargetAddress string `json:"target_address"`                                            // 目标地址
 	TargetPort    string `json:"target_port"`                                               // 目标端口
@@ -50,6 +51,9 @@ func (table *ProxyBasic) CountForPort() (int64, error) {
 	tx := DB.Model(table)
 	if table.Uuid != "" {
 		tx = tx.Where("uuid != ?", table.Uuid)
+	}
+	if table.ListenAddress != "" {
+		tx = tx.Where("listen_address = ?", table.ListenAddress)
 	}
 	if table.ListenPort != "" {
 		tx = tx.Where("listen_port = ?", table.ListenPort)

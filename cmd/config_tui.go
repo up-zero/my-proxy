@@ -27,7 +27,7 @@ type selector struct {
 
 func initialModel(pb *models.ProxyBasic) model {
 	m := model{
-		inputs:  make([]textinput.Model, 4),
+		inputs:  make([]textinput.Model, 5),
 		focused: 0,
 		selector: selector{
 			options: []string{"TCP", "UDP", "HTTP"},
@@ -60,12 +60,15 @@ func initialModel(pb *models.ProxyBasic) model {
 			t.Placeholder = "proxy name"
 			t.SetValue(pb.Name)
 		case 1:
+			t.Placeholder = "eg: 192.168.1.2"
+			t.SetValue(pb.ListenAddress)
+		case 2:
 			t.Placeholder = "eg: 8080"
 			t.SetValue(pb.ListenPort)
-		case 2:
+		case 3:
 			t.Placeholder = "eg: 192.168.1.8"
 			t.SetValue(pb.TargetAddress)
-		case 3:
+		case 4:
 			t.Placeholder = "eg: 8093"
 			t.SetValue(pb.TargetPort)
 		}
@@ -126,10 +129,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			// 校验所有字段
+			// 校验必填字段
 			m.err = ""
-			for _, input := range m.inputs {
-				if input.Value() == "" {
+			for index, input := range m.inputs {
+				if index != 1 && input.Value() == "" {
 					m.err = "All fields cannot be empty"
 					return m, nil
 				}
@@ -140,9 +143,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// 新增
 				req := &proxy.CreateRequest{
 					Name:          m.inputs[0].Value(),
-					ListenPort:    m.inputs[1].Value(),
-					TargetAddress: m.inputs[2].Value(),
-					TargetPort:    m.inputs[3].Value(),
+					ListenAddress: m.inputs[1].Value(),
+					ListenPort:    m.inputs[2].Value(),
+					TargetAddress: m.inputs[3].Value(),
+					TargetPort:    m.inputs[4].Value(),
 					Type:          m.selector.options[m.selector.cursor],
 				}
 				if err := proxyClient.Create(req); err != nil {
@@ -154,9 +158,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				req := &proxy.EditRequest{
 					Uuid:          m.pb.Uuid,
 					Name:          m.inputs[0].Value(),
-					ListenPort:    m.inputs[1].Value(),
-					TargetAddress: m.inputs[2].Value(),
-					TargetPort:    m.inputs[3].Value(),
+					ListenAddress: m.inputs[1].Value(),
+					ListenPort:    m.inputs[2].Value(),
+					TargetAddress: m.inputs[3].Value(),
+					TargetPort:    m.inputs[4].Value(),
 					Type:          m.selector.options[m.selector.cursor],
 				}
 				if err := proxyClient.Edit(req); err != nil {
@@ -202,9 +207,10 @@ func (m model) View() string {
 		b.WriteString(strings.Repeat("-----", 10) + "\n")
 		b.WriteString(fmt.Sprintf("Type:           %s\n", m.selector.options[m.selector.cursor]))
 		b.WriteString(fmt.Sprintf("Name:           %s\n", m.inputs[0].Value()))
-		b.WriteString(fmt.Sprintf("Listen Port:    %s\n", m.inputs[1].Value()))
-		b.WriteString(fmt.Sprintf("Target Address: %s\n", m.inputs[2].Value()))
-		b.WriteString(fmt.Sprintf("Target Port:    %s\n", m.inputs[3].Value()))
+		b.WriteString(fmt.Sprintf("Listen Address: %s\n", m.inputs[1].Value()))
+		b.WriteString(fmt.Sprintf("Listen Port:    %s\n", m.inputs[2].Value()))
+		b.WriteString(fmt.Sprintf("Target Address: %s\n", m.inputs[3].Value()))
+		b.WriteString(fmt.Sprintf("Target Port:    %s\n", m.inputs[4].Value()))
 		return b.String()
 	}
 
@@ -229,7 +235,7 @@ func (m model) View() string {
 	b.WriteString(selectorStyle.Render(selectLabel+strings.Join(selectorOptions, "  ")) + "\n")
 
 	// 渲染输入框
-	labels := []string{"Name:          ", "Listen Port:   ", "Target Address:", "Target Port:   "}
+	labels := []string{"Name:          ", "Listen Address:", "Listen Port:   ", "Target Address:", "Target Port:   "}
 	for i, input := range m.inputs {
 		style := lipgloss.NewStyle().Padding(0, 1)
 		if m.focused == i+1 {

@@ -21,6 +21,9 @@
           <a-select-option value="HTTP">HTTP</a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item ref="listen_address" label="监听地址" name="listen_address">
+        <a-input v-model:value="ruleForm.listen_address" placeholder="default 0.0.0.0"/>
+      </a-form-item>
       <a-form-item ref="listen_port" label="监听端口" name="listen_port">
         <a-input v-model:value="ruleForm.listen_port" />
       </a-form-item>
@@ -50,6 +53,7 @@ interface RuleForm {
   uuid: string;
   name: string;
   type: string;
+  listen_address: string;
   listen_port: string;
   target_address: string;
   target_port: string;
@@ -64,6 +68,7 @@ const ruleForm = ref<RuleForm>({
   uuid: "",
   name: "",
   type: "",
+  listen_address: "",
   listen_port: "",
   target_address: "",
   target_port: "",
