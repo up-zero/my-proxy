@@ -44,6 +44,8 @@ func router() *gin.Engine {
 	auth.Use(middleware.LoginAuthCheck())
 	// 修改密码
 	auth.POST("/edit/password", BindH(user.EditPassword))
+	// Websocket 连接（抓包）
+	auth.GET("/ws/capture", serve.WebsocketCapture)
 
 	// 代理管理
 	{

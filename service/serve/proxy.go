@@ -1,7 +1,10 @@
 package serve
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/up-zero/my-proxy/logger"
@@ -24,6 +27,7 @@ var proxyTaskMap = new(sync.Map)
 func (task *ProxyTask) Start() error {
 	// 初始化 task
 	task.stopChan = make(chan struct{})
+	task.capture = GetCaptureHub()
 	task.bytesIn.Store(0)
 	task.bytesOut.Store(0)
 
@@ -94,9 +98,9 @@ func (task *ProxyTask) handleConnection(clientConn net.Conn) {
 
 	done := make(chan struct{}, 2)
 	// client -> target
-	go task.copyData(targetConn, clientConn, &task.bytesIn, done)
+	go task.copyData(targetConn, clientConn, &task.bytesIn, "IN", done)
 	// target -> client
-	go task.copyData(clientConn, targetConn, &task.bytesOut, done)
+	go task.copyData(clientConn, targetConn, &task.bytesOut, "OUT", done)
 	<-done
 }
 
@@ -128,9 +132,12 @@ func (task *ProxyTask) startHttp() error {
 		req.Host = targetURL.Host
 	}
 
+	// HTTP 中间件
+	handler := task.httpMiddleware(proxy)
+
 	server := &http.Server{
 		Addr:    net.JoinHostPort(task.ListenAddress, task.ListenPort),
-		Handler: proxy, // 将处理器设置为我们的反向代理
+		Handler: handler, // 将处理器设置为 http middleware
 	}
 	task.httpServer = server
 	task.State = models.ProxyStateRunning
@@ -145,31 +152,198 @@ func (task *ProxyTask) startHttp() error {
 	return nil
 }
 
-func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, done chan struct{}) {
+func (task *ProxyTask) httpMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isCapturing := task.capture.IsCapturing(task.Uuid)
+
+		// 抓包请求头（入站）
+		if isCapturing {
+			if dump, err := httputil.DumpRequest(r, false); err == nil {
+				task.capture.Broadcast(task.Uuid, PacketData{
+					TaskUuid:  task.Uuid,
+					Timestamp: time.Now().UnixMilli(),
+					Direction: "IN",
+					Protocol:  models.ProxyTypeHttp,
+					Payload:   hex.EncodeToString(dump),
+				})
+			}
+		}
+
+		// 包装 r.Body 并拦截数据流
+		if r.Body != nil {
+			r.Body = &httpReadCloser{
+				rc:          r.Body,
+				task:        task,
+				isCapturing: isCapturing,
+			}
+		}
+
+		next.ServeHTTP(&httpResponseWriter{
+			ResponseWriter: w,
+			task:           task,
+			isCapturing:    isCapturing,
+		}, r)
+	})
+}
+
+type httpReadCloser struct {
+	rc          io.ReadCloser
+	task        *ProxyTask
+	isCapturing bool
+}
+
+func (r *httpReadCloser) Read(p []byte) (int, error) {
+	n, err := r.rc.Read(p)
+	if n > 0 {
+		// 统计（入站）
+		r.task.bytesIn.Add(int64(n))
+
+		// 抓包（入站）
+		if r.isCapturing {
+			payload := make([]byte, n)
+			copy(payload, p[:n])
+			r.task.capture.Broadcast(r.task.Uuid, PacketData{
+				TaskUuid:  r.task.Uuid,
+				Timestamp: time.Now().UnixMilli(),
+				Direction: "IN",
+				Protocol:  models.ProxyTypeHttp,
+				Payload:   hex.EncodeToString(payload),
+			})
+		}
+	}
+	return n, err
+}
+
+func (r *httpReadCloser) Close() error {
+	return r.rc.Close()
+}
+
+type httpResponseWriter struct {
+	http.ResponseWriter
+	task        *ProxyTask
+	isCapturing bool
+	headersSent bool
+	statusCode  int
+}
+
+func (w *httpResponseWriter) WriteHeader(statusCode int) {
+	if w.headersSent {
+		return
+	}
+	w.headersSent = true
+	w.statusCode = statusCode
+
+	if w.isCapturing {
+		var headerBuf bytes.Buffer
+		// 状态行
+		fmt.Fprintf(&headerBuf, "HTTP/1.1 %d %s\r\n", statusCode, http.StatusText(statusCode))
+		w.Header().Write(&headerBuf)
+		headerBuf.WriteString("\r\n") // 头部结束
+
+		w.task.capture.Broadcast(w.task.Uuid, PacketData{
+			TaskUuid:  w.task.Uuid,
+			Timestamp: time.Now().UnixMilli(),
+			Direction: "OUT",
+			Protocol:  models.ProxyTypeHttp,
+			Payload:   hex.EncodeToString(headerBuf.Bytes()),
+		})
+	}
+
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *httpResponseWriter) Write(b []byte) (int, error) {
+	if !w.headersSent {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	n, err := w.ResponseWriter.Write(b)
+	if n > 0 {
+		// 统计（出站）
+		w.task.bytesOut.Add(int64(n))
+
+		// 抓包（出站）
+		if w.isCapturing {
+			payload := make([]byte, n)
+			copy(payload, b[:n])
+			w.task.capture.Broadcast(w.task.Uuid, PacketData{
+				TaskUuid:  w.task.Uuid,
+				Timestamp: time.Now().UnixMilli(),
+				Direction: "OUT",
+				Protocol:  models.ProxyTypeHttp,
+				Payload:   hex.EncodeToString(b[:n]),
+			})
+		}
+	}
+	return n, err
+}
+
+// Flush 流式输出
+func (w *httpResponseWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Hijack 处理器接管底层连接，用于 WebSocket、协议升级、低级连接等
+func (w *httpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("ResponseWriter does not implement Hijacker: %T", w.ResponseWriter)
+	}
+	w.headersSent = true
+	return h.Hijack()
+}
+
+// copyData 拷贝数据
+//
+// # Params:
+//
+//	dst: 目标连接
+//	src: 源连接
+//	counter: 计数器
+//	direction: 数据方向，IN-入站 OUT-出站
+//	done: 完成信号
+func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, direction string, done chan struct{}) {
 	defer func() {
 		select {
 		case done <- struct{}{}:
 		default:
 		}
 	}()
-	writer := &statsWriter{
-		Writer:  dst,
-		counter: counter,
-	}
-	io.Copy(writer, src)
-}
 
-type statsWriter struct {
-	io.Writer
-	counter *atomic.Int64
-}
+	buf := make([]byte, 32*1024) // 32KB buffer
 
-func (sw *statsWriter) Write(p []byte) (int, error) {
-	n, err := sw.Writer.Write(p)
-	if err == nil {
-		sw.counter.Add(int64(n))
+	for {
+		nr, er := src.Read(buf)
+		if nr > 0 {
+			// 开启抓包才推送
+			if task.capture.IsCapturing(task.Uuid) {
+				task.capture.Broadcast(task.Uuid, PacketData{
+					TaskUuid:  task.Uuid,
+					Timestamp: time.Now().UnixMilli(),
+					Direction: direction,
+					Protocol:  models.ProxyTypeTcp,
+					Payload:   hex.EncodeToString(buf[0:nr]),
+				})
+			}
+
+			// 写入数据
+			nw, ew := dst.Write(buf[0:nr])
+			if nw > 0 {
+				counter.Add(int64(nw))
+			}
+			if ew != nil {
+				break
+			}
+			if nr != nw {
+				break // 写入字节不匹配
+			}
+		}
+		if er != nil {
+			break // 读取错误
+		}
 	}
-	return n, err
 }
 
 func (task *ProxyTask) registerTcpConn(conn net.Conn) {
@@ -222,7 +396,20 @@ func (task *ProxyTask) startUdp() error {
 				logger.Error("[sys] read from udp error.", zap.Error(err))
 				continue
 			}
+
+			// 统计（入站）
 			task.bytesIn.Add(int64(n))
+
+			// 抓包（入站）
+			if task.capture.IsCapturing(task.Uuid) {
+				task.capture.Broadcast(task.Uuid, PacketData{
+					TaskUuid:  task.Uuid,
+					Timestamp: time.Now().UnixMilli(),
+					Direction: "IN",
+					Protocol:  models.ProxyTypeUdp,
+					Payload:   hex.EncodeToString(buffer[:n]),
+				})
+			}
 
 			clientAddrStr := clientAddr.String()
 			task.mu.Lock()
@@ -279,7 +466,20 @@ func (task *ProxyTask) handleUdpResponse(clientAddr net.Addr, targetConn *net.UD
 			return
 		}
 
+		// 统计（出站）
 		task.bytesOut.Add(int64(n))
+
+		// 抓包（出站）
+		if task.capture.IsCapturing(task.Uuid) {
+			task.capture.Broadcast(task.Uuid, PacketData{
+				TaskUuid:  task.Uuid,
+				Timestamp: time.Now().UnixMilli(),
+				Direction: "OUT",
+				Protocol:  models.ProxyTypeUdp,
+				Payload:   hex.EncodeToString(respBuffer[:n]),
+			})
+		}
+
 		_, err = task.udpListener.WriteTo(respBuffer[:n], clientAddr)
 		if err != nil {
 			return

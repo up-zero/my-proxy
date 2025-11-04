@@ -12,6 +12,7 @@ type ProxyTask struct {
 	models.ProxyBasic
 	stopChan chan struct{}
 	mu       sync.Mutex
+	capture  *CaptureHub
 	// statistic
 	bytesIn    atomic.Int64 // client -> target
 	bytesOut   atomic.Int64 // target -> client
