@@ -103,7 +103,7 @@ sudo supervisorctl restart my-proxy
 4. 使用以下命令能获取到版本信息，说明安装成功了
 
 ```bash
-my-proxy info
+sudo my-proxy info
 
 # 输出如下所示的信息
 my-proxy 1.0.0
