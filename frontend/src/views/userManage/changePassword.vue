@@ -1,16 +1,7 @@
 <template>
-  <div>
-    <a-form
-      ref="ruleFormRef"
-      style="max-width: 600px"
-      :model="ruleForm"
-      :rules="rules"
-      laba-width="auto"
-      class="demo-ruleForm"
-      :size="formSize"
-      status-icon
-      :label-col="{ span: 4 }"
-    >
+  <a-modal v-model:open="showbox" title="修改密码" width="500px" center>
+    <a-form ref="ruleFormRef" style="max-width: 600px" :model="ruleForm" :rules="rules" laba-width="auto"
+      class="demo-ruleForm" :size="formSize" status-icon :label-col="{ span: 4 }">
       <a-form-item label="旧密码" name="old_password" laba-position="top">
         <a-input-password v-model:value="ruleForm.old_password" />
       </a-form-item>
@@ -22,14 +13,15 @@
         <a-input-password v-model:value="ruleForm.re_password" />
       </a-form-item>
     </a-form>
-
-    <div class="dialog-footer">
-      <a-button type="primary" @click="submitForm(ruleFormRef)">
-        确定
-      </a-button>
-      <a-button @click="cancel">取消</a-button>
-    </div>
-  </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <a-button type="primary" @click="submitForm(ruleFormRef)">
+          确定
+        </a-button>
+        <a-button @click="cancel">取消</a-button>
+      </div>
+    </template>
+  </a-modal>
 </template>
 <script lang="ts" setup>
 import { message } from "ant-design-vue";
@@ -94,7 +86,21 @@ const resetForm = () => {
 
 const cancel = () => {
   resetForm();
+  showbox.value = false;
 };
+
+
+const showbox = ref(false);
+
+const init = () => {
+
+  ruleForm.value = {} as RuleForm;
+
+
+  showbox.value = true;
+};
+
+defineExpose({ init });
 </script>
 
 <style scoped lang="less"></style>

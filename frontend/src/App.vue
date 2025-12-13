@@ -72,13 +72,17 @@
           </a-breadcrumb>
 
           <RouterView class="p-page" />
+          <div class="footer">
+            <a href="https://github.com/up-zero/my-proxy" target="_blank">@up-zero</a></div>
         </div>
       </div>
+      <passwordBox ref="passwordBoxRef" />
     </template>
   </a-config-provider>
 </template>
 
 <script setup lang="ts">
+  import passwordBox from '@/views/userManage/changePassword.vue'
 import zhCN from "ant-design-vue/es/locale/zh_CN";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
@@ -90,6 +94,7 @@ const locale = ref(zhCN);
 const user = store.useUserStore();
 const route = useRoute();
 const router = useRouter();
+const passwordBoxRef = ref();
 
 const getMenu = (menus: any) => {
   let res: any = [];
@@ -131,7 +136,9 @@ const topMenuClick = ({ key }: any) => {
   if (key === "out") {
     logout();
   } else if (key === "cp") {
-    router.push("/changePassword");
+    passwordBoxRef.value.init();
+
+    // router.push("/changePassword");
   }
 };
 </script>
@@ -207,8 +214,19 @@ const topMenuClick = ({ key }: any) => {
     background-color: #fff;
     padding: 20px;
     margin-top: 20px;
-    height: calc(100vh - @headerHeight - 70px);
+    height: calc(100vh - @headerHeight - 100px);
     overflow-y: auto;
+  }
+  .footer{
+    
+   line-height: 30px;
+    text-align: center;
+    font-size: 12px;
+    a{
+      text-decoration: none;
+    color: #999;
+
+    }
   }
 }
 </style>
