@@ -1,23 +1,26 @@
 <template>
   <div class="p-page">
     <!-- 搜索 -->
-
     <a-form :model="state.query" class="m-search">
-      <a-button type="primary" @click="toAddPage" class="mr-2">新增</a-button>
-      <fileUpload @success="getList" />
-
-      <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length"
-        class="mr-2">导出</a-button>
-      <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">删除</a-button>
+      <div style="display: flex; justify-content: space-between;">
+        <div>
+          <a-button type="primary" @click="toAddPage" class="mr-2">新增</a-button>
+          <fileUpload @success="getList" />
+          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">导出</a-button>
+          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">删除</a-button>
+        </div>
+        <div>
+          <a-button type="primary" @click="getList">刷新</a-button>
+        </div>
+      </div>
     </a-form>
 
     <!-- 表格 -->
-
     <a-table :scroll="{ y: 'calc(100vh - 320px)' }" :dataSource="state.list" :columns="columns" bordered
       :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
         selectedRowKeys: selectedRowKeys,
         onChange: onSelectChange,
-      }">
+      }" size="middle">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'state'">
           <span class="state-span danger" v-if="record.state === 'STOPPED'">已停止</span>
@@ -25,7 +28,7 @@
         </template>
         <template v-if="column.key === 'traffic_in'">
 
-          <span class="traf-span">{{ getNum(record.traffic_out) }}/{{ getNum(record.traffic_in) }}</span>
+          <span class="traf-span">{{ getNum(record.traffic_out) }} / {{ getNum(record.traffic_in) }}</span>
 
         </template>
         <template v-else-if="column.key === 'operation'">
@@ -274,6 +277,18 @@ const delBatch = () => {
 
   .m-search {
     margin-bottom: 10px;
+  }
+
+  .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
+    background-color: #fafafa; /* 设置偶数浅色斑马纹 */
+  }
+
+  .m-table :deep(.ant-table-thead) > tr > th {
+    background-color: #fff !important; /* 表头为白色 */
+  }
+
+  .m-table :deep(.ant-table-tbody) > tr:hover td {
+    background-color: #f0f8ff !important; /* 鼠标悬停时使用浅蓝色 */
   }
 
   .mr-2 {
