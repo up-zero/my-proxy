@@ -61,8 +61,10 @@ my-proxy stop <name>
 # 重启代理
 my-proxy restart <name>
 
-# 创建代理
+# TUI创建代理
 my-proxy create <name>
+# 快速创建代理
+my-proxy create --name my_proxy --type TCP --lport 9090 --taddr 192.168.1.1 --tport 9000
 
 # 编辑代理
 my-proxy edit <name>
