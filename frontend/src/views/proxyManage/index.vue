@@ -31,6 +31,9 @@
           <span class="traf-span">{{ getNum(record.traffic_out) }} / {{ getNum(record.traffic_in) }}</span>
 
         </template>
+        <template v-if="column.key === 'listen_port'">
+          <a @click="showQuickAccessModal(record)" class="port-link">{{ record.listen_port }}</a>
+        </template>
         <template v-else-if="column.key === 'operation'">
           <a-popconfirm v-if="state.list.length" title="确定删除?" @confirm="delItem(record)">
             <a-button type="link">删除</a-button>
@@ -52,6 +55,35 @@
 
 
     <addBox ref="addBoxRef" @get-list="getList" />
+
+    <!-- 快捷访问弹窗 -->
+    <a-modal v-model:open="quickAccessModalVisible" title="快捷访问" width="735px" center footer="">
+      <div class="quick-access-modal" style="margin-top: 15px;">
+        <!-- SSH用户名输入框 -->
+        <div style="margin-bottom: 16px;">
+          <a-form-item label="SSH用户名" style="margin-bottom: 0;">
+            <a-input v-model:value="sshUser" @input="saveSshUser" placeholder="请输入SSH用户名" style="width: 300px;">
+              <template #addonAfter>
+                <a-tooltip title="需要SSH登录时，才需要输入">
+                  <info-circle-outlined />
+                </a-tooltip>
+              </template>
+            </a-input>
+          </a-form-item>
+        </div>
+        
+        <a-table :data-source="quickLinks" :columns="linkColumns" bordered size="middle" :pagination="false">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'action'">
+              <a-button type="primary" :disabled="record.disabled" @click="openLink(record.url)">{{ record.label }}</a-button>
+            </template>
+          </template>
+        </a-table>
+        <div style="margin-top: 24px; text-align: right;">
+          <a-button @click="quickAccessModalVisible = false">关闭</a-button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -66,9 +98,9 @@ import {
   exportProxy,
 } from "@/api/proxy";
 import addBox from "./add.vue";
-import { ExclamationCircleOutlined } from "@ant-design/icons-vue";
+import { ExclamationCircleOutlined, InfoCircleOutlined } from "@ant-design/icons-vue";
 import { message, Modal } from "ant-design-vue";
-import { createVNode, onMounted, reactive, ref } from "vue";
+import { createVNode, onMounted, reactive, ref, computed } from "vue";
 import { downloadJson } from "@/lib/download";
 import fileUpload from "./fileUpload.vue";
 
@@ -98,6 +130,88 @@ const state = reactive({
   total: 0,
   checkList: [] as string[],
 });
+
+// 快捷访问弹窗相关
+const quickAccessModalVisible = ref(false);
+const currentPort = ref("");
+const sshUser = ref(localStorage.getItem('sshUser') || '');
+
+// 保存SSH用户到本地存储
+const saveSshUser = () => {
+  localStorage.setItem('sshUser', sshUser.value);
+};
+
+// 链接表格列定义
+const linkColumns = [
+  {
+    title: "名称",
+    dataIndex: "name",
+    key: "name",
+    width: 135,
+  },
+  {
+    title: "链接",
+    dataIndex: "url",
+    key: "url",
+    ellipsis: true,
+  },
+  {
+    title: "操作",
+    dataIndex: "action",
+    key: "action",
+    width: 185,
+  },
+];
+
+// 获取当前域
+const getCurrentDomain = () => {
+  return window.location.hostname;
+};
+
+// 快捷链接配置
+const quickLinks = computed(() => {
+  const domain = getCurrentDomain();
+  return [
+    {
+      key: "1",
+      name: "Web",
+      label: "Web访问",
+      url: `http://${domain}:${currentPort.value}`,
+      disabled: false
+    },
+    {
+      key: "2",
+      name: "MobaXterm(SSH)",
+      label: "打开MobaXterm(SSH)",
+      url: generateMobaSSHUrl(domain, currentPort.value, currentRecord.value.name),
+      disabled: !sshUser.value
+    },
+  ];
+});
+
+// 生成 MobaXterm SSH 连接 URL
+const generateMobaSSHUrl = (ip: string, port: string, sessionName: string) => {
+  const encodedSessionName = encodeURIComponent(sessionName);
+  const encodedIp = encodeURIComponent(ip);
+  const user = sshUser.value;
+  const suffix = `%25%25%2D1%25%2D1%25%25%25%25%250%250%250%25%25%25%2D1%250%250%250%25%251080%25%250%250%251%25%250%25%25%25%250%25%2D1%25%2D1%250%23MobaFont%2510%250%250%25%2D1%2515%25236%2C236%2C236%2530%2C30%2C30%25180%2C180%2C192%250%25%2D1%250%25%25xterm%25%2D1%250%25%5FStd%5FColors%5F0%5F%2580%2524%250%251%25%2D1%25%3Cnone%3E%25%250%250%25%2D1%25%2D1%230%23%20%23%2D1`;
+
+  return `mobaxterm:${encodedSessionName}%3D%23109%230%25${encodedIp}%25${port}%25${user}${suffix}`;
+};
+
+// 打开链接
+const openLink = (url: string) => {
+  window.open(url, "_blank");
+};
+
+// 显示快捷访问弹窗
+const currentRecord = ref<any>(null);
+const showQuickAccessModal = (record: any) => {
+  currentRecord.value = record;
+  currentPort.value = record.listen_port;
+  quickAccessModalVisible.value = true;
+};
+
 const getNum = (num:number) => {
   if (num < 1024) {
     return num + 'B'
@@ -125,6 +239,7 @@ const columns = [
     dataIndex: "name",
     title: "名称",
     key: "name",
+    width: 200,
   },
   {
     title: "类型",
@@ -161,6 +276,7 @@ const columns = [
     title: "出/入站流量 ",
     dataIndex: "traffic_in",
     key: "traffic_in",
+    width: 175,
     // slots: { customRender: "state" },
   },
   {
@@ -316,6 +432,17 @@ const delBatch = () => {
 
   .m-page {
     margin-top: 30px;
+  }
+
+  /* 监听端口链接样式 */
+  .port-link {
+    color: #1890ff;
+    text-decoration: none;
+    cursor: pointer;
+    &:hover {
+      color: #40a9ff;
+      text-decoration: underline;
+    }
   }
 }
 </style>
