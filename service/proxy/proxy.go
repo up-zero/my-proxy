@@ -6,31 +6,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/convertutil"
 	"github.com/up-zero/gotool/idutil"
+	"github.com/up-zero/gotool/sliceutil"
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/service/serve"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
+	"strings"
 )
 
 // Status 获取代理状态
 func Status(c *gin.Context, in *StatusRequest) {
 	task := serve.ProxyTask{}
-	if in.Name != "" && in.Name != "all" {
-		// 获取单条任务
-		pb := models.ProxyBasic{Name: in.Name}
-		if err := pb.First(); err != nil {
-			logger.Error("[db] proxy basic first error.", zap.Error(err))
-			util.ResponseError(c, util.ErrProxyNotExist)
-			return
-		}
-		task.Uuid = pb.Uuid
-	}
 	tasks, err := task.Status()
 	if err != nil {
 		logger.Error("[sys] proxy task status error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return
+	}
+	if in.Name != "" {
+		tasks = sliceutil.Filter(tasks, func(pt *serve.ProxyTask) bool {
+			return strings.Contains(pt.Name, in.Name)
+		})
 	}
 	util.ResponseOkWithList(c, tasks)
 }

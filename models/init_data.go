@@ -12,7 +12,7 @@ func initUserData() {
 	// admin
 	ub := &UserBasic{
 		Username: "admin",
-		Password: randomutil.RandomAlphaNumber(8),
+		Password: randomutil.Alphanumeric(8),
 		Level:    "root",
 	}
 	if err := DB.FirstOrCreate(ub, &UserBasic{Username: ub.Username}).Error; err != nil {

@@ -2,15 +2,16 @@
   <div class="p-page">
     <!-- 搜索 -->
     <a-form :model="state.query" class="m-search">
-      <div style="display: flex; justify-content: space-between;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
           <a-button type="primary" @click="toAddPage" class="mr-2">新增</a-button>
           <fileUpload @success="getList" />
           <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">导出</a-button>
           <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">删除</a-button>
         </div>
-        <div>
-          <a-button type="primary" @click="getList">刷新</a-button>
+        <div style="display: flex; align-items: center;">
+          <a-input v-model:value="state.query.name" placeholder="请输入代理名称" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
+          <a-button type="primary" @click="getList">搜索</a-button>
         </div>
       </div>
     </a-form>
@@ -116,7 +117,7 @@ interface DataItem {
 }
 
 const QUERY = (): any => ({
-  search: "",
+  name: "",
   page: 1,
   per_page: 10,
   position: 1,
