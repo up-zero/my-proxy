@@ -2,23 +2,25 @@ package app
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/up-zero/my-proxy/frontend"
-	"github.com/up-zero/my-proxy/logger"
-	"github.com/up-zero/my-proxy/middleware"
-	"github.com/up-zero/my-proxy/models"
-	"github.com/up-zero/my-proxy/service/info"
-	"github.com/up-zero/my-proxy/service/proxy"
-	"github.com/up-zero/my-proxy/service/serve"
-	"github.com/up-zero/my-proxy/service/user"
-	"github.com/up-zero/my-proxy/util"
-	"go.uber.org/zap"
 	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/gin-gonic/gin"
+	"github.com/up-zero/my-proxy/frontend"
+	"github.com/up-zero/my-proxy/logger"
+	"github.com/up-zero/my-proxy/middleware"
+	"github.com/up-zero/my-proxy/models"
+	"github.com/up-zero/my-proxy/service/group"
+	"github.com/up-zero/my-proxy/service/info"
+	"github.com/up-zero/my-proxy/service/proxy"
+	"github.com/up-zero/my-proxy/service/serve"
+	"github.com/up-zero/my-proxy/service/user"
+	"github.com/up-zero/my-proxy/util"
+	"go.uber.org/zap"
 )
 
 func router() *gin.Engine {
@@ -70,6 +72,19 @@ func router() *gin.Engine {
 		authProxy.POST("/stop", BindH(proxy.Stop))
 		// 重启代理
 		authProxy.POST("/restart", BindH(proxy.Restart))
+	}
+
+	// 分组管理
+	{
+		authGroup := auth.Group("/group")
+		// 分组列表
+		authGroup.POST("/list", BindH(group.List))
+		// 新增分组
+		authGroup.POST("/create", BindH(group.Create))
+		// 修改分组
+		authGroup.POST("/update", BindH(group.Update))
+		// 删除分组
+		authGroup.POST("/delete", BindH(group.Delete))
 	}
 
 	// 用户管理

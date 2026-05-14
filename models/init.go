@@ -1,11 +1,12 @@
 package models
 
 import (
+	"time"
+
 	"github.com/glebarez/sqlite"
 	"github.com/up-zero/my-proxy/util"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 var DB *gorm.DB
@@ -25,7 +26,7 @@ func NewGormDB() {
 		panic(err)
 	}
 	// 数据库迁移
-	err = db.AutoMigrate(&ProxyBasic{}, &UserBasic{}, &ConfigBasic{})
+	err = db.AutoMigrate(&GroupBasic{}, &ProxyBasic{}, &UserBasic{}, &ConfigBasic{})
 	if err != nil {
 		panic(err)
 	}

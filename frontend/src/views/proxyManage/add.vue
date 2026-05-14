@@ -1,5 +1,5 @@
 <template>
-  <a-modal v-model:open="showbox" title="添加代理" width="500px" center>
+  <a-modal v-model:open="showbox" :title="modalTitle" width="500px" center>
     <a-form
       ref="ruleFormRef"
       style="max-width: 600px"
@@ -13,6 +13,13 @@
     >
       <a-form-item ref="name" label="名称" name="name" laba-position="top">
         <a-input v-model:value="ruleForm.name" />
+      </a-form-item>
+      <a-form-item label="分组" name="group_uuid">
+        <a-select v-model:value="ruleForm.group_uuid" allow-clear placeholder="请选择分组">
+          <a-select-option v-for="item in groupList" :key="item.uuid" :value="item.uuid">
+            {{ item.name }}
+          </a-select-option>
+        </a-select>
       </a-form-item>
       <a-form-item ref="type" label="类型" name="type">
         <a-select v-model:value="ruleForm.type" placeholder="please select">
@@ -46,12 +53,14 @@
 </template>
 <script lang="ts" setup>
 import { message } from "ant-design-vue";
-import { ref, reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 import { addProxy, editProxy } from "@/api/proxy";
+import { getGroupList } from "@/api/group";
 
 interface RuleForm {
   uuid: string;
   name: string;
+  group_uuid: string;
   type: string;
   listen_address: string;
   listen_port: string;
@@ -62,17 +71,22 @@ interface RuleForm {
 
 const emit = defineEmits(["getList"]);
 
-const formSize = ref("default");
-const ruleFormRef = ref();
-const ruleForm = ref<RuleForm>({
+const createForm = (): RuleForm => ({
   uuid: "",
   name: "",
+  group_uuid: "",
   type: "",
   listen_address: "",
   listen_port: "",
   target_address: "",
   target_port: "",
 });
+
+const formSize = ref("default");
+const ruleFormRef = ref();
+const ruleForm = ref<RuleForm>(createForm());
+const groupList = ref([] as any[]);
+const modalTitle = computed(() => (ruleForm.value.uuid ? "编辑代理" : "添加代理"));
 
 const rules = reactive({
   name: [{ required: true, message: "请输入", trigger: "blur" }],
@@ -81,7 +95,12 @@ const rules = reactive({
   target_port: [{ required: true, message: "请输入", trigger: "blur" }],
   type: [{ required: true, message: "请输入", trigger: "change" }],
 });
-const props = defineProps(["comfirmApi"]);
+
+const loadGroups = async () => {
+  const res = await getGroupList({});
+  groupList.value = res.data || [];
+};
+
 const submitForm = async (formEl: any | undefined) => {
   if (!formEl) return;
   await formEl
@@ -107,7 +126,8 @@ const submitForm = async (formEl: any | undefined) => {
 };
 
 const resetForm = () => {
-  ruleFormRef.value.resetFields();
+  ruleFormRef.value?.resetFields();
+  ruleForm.value = createForm();
 };
 
 const cancel = () => {
@@ -117,11 +137,12 @@ const cancel = () => {
 
 const showbox = ref(false);
 
-const init = (row: RuleForm) => {
+const init = async (row?: RuleForm) => {
+  await loadGroups();
   if (row) {
-    ruleForm.value = { ...row };
+    ruleForm.value = { ...createForm(), ...row };
   } else {
-    ruleForm.value = {} as RuleForm;
+    ruleForm.value = createForm();
   }
 
   showbox.value = true;

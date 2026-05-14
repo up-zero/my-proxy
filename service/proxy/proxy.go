@@ -3,6 +3,8 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/convertutil"
 	"github.com/up-zero/gotool/idutil"
@@ -12,8 +14,33 @@ import (
 	"github.com/up-zero/my-proxy/service/serve"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
-	"strings"
 )
+
+func loadProxyGroupMap() (map[string]string, error) {
+	list := make([]*models.GroupBasic, 0)
+	if err := models.DB.Model(new(models.GroupBasic)).Find(&list).Error; err != nil {
+		logger.Error("[db] get group list error.", zap.Error(err))
+		return nil, err
+	}
+	groupMap := make(map[string]string, len(list))
+	for _, item := range list {
+		groupMap[item.Uuid] = item.Name
+	}
+	return groupMap, nil
+}
+
+func loadProxyBasicMap() (map[string]*models.ProxyBasic, error) {
+	list := make([]*models.ProxyBasic, 0)
+	if err := models.DB.Model(new(models.ProxyBasic)).Find(&list).Error; err != nil {
+		logger.Error("[db] get proxy list error.", zap.Error(err))
+		return nil, err
+	}
+	proxyMap := make(map[string]*models.ProxyBasic, len(list))
+	for _, item := range list {
+		proxyMap[item.Uuid] = item
+	}
+	return proxyMap, nil
+}
 
 // Status 获取代理状态
 func Status(c *gin.Context, in *StatusRequest) {
@@ -24,9 +51,30 @@ func Status(c *gin.Context, in *StatusRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+	proxyMap, err := loadProxyBasicMap()
+	if err != nil {
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	groupMap, err := loadProxyGroupMap()
+	if err != nil {
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	for _, item := range tasks {
+		if pb, ok := proxyMap[item.Uuid]; ok {
+			item.GroupUuid = pb.GroupUuid
+			item.GroupName = groupMap[pb.GroupUuid]
+		}
+	}
 	if in.Name != "" {
 		tasks = sliceutil.Filter(tasks, func(pt *serve.ProxyTask) bool {
 			return strings.Contains(pt.Name, in.Name)
+		})
+	}
+	if in.GroupUuid != "" {
+		tasks = sliceutil.Filter(tasks, func(pt *serve.ProxyTask) bool {
+			return pt.GroupUuid == in.GroupUuid
 		})
 	}
 	util.ResponseOkWithList(c, tasks)
@@ -34,6 +82,12 @@ func Status(c *gin.Context, in *StatusRequest) {
 
 // savePreValid 判断代理信息是否有效
 func savePreValid(pb *models.ProxyBasic) error {
+	if pb.GroupUuid != "" {
+		if err := (&models.GroupBasic{Uuid: pb.GroupUuid}).First(); err != nil {
+			logger.Error("[db] get group basic error.", zap.Error(err))
+			return fmt.Errorf("group does not exist")
+		}
+	}
 	// 名称判重
 	count, err := pb.CountForName()
 	if err != nil {
@@ -129,7 +183,16 @@ func Edit(c *gin.Context, in *EditRequest) {
 	}
 
 	// 落库
-	if err := models.DB.Model(pb).Where("uuid = ?", pb.Uuid).Updates(pb).Error; err != nil {
+	if err := models.DB.Model(new(models.ProxyBasic)).Where("uuid = ?", pb.Uuid).Updates(map[string]any{
+		"name":           pb.Name,
+		"group_uuid":     pb.GroupUuid,
+		"type":           pb.Type,
+		"listen_address": pb.ListenAddress,
+		"listen_port":    pb.ListenPort,
+		"target_address": pb.TargetAddress,
+		"target_port":    pb.TargetPort,
+		"state":          pb.State,
+	}).Error; err != nil {
 		logger.Error("[sys] proxy basic updates error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return

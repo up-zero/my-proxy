@@ -16,6 +16,8 @@ var (
 type ProxyBasic struct {
 	Uuid          string `json:"uuid"`                                                      // 唯一标识
 	Name          string `json:"name"`                                                      // 代理名称
+	GroupUuid     string `json:"group_uuid"`                                                // 分组唯一标识
+	GroupName     string `gorm:"-" json:"group_name,omitempty"`                             // 分组名称
 	Type          string `json:"type"`                                                      // 代理类型
 	ListenAddress string `json:"listen_address"`                                            // 监听地址
 	ListenPort    string `json:"listen_port"`                                               // 监听端口

@@ -28,6 +28,14 @@ const router = createRouter({
           },
           component: () => import("../views/proxyManage/index.vue"),
         },
+        {
+          path: "/proxyManage/group",
+          name: "分组管理",
+          meta: {
+            isMenu: true,
+          },
+          component: () => import("../views/proxyManage/group/index.vue"),
+        },
       ],
     },
     {

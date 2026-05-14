@@ -11,6 +11,11 @@
         </div>
         <div style="display: flex; align-items: center;">
           <a-input v-model:value="state.query.name" placeholder="请输入代理名称" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
+          <a-select v-model:value="state.query.group_uuid" allow-clear placeholder="请选择分组" style="width: 180px; margin-right: 8px;">
+            <a-select-option v-for="item in state.groupList" :key="item.uuid" :value="item.uuid">
+              {{ item.name }}
+            </a-select-option>
+          </a-select>
           <a-button type="primary" @click="getList">搜索</a-button>
         </div>
       </div>
@@ -26,6 +31,9 @@
         <template v-if="column.key === 'state'">
           <span class="state-span danger" v-if="record.state === 'STOPPED'">已停止</span>
           <span class="state-span success" v-else-if="record.state === 'RUNNING'">运行中</span>
+        </template>
+        <template v-else-if="column.key === 'group_name'">
+          <span>{{ record.group_name || '-' }}</span>
         </template>
         <template v-if="column.key === 'traffic_in'">
 
@@ -98,6 +106,7 @@ import {
   delBacthProxy,
   exportProxy,
 } from "@/api/proxy";
+import { getGroupList } from "@/api/group";
 import addBox from "./add.vue";
 import { ExclamationCircleOutlined, InfoCircleOutlined } from "@ant-design/icons-vue";
 import { message, Modal } from "ant-design-vue";
@@ -109,6 +118,8 @@ import fileUpload from "./fileUpload.vue";
 interface DataItem {
   uuid: string;
   name: string;
+  group_uuid?: string;
+  group_name?: string;
   type: string;
   listen_port: string;
   target_address: string;
@@ -118,6 +129,7 @@ interface DataItem {
 
 const QUERY = (): any => ({
   name: "",
+  group_uuid: "",
   page: 1,
   per_page: 10,
   position: 1,
@@ -128,6 +140,7 @@ const state = reactive({
   isLoading: false,
   query: QUERY(),
   list: [] as any,
+  groupList: [] as any,
   total: 0,
   checkList: [] as string[],
 });
@@ -226,7 +239,8 @@ const getNum = (num:number) => {
     return (num / (1024 * 1024 * 1024 * 1024)).toFixed(2) + 'TB'
   }
 }
-onMounted(() => {
+onMounted(async () => {
+  await loadGroups();
   getList();
 });
 const columns = [
@@ -241,6 +255,12 @@ const columns = [
     title: "名称",
     key: "name",
     width: 200,
+  },
+  {
+    dataIndex: "group_name",
+    title: "分组",
+    key: "group_name",
+    width: 160,
   },
   {
     title: "类型",
@@ -289,6 +309,11 @@ const columns = [
   },
 ];
 /*****************表格******************* */
+
+async function loadGroups() {
+  const res = await getGroupList({});
+  state.groupList = res.data || [];
+}
 
 // 获取列表
 async function getList() {

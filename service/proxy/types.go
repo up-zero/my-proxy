@@ -1,11 +1,13 @@
 package proxy
 
 type StatusRequest struct {
-	Name string `json:"name"` // 代理名称
+	Name      string `json:"name"`       // 代理名称
+	GroupUuid string `json:"group_uuid"` // 分组唯一标识
 }
 
 type CreateRequest struct {
 	Name          string `json:"name" binding:"required"` // 代理名称
+	GroupUuid     string `json:"group_uuid"`              // 分组唯一标识
 	Type          string `json:"type"`                    // 代理类型
 	ListenAddress string `json:"listen_address"`          // 监听地址
 	ListenPort    string `json:"listen_port"`             // 监听端口
@@ -16,6 +18,7 @@ type CreateRequest struct {
 type EditRequest struct {
 	Uuid          string `json:"uuid"`                    // 代理唯一标识
 	Name          string `json:"name" binding:"required"` // 代理名称
+	GroupUuid     string `json:"group_uuid"`              // 分组唯一标识
 	Type          string `json:"type"`                    // 代理类型
 	ListenAddress string `json:"listen_address"`          // 监听地址
 	ListenPort    string `json:"listen_port"`             // 监听端口
