@@ -11,7 +11,7 @@
         </div>
         <div style="display: flex; align-items: center;">
           <a-input v-model:value="state.query.name" placeholder="请输入代理名称" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
-          <a-select v-model:value="state.query.group_uuid" allow-clear placeholder="请选择分组" style="width: 180px; margin-right: 8px;">
+          <a-select v-model:value="state.query.group_uuid" allow-clear placeholder="请选择分组名称" style="width: 180px; margin-right: 8px;">
             <a-select-option v-for="item in state.groupList" :key="item.uuid" :value="item.uuid">
               {{ item.name }}
             </a-select-option>
@@ -129,7 +129,7 @@ interface DataItem {
 
 const QUERY = (): any => ({
   name: "",
-  group_uuid: "",
+  group_uuid: undefined,
   page: 1,
   per_page: 10,
   position: 1,

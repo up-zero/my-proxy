@@ -11,7 +11,7 @@
       <a-button type="primary" @click="getList">搜索</a-button>
     </a-form>
 
-    <a-table :dataSource="state.list" :columns="columns" bordered :pagination="false" class="m-table">
+    <a-table :dataSource="state.list" :columns="columns" bordered :pagination="false" class="m-table" size="middle">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'created_at'">
           <span>{{ parseTime(record.created_at) }}</span>

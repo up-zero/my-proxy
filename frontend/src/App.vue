@@ -36,8 +36,10 @@
         <!-- 菜单 -->
         <div class="m-side">
           <a-menu
+            mode="inline"
             :default-active="route.path"
             :selectedKeys="[route.path]"
+            :openKeys="openKeys"
             @click="routerTo"
           >
             <template v-for="item in menus">
@@ -122,6 +124,11 @@ const getMenu = (menus: any) => {
 };
 const menus = computed(() => {
   return getMenu(router.options.routes);
+});
+const openKeys = computed(() => {
+  return menus.value
+    .filter((item: any) => item.children && item.children.length > 0)
+    .map((item: any) => item.path);
 });
 
 // 退出登录
