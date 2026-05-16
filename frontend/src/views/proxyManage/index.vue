@@ -173,7 +173,7 @@ const linkColumns = [
     title: "操作",
     dataIndex: "action",
     key: "action",
-    width: 185,
+    width: 200,
   },
 ];
 
@@ -185,6 +185,10 @@ const getCurrentDomain = () => {
 // 快捷链接配置
 const quickLinks = computed(() => {
   const domain = getCurrentDomain();
+  const currentName = currentRecord.value?.name || "";
+  const hasSshUser = !!sshUser.value;
+  const hasPort = !!currentPort.value;
+
   return [
     {
       key: "1",
@@ -197,8 +201,15 @@ const quickLinks = computed(() => {
       key: "2",
       name: "MobaXterm(SSH)",
       label: "打开MobaXterm(SSH)",
-      url: generateMobaSSHUrl(domain, currentPort.value, currentRecord.value.name),
-      disabled: !sshUser.value
+      url: generateMobaSSHUrl(domain, currentPort.value, currentName),
+      disabled: !hasSshUser || !hasPort
+    },
+    {
+      key: "3",
+      name: "WinSCP(SFTP)",
+      label: "打开WinSCP(SFTP)",
+      url: generateWinScpUrl(domain, currentPort.value),
+      disabled: !hasSshUser || !hasPort
     },
   ];
 });
@@ -211,6 +222,14 @@ const generateMobaSSHUrl = (ip: string, port: string, sessionName: string) => {
   const suffix = `%25%25%2D1%25%2D1%25%25%25%25%250%250%250%25%25%25%2D1%250%250%250%25%251080%25%250%250%251%25%250%25%25%25%250%25%2D1%25%2D1%250%23MobaFont%2510%250%250%25%2D1%2515%25236%2C236%2C236%2530%2C30%2C30%25180%2C180%2C192%250%25%2D1%250%25%25xterm%25%2D1%250%25%5FStd%5FColors%5F0%5F%2580%2524%250%251%25%2D1%25%3Cnone%3E%25%250%250%25%2D1%25%2D1%230%23%20%23%2D1`;
 
   return `mobaxterm:${encodedSessionName}%3D%23109%230%25${encodedIp}%25${port}%25${user}${suffix}`;
+};
+
+// 生成 WinSCP SFTP 连接 URL（若本地无已保存会话，则以临时会话方式直接打开）
+const generateWinScpUrl = (ip: string, port: string) => {
+  const user = encodeURIComponent(sshUser.value);
+  const host = encodeURIComponent(ip);
+
+  return `winscp-sftp://${user}@${host}:${port}/`;
 };
 
 // 打开链接
