@@ -4,12 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/up-zero/my-proxy/logger"
-	"github.com/up-zero/my-proxy/models"
-	"go.uber.org/zap"
 	"io"
 	"net"
 	"net/http"
@@ -19,9 +17,31 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/up-zero/my-proxy/logger"
+	"github.com/up-zero/my-proxy/models"
+	"go.uber.org/zap"
 )
 
 var proxyTaskMap = new(sync.Map)
+
+const (
+	socks5Version              = 0x05
+	socks5AuthNone             = 0x00
+	socks5AuthNoAcceptable     = 0xFF
+	socks5CmdConnect           = 0x01
+	socks5AtypIPv4             = 0x01
+	socks5AtypDomain           = 0x03
+	socks5AtypIPv6             = 0x04
+	socks5ReplySucceeded       = 0x00
+	socks5ReplyGeneralFailure  = 0x01
+	socks5ReplyCommandNotAllow = 0x07
+	socks5ReplyAddrNotAllow    = 0x08
+)
+
+func isNetClosedError(err error) bool {
+	return errors.Is(err, net.ErrClosed)
+}
 
 // Start 启动任务
 func (task *ProxyTask) Start() error {
@@ -40,6 +60,8 @@ func (task *ProxyTask) Start() error {
 		err = task.startUdp()
 	case models.ProxyTypeHttp:
 		err = task.startHttp()
+	case models.ProxyTypeSocks5:
+		err = task.startSocks5()
 	default:
 		err = fmt.Errorf("proxy type(%s) not support", task.Type)
 	}
@@ -74,6 +96,9 @@ func (task *ProxyTask) startTcp() error {
 					if errors.As(err, &opErr) && opErr.Timeout() {
 						continue
 					}
+					if isNetClosedError(err) {
+						return
+					}
 					logger.Error("[sys] proxy task accept error", zap.Error(err))
 					continue
 				}
@@ -98,10 +123,214 @@ func (task *ProxyTask) handleConnection(clientConn net.Conn) {
 
 	done := make(chan struct{}, 2)
 	// client -> target
-	go task.copyData(targetConn, clientConn, &task.bytesIn, "IN", done)
+	go task.copyData(targetConn, clientConn, &task.bytesIn, "IN", models.ProxyTypeTcp, done)
 	// target -> client
-	go task.copyData(clientConn, targetConn, &task.bytesOut, "OUT", done)
+	go task.copyData(clientConn, targetConn, &task.bytesOut, "OUT", models.ProxyTypeTcp, done)
 	<-done
+}
+
+func (task *ProxyTask) startSocks5() error {
+	task.tcpActiveConn = make(map[net.Conn]struct{})
+	listener, err := net.Listen("tcp", net.JoinHostPort(task.ListenAddress, task.ListenPort))
+	if err != nil {
+		logger.Error("[sys] socks5 proxy task start error", zap.Error(err))
+		return err
+	}
+	task.tcpListener = listener
+	task.State = models.ProxyStateRunning
+	proxyTaskMap.Store(task.Uuid, task)
+
+	go func() {
+		for {
+			select {
+			case <-task.stopChan:
+				return
+			default:
+				if listener, ok := task.tcpListener.(*net.TCPListener); ok {
+					listener.SetDeadline(time.Now().Add(1 * time.Second))
+				}
+				clientConn, err := listener.Accept()
+				if err != nil {
+					var opErr *net.OpError
+					if errors.As(err, &opErr) && opErr.Timeout() {
+						continue
+					}
+					if isNetClosedError(err) {
+						return
+					}
+					logger.Error("[sys] socks5 proxy task accept error", zap.Error(err))
+					continue
+				}
+				go task.handleSocks5Connection(clientConn)
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (task *ProxyTask) handleSocks5Connection(clientConn net.Conn) {
+	task.registerTcpConn(clientConn)
+	defer task.unregisterTcpConn(clientConn)
+
+	if err := task.handleSocks5Greeting(clientConn); err != nil {
+		logger.Error("[sys] socks5 greeting error", zap.Error(err))
+		return
+	}
+
+	targetConn, err := task.handleSocks5Connect(clientConn)
+	if err != nil {
+		logger.Error("[sys] socks5 connect error", zap.Error(err))
+		return
+	}
+	defer targetConn.Close()
+
+	done := make(chan struct{}, 2)
+	go task.copyData(targetConn, clientConn, &task.bytesIn, "IN", models.ProxyTypeSocks5, done)
+	go task.copyData(clientConn, targetConn, &task.bytesOut, "OUT", models.ProxyTypeSocks5, done)
+	<-done
+}
+
+func (task *ProxyTask) handleSocks5Greeting(clientConn net.Conn) error {
+	header := make([]byte, 2)
+	if _, err := io.ReadFull(clientConn, header); err != nil {
+		return err
+	}
+	if header[0] != socks5Version {
+		return fmt.Errorf("unsupported socks version(%d)", header[0])
+	}
+
+	methods := make([]byte, int(header[1]))
+	if _, err := io.ReadFull(clientConn, methods); err != nil {
+		return err
+	}
+	task.recordPayload(&task.bytesIn, "IN", models.ProxyTypeSocks5, append(header, methods...))
+
+	method := byte(socks5AuthNoAcceptable)
+	for _, item := range methods {
+		if item == socks5AuthNone {
+			method = socks5AuthNone
+			break
+		}
+	}
+
+	resp := []byte{socks5Version, method}
+	if _, err := clientConn.Write(resp); err != nil {
+		return err
+	}
+	task.recordPayload(&task.bytesOut, "OUT", models.ProxyTypeSocks5, resp)
+	if method == socks5AuthNoAcceptable {
+		return errors.New("socks5 auth method not supported")
+	}
+
+	return nil
+}
+
+func (task *ProxyTask) handleSocks5Connect(clientConn net.Conn) (net.Conn, error) {
+	header := make([]byte, 4)
+	if _, err := io.ReadFull(clientConn, header); err != nil {
+		return nil, err
+	}
+	if header[0] != socks5Version {
+		return nil, fmt.Errorf("unsupported socks version(%d)", header[0])
+	}
+	if header[1] != socks5CmdConnect {
+		if err := task.writeSocks5Reply(clientConn, socks5ReplyCommandNotAllow, nil); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("socks5 command(%d) not supported", header[1])
+	}
+
+	host, addrRaw, err := readSocks5Address(clientConn, header[3])
+	if err != nil {
+		if writeErr := task.writeSocks5Reply(clientConn, socks5ReplyAddrNotAllow, nil); writeErr != nil {
+			return nil, writeErr
+		}
+		return nil, err
+	}
+
+	portBuf := make([]byte, 2)
+	if _, err := io.ReadFull(clientConn, portBuf); err != nil {
+		return nil, err
+	}
+	requestPayload := append(append(header, addrRaw...), portBuf...)
+	task.recordPayload(&task.bytesIn, "IN", models.ProxyTypeSocks5, requestPayload)
+
+	port := binary.BigEndian.Uint16(portBuf)
+	targetConn, err := net.DialTimeout("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)), 5*time.Second)
+	if err != nil {
+		if writeErr := task.writeSocks5Reply(clientConn, socks5ReplyGeneralFailure, nil); writeErr != nil {
+			return nil, writeErr
+		}
+		return nil, err
+	}
+
+	if err := task.writeSocks5Reply(clientConn, socks5ReplySucceeded, targetConn.LocalAddr()); err != nil {
+		targetConn.Close()
+		return nil, err
+	}
+
+	return targetConn, nil
+}
+
+func readSocks5Address(r io.Reader, atyp byte) (string, []byte, error) {
+	switch atyp {
+	case socks5AtypIPv4:
+		buf := make([]byte, net.IPv4len)
+		if _, err := io.ReadFull(r, buf); err != nil {
+			return "", nil, err
+		}
+		return net.IP(buf).String(), buf, nil
+	case socks5AtypDomain:
+		lenBuf := make([]byte, 1)
+		if _, err := io.ReadFull(r, lenBuf); err != nil {
+			return "", nil, err
+		}
+		hostBuf := make([]byte, int(lenBuf[0]))
+		if _, err := io.ReadFull(r, hostBuf); err != nil {
+			return "", nil, err
+		}
+		return string(hostBuf), append(lenBuf, hostBuf...), nil
+	case socks5AtypIPv6:
+		buf := make([]byte, net.IPv6len)
+		if _, err := io.ReadFull(r, buf); err != nil {
+			return "", nil, err
+		}
+		return net.IP(buf).String(), buf, nil
+	default:
+		return "", nil, fmt.Errorf("socks5 atyp(%d) not supported", atyp)
+	}
+}
+
+func (task *ProxyTask) writeSocks5Reply(clientConn net.Conn, reply byte, addr net.Addr) error {
+	resp := buildSocks5Reply(reply, addr)
+	if _, err := clientConn.Write(resp); err != nil {
+		return err
+	}
+	task.recordPayload(&task.bytesOut, "OUT", models.ProxyTypeSocks5, resp)
+	return nil
+}
+
+func buildSocks5Reply(reply byte, addr net.Addr) []byte {
+	resp := []byte{socks5Version, reply, 0x00}
+	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
+		if ip4 := tcpAddr.IP.To4(); ip4 != nil {
+			resp = append(resp, socks5AtypIPv4)
+			resp = append(resp, ip4...)
+		} else if ip16 := tcpAddr.IP.To16(); ip16 != nil {
+			resp = append(resp, socks5AtypIPv6)
+			resp = append(resp, ip16...)
+		} else {
+			resp = append(resp, socks5AtypIPv4, 0, 0, 0, 0)
+		}
+		portBuf := make([]byte, 2)
+		binary.BigEndian.PutUint16(portBuf, uint16(tcpAddr.Port))
+		resp = append(resp, portBuf...)
+		return resp
+	}
+
+	resp = append(resp, socks5AtypIPv4, 0, 0, 0, 0, 0, 0)
+	return resp
 }
 
 func (task *ProxyTask) startHttp() error {
@@ -295,6 +524,22 @@ func (w *httpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return h.Hijack()
 }
 
+func (task *ProxyTask) recordPayload(counter *atomic.Int64, direction string, protocol string, payload []byte) {
+	if len(payload) == 0 {
+		return
+	}
+	counter.Add(int64(len(payload)))
+	if task.capture.IsCapturing(task.Uuid) {
+		task.capture.Broadcast(task.Uuid, PacketData{
+			TaskUuid:  task.Uuid,
+			Timestamp: time.Now().UnixMilli(),
+			Direction: direction,
+			Protocol:  protocol,
+			Payload:   hex.EncodeToString(payload),
+		})
+	}
+}
+
 // copyData 拷贝数据
 //
 // # Params:
@@ -304,7 +549,7 @@ func (w *httpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 //	counter: 计数器
 //	direction: 数据方向，IN-入站 OUT-出站
 //	done: 完成信号
-func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, direction string, done chan struct{}) {
+func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, direction string, protocol string, done chan struct{}) {
 	defer func() {
 		select {
 		case done <- struct{}{}:
@@ -317,21 +562,10 @@ func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, direct
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {
-			// 开启抓包才推送
-			if task.capture.IsCapturing(task.Uuid) {
-				task.capture.Broadcast(task.Uuid, PacketData{
-					TaskUuid:  task.Uuid,
-					Timestamp: time.Now().UnixMilli(),
-					Direction: direction,
-					Protocol:  models.ProxyTypeTcp,
-					Payload:   hex.EncodeToString(buf[0:nr]),
-				})
-			}
-
 			// 写入数据
 			nw, ew := dst.Write(buf[0:nr])
 			if nw > 0 {
-				counter.Add(int64(nw))
+				task.recordPayload(counter, direction, protocol, buf[0:nw])
 			}
 			if ew != nil {
 				break
@@ -392,6 +626,9 @@ func (task *ProxyTask) startUdp() error {
 				var netErr net.Error
 				if errors.As(err, &netErr) && netErr.Timeout() {
 					continue
+				}
+				if isNetClosedError(err) {
+					return
 				}
 				logger.Error("[sys] read from udp error.", zap.Error(err))
 				continue
@@ -507,6 +744,8 @@ func (task *ProxyTask) Stop() error {
 		err = proxyTask.stopUdp()
 	case models.ProxyTypeHttp:
 		err = proxyTask.stopHttpProxy()
+	case models.ProxyTypeSocks5:
+		err = proxyTask.stopTcp()
 	default:
 		err = fmt.Errorf("proxy type(%s) not support", task.Type)
 	}

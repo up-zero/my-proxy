@@ -22,10 +22,11 @@
         </a-select>
       </a-form-item>
       <a-form-item ref="type" label="类型" name="type">
-        <a-select v-model:value="ruleForm.type" placeholder="please select">
+        <a-select v-model:value="ruleForm.type" placeholder="请选择代理类型">
           <a-select-option value="TCP">TCP</a-select-option>
           <a-select-option value="UDP">UDP</a-select-option>
           <a-select-option value="HTTP">HTTP</a-select-option>
+          <a-select-option value="SOCKS5">SOCKS5</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item ref="listen_address" label="监听地址" name="listen_address">
@@ -34,11 +35,14 @@
       <a-form-item ref="listen_port" label="监听端口" name="listen_port">
         <a-input v-model:value="ruleForm.listen_port" />
       </a-form-item>
-      <a-form-item ref="target_address" label="目标地址" name="target_address">
+      <a-form-item v-if="!isSocks5Type" ref="target_address" label="目标地址" name="target_address">
         <a-input v-model:value="ruleForm.target_address" />
       </a-form-item>
-      <a-form-item ref="target_port" label="目标端口" name="target_port">
+      <a-form-item v-if="!isSocks5Type" ref="target_port" label="目标端口" name="target_port">
         <a-input v-model:value="ruleForm.target_port" />
+      </a-form-item>
+      <a-form-item v-else label="说明">
+        <span class="form-tip">SOCKS5 为动态代理，无需配置目标地址和目标端口。</span>
       </a-form-item>
     </a-form>
     <template #footer>
@@ -53,7 +57,7 @@
 </template>
 <script lang="ts" setup>
 import { message } from "ant-design-vue";
-import { computed, reactive, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { addProxy, editProxy } from "@/api/proxy";
 import { getGroupList } from "@/api/group";
 
@@ -87,14 +91,26 @@ const ruleFormRef = ref();
 const ruleForm = ref<RuleForm>(createForm());
 const groupList = ref([] as any[]);
 const modalTitle = computed(() => (ruleForm.value.uuid ? "编辑代理" : "添加代理"));
+const isSocks5Type = computed(() => ruleForm.value.type === "SOCKS5");
 
-const rules = reactive({
+const rules = computed(() => ({
   name: [{ required: true, message: "请输入", trigger: "blur" }],
   listen_port: [{ required: true, message: "请输入", trigger: "blur" }],
-  target_address: [{ required: true, message: "请输入", trigger: "blur" }],
-  target_port: [{ required: true, message: "请输入", trigger: "blur" }],
+  target_address: isSocks5Type.value ? [] : [{ required: true, message: "请输入", trigger: "blur" }],
+  target_port: isSocks5Type.value ? [] : [{ required: true, message: "请输入", trigger: "blur" }],
   type: [{ required: true, message: "请输入", trigger: "change" }],
-});
+}));
+
+watch(
+  () => ruleForm.value.type,
+  (type) => {
+    if (type === "SOCKS5") {
+      ruleForm.value.target_address = "";
+      ruleForm.value.target_port = "";
+      ruleFormRef.value?.clearValidate?.(["target_address", "target_port"]);
+    }
+  }
+);
 
 const loadGroups = async () => {
   const res = await getGroupList({});
@@ -106,14 +122,19 @@ const submitForm = async (formEl: any | undefined) => {
   await formEl
     .validate()
     .then(() => {
+      const payload = {
+        ...ruleForm.value,
+        target_address: isSocks5Type.value ? "" : ruleForm.value.target_address,
+        target_port: isSocks5Type.value ? "" : ruleForm.value.target_port,
+      };
       if (ruleForm.value.uuid) {
-        editProxy(ruleForm.value).then(() => {
+        editProxy(payload).then(() => {
           message.success("操作成功");
           cancel();
           emit("getList");
         });
       } else {
-        addProxy(ruleForm.value).then(() => {
+        addProxy(payload).then(() => {
           message.success("操作成功");
           cancel();
           emit("getList");
@@ -151,4 +172,8 @@ const init = async (row?: RuleForm) => {
 defineExpose({ init });
 </script>
 
-<style scoped lang="less"></style>
+<style scoped lang="less">
+.form-tip {
+  color: rgba(0, 0, 0, 0.45);
+}
+</style>

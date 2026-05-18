@@ -35,6 +35,12 @@
         <template v-else-if="column.key === 'group_name'">
           <span>{{ record.group_name || '-' }}</span>
         </template>
+        <template v-else-if="column.key === 'target_address'">
+          <span>{{ record.target_address || '-' }}</span>
+        </template>
+        <template v-else-if="column.key === 'target_port'">
+          <span>{{ record.target_port || '-' }}</span>
+        </template>
         <template v-if="column.key === 'traffic_in'">
 
           <span class="traf-span">{{ getNum(record.traffic_out) }} / {{ getNum(record.traffic_in) }}</span>

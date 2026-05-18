@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	proxyClient "github.com/up-zero/my-proxy/client/proxy"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/service/proxy"
-	"strings"
 )
 
 type model struct {
@@ -30,7 +31,7 @@ func initialModel(pb *models.ProxyBasic) model {
 		inputs:  make([]textinput.Model, 5),
 		focused: 0,
 		selector: selector{
-			options: []string{"TCP", "UDP", "HTTP"},
+			options: []string{"TCP", "UDP", "HTTP", "SOCKS5"},
 			cursor:  0,
 		},
 		pb: pb,
@@ -45,6 +46,8 @@ func initialModel(pb *models.ProxyBasic) model {
 			m.selector.cursor = 1
 		case models.ProxyTypeHttp:
 			m.selector.cursor = 2
+		case models.ProxyTypeSocks5:
+			m.selector.cursor = 3
 		}
 	}
 
@@ -132,7 +135,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// 校验必填字段
 			m.err = ""
 			for index, input := range m.inputs {
-				if index != 1 && input.Value() == "" {
+				if index == 1 {
+					continue
+				}
+				if m.selector.options[m.selector.cursor] == models.ProxyTypeSocks5 && (index == 3 || index == 4) {
+					continue
+				}
+				if input.Value() == "" {
 					m.err = "All fields cannot be empty"
 					return m, nil
 				}

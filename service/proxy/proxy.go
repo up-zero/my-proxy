@@ -42,6 +42,54 @@ func loadProxyBasicMap() (map[string]*models.ProxyBasic, error) {
 	return proxyMap, nil
 }
 
+func normalizeProxyBasic(pb *models.ProxyBasic) {
+	pb.Name = strings.TrimSpace(pb.Name)
+	pb.GroupUuid = strings.TrimSpace(pb.GroupUuid)
+	pb.Type = strings.ToUpper(strings.TrimSpace(pb.Type))
+	pb.ListenAddress = strings.TrimSpace(pb.ListenAddress)
+	pb.ListenPort = strings.TrimSpace(pb.ListenPort)
+	pb.TargetAddress = strings.TrimSpace(pb.TargetAddress)
+	pb.TargetPort = strings.TrimSpace(pb.TargetPort)
+
+	if pb.Type == models.ProxyTypeSocks5 {
+		pb.TargetAddress = ""
+		pb.TargetPort = ""
+	}
+}
+
+func isSupportedProxyType(proxyType string) bool {
+	switch proxyType {
+	case models.ProxyTypeTcp, models.ProxyTypeUdp, models.ProxyTypeHttp, models.ProxyTypeSocks5:
+		return true
+	default:
+		return false
+	}
+}
+
+func validateProxyBasicFields(pb *models.ProxyBasic) error {
+	if pb.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if pb.Type == "" {
+		return fmt.Errorf("type is required")
+	}
+	if !isSupportedProxyType(pb.Type) {
+		return fmt.Errorf("proxy type(%s) not support", pb.Type)
+	}
+	if pb.ListenPort == "" {
+		return fmt.Errorf("listen_port is required")
+	}
+	if pb.Type != models.ProxyTypeSocks5 {
+		if pb.TargetAddress == "" {
+			return fmt.Errorf("target_address is required")
+		}
+		if pb.TargetPort == "" {
+			return fmt.Errorf("target_port is required")
+		}
+	}
+	return nil
+}
+
 // Status 获取代理状态
 func Status(c *gin.Context, in *StatusRequest) {
 	task := serve.ProxyTask{}
@@ -82,6 +130,10 @@ func Status(c *gin.Context, in *StatusRequest) {
 
 // savePreValid 判断代理信息是否有效
 func savePreValid(pb *models.ProxyBasic) error {
+	normalizeProxyBasic(pb)
+	if err := validateProxyBasicFields(pb); err != nil {
+		return err
+	}
 	if pb.GroupUuid != "" {
 		if err := (&models.GroupBasic{Uuid: pb.GroupUuid}).First(); err != nil {
 			logger.Error("[db] get group basic error.", zap.Error(err))
