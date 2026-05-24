@@ -63,6 +63,7 @@
           <a-popconfirm v-if="state.list.length" title="是否重启?" @confirm="restartItem(record)">
             <a-button type="link">重启</a-button>
           </a-popconfirm>
+          <a-button type="link" :disabled="record.state !== 'RUNNING'" @click="captureItem(record)">抓包</a-button>
         </template>
       </template>
     </a-table>
@@ -119,6 +120,7 @@ import { message, Modal } from "ant-design-vue";
 import { createVNode, onMounted, reactive, ref, computed } from "vue";
 import { downloadJson } from "@/lib/download";
 import fileUpload from "./fileUpload.vue";
+import { useRouter } from "vue-router";
 
 
 interface DataItem {
@@ -142,6 +144,7 @@ const QUERY = (): any => ({
 });
 const selectedRowKeys = ref([] as any);
 const addBoxRef = ref();
+const router = useRouter();
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -329,7 +332,7 @@ const columns = [
     title: "操作",
     dataIndex: "operation",
     key: "operation",
-    width: 280,
+    width: 340,
     // slots: { customRender: "operation" },
   },
 ];
@@ -398,6 +401,22 @@ const restartItem = (row: DataItem) => {
     message.success({
       content: "操作成功",
     });
+  });
+};
+
+const captureItem = (row: any) => {
+  router.push({
+    path: "/proxyManage/capture",
+    query: {
+      task_uuid: row.uuid,
+      name: row.name,
+      type: row.type,
+      state: row.state,
+      listen_address: row.listen_address,
+      listen_port: row.listen_port,
+      target_address: row.target_address,
+      target_port: row.target_port,
+    },
   });
 };
 

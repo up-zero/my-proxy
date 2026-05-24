@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -388,13 +387,7 @@ func (task *ProxyTask) httpMiddleware(next http.Handler) http.Handler {
 		// 抓包请求头（入站）
 		if isCapturing {
 			if dump, err := httputil.DumpRequest(r, false); err == nil {
-				task.capture.Broadcast(task.Uuid, PacketData{
-					TaskUuid:  task.Uuid,
-					Timestamp: time.Now().UnixMilli(),
-					Direction: "IN",
-					Protocol:  models.ProxyTypeHttp,
-					Payload:   hex.EncodeToString(dump),
-				})
+				task.capture.Publish(task.Uuid, "IN", models.ProxyTypeHttp, dump)
 			}
 		}
 
@@ -429,15 +422,7 @@ func (r *httpReadCloser) Read(p []byte) (int, error) {
 
 		// 抓包（入站）
 		if r.isCapturing {
-			payload := make([]byte, n)
-			copy(payload, p[:n])
-			r.task.capture.Broadcast(r.task.Uuid, PacketData{
-				TaskUuid:  r.task.Uuid,
-				Timestamp: time.Now().UnixMilli(),
-				Direction: "IN",
-				Protocol:  models.ProxyTypeHttp,
-				Payload:   hex.EncodeToString(payload),
-			})
+			r.task.capture.Publish(r.task.Uuid, "IN", models.ProxyTypeHttp, p[:n])
 		}
 	}
 	return n, err
@@ -469,13 +454,7 @@ func (w *httpResponseWriter) WriteHeader(statusCode int) {
 		w.Header().Write(&headerBuf)
 		headerBuf.WriteString("\r\n") // 头部结束
 
-		w.task.capture.Broadcast(w.task.Uuid, PacketData{
-			TaskUuid:  w.task.Uuid,
-			Timestamp: time.Now().UnixMilli(),
-			Direction: "OUT",
-			Protocol:  models.ProxyTypeHttp,
-			Payload:   hex.EncodeToString(headerBuf.Bytes()),
-		})
+		w.task.capture.Publish(w.task.Uuid, "OUT", models.ProxyTypeHttp, headerBuf.Bytes())
 	}
 
 	w.ResponseWriter.WriteHeader(statusCode)
@@ -493,15 +472,7 @@ func (w *httpResponseWriter) Write(b []byte) (int, error) {
 
 		// 抓包（出站）
 		if w.isCapturing {
-			payload := make([]byte, n)
-			copy(payload, b[:n])
-			w.task.capture.Broadcast(w.task.Uuid, PacketData{
-				TaskUuid:  w.task.Uuid,
-				Timestamp: time.Now().UnixMilli(),
-				Direction: "OUT",
-				Protocol:  models.ProxyTypeHttp,
-				Payload:   hex.EncodeToString(b[:n]),
-			})
+			w.task.capture.Publish(w.task.Uuid, "OUT", models.ProxyTypeHttp, b[:n])
 		}
 	}
 	return n, err
@@ -530,13 +501,7 @@ func (task *ProxyTask) recordPayload(counter *atomic.Int64, direction string, pr
 	}
 	counter.Add(int64(len(payload)))
 	if task.capture.IsCapturing(task.Uuid) {
-		task.capture.Broadcast(task.Uuid, PacketData{
-			TaskUuid:  task.Uuid,
-			Timestamp: time.Now().UnixMilli(),
-			Direction: direction,
-			Protocol:  protocol,
-			Payload:   hex.EncodeToString(payload),
-		})
+		task.capture.Publish(task.Uuid, direction, protocol, payload)
 	}
 }
 
@@ -639,13 +604,7 @@ func (task *ProxyTask) startUdp() error {
 
 			// 抓包（入站）
 			if task.capture.IsCapturing(task.Uuid) {
-				task.capture.Broadcast(task.Uuid, PacketData{
-					TaskUuid:  task.Uuid,
-					Timestamp: time.Now().UnixMilli(),
-					Direction: "IN",
-					Protocol:  models.ProxyTypeUdp,
-					Payload:   hex.EncodeToString(buffer[:n]),
-				})
+				task.capture.Publish(task.Uuid, "IN", models.ProxyTypeUdp, buffer[:n])
 			}
 
 			clientAddrStr := clientAddr.String()
@@ -708,13 +667,7 @@ func (task *ProxyTask) handleUdpResponse(clientAddr net.Addr, targetConn *net.UD
 
 		// 抓包（出站）
 		if task.capture.IsCapturing(task.Uuid) {
-			task.capture.Broadcast(task.Uuid, PacketData{
-				TaskUuid:  task.Uuid,
-				Timestamp: time.Now().UnixMilli(),
-				Direction: "OUT",
-				Protocol:  models.ProxyTypeUdp,
-				Payload:   hex.EncodeToString(respBuffer[:n]),
-			})
+			task.capture.Publish(task.Uuid, "OUT", models.ProxyTypeUdp, respBuffer[:n])
 		}
 
 		_, err = task.udpListener.WriteTo(respBuffer[:n], clientAddr)
@@ -748,6 +701,10 @@ func (task *ProxyTask) Stop() error {
 		err = proxyTask.stopTcp()
 	default:
 		err = fmt.Errorf("proxy type(%s) not support", task.Type)
+	}
+
+	if err == nil && proxyTask.capture != nil {
+		proxyTask.capture.CloseTask(proxyTask.Uuid)
 	}
 
 	return err
@@ -843,5 +800,6 @@ func (task *ProxyTask) Status() ([]*ProxyTask, error) {
 
 // Remove 移除任务
 func (task *ProxyTask) Remove() {
+	GetCaptureHub().CloseTask(task.Uuid)
 	proxyTaskMap.Delete(task.Uuid)
 }

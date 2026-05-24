@@ -217,15 +217,29 @@ const topMenuClick = ({ key }: any) => {
   height: calc(100vh - @headerHeight);
   padding: 20px;
   background-color: #f2f4f7;
+  &.capture-layout {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
   .p-page {
     background-color: #fff;
     padding: 20px;
     margin-top: 20px;
     height: calc(100vh - @headerHeight - 100px);
     overflow-y: auto;
+    &.capture-page-host {
+      flex: 1;
+      min-height: 0;
+      height: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
   }
   .footer{
-    
+    flex-shrink: 0;
+
    line-height: 30px;
     text-align: center;
     font-size: 12px;

@@ -10,8 +10,28 @@ const request = axios.create({
   timeout: 5000,
 });
 
+export function getStoredToken(): string {
+  return localStorage.getItem(`${config.name}:token`) || "";
+}
+
+export function buildCaptureWebSocketUrl(taskUuid: string): string {
+  const apiBase = config.apiPrefix || "/api";
+  const url = new URL(apiBase, window.location.origin);
+
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = `${url.pathname.replace(/\/$/, "")}/v1/ws/capture`;
+  url.searchParams.set("task_uuid", taskUuid);
+
+  const token = getStoredToken();
+  if (token) {
+    url.searchParams.set("token", token);
+  }
+
+  return url.toString();
+}
+
 request.interceptors.request.use((conf) => {
-  let token = localStorage.getItem(`${config.name}:token`);
+  let token = getStoredToken();
   if (token) {
     conf.headers.set("Authorization", token);
   }

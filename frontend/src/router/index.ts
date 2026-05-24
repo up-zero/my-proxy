@@ -36,6 +36,14 @@ const router = createRouter({
           },
           component: () => import("../views/proxyManage/group/index.vue"),
         },
+        {
+          path: "/proxyManage/capture",
+          name: "抓包分析",
+          meta: {
+            hidden: true,
+          },
+          component: () => import("../views/proxyManage/capture.vue"),
+        },
       ],
     },
     {

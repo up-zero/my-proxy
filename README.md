@@ -136,3 +136,16 @@ docker run -d \
 # 查看登录账号
 docker logs my-proxy-service | grep "admin"
 ```
+
+## 构建
+
+```bash
+# linux amd64
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o my-proxy-amd64
+
+# linux arm64
+GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o my-proxy-arm64
+
+# windows amd64
+GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o my-proxy-amd64.exe
+``` 
