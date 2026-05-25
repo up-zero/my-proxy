@@ -93,6 +93,9 @@ func validateProxyBasicFields(pb *models.ProxyBasic) error {
 // Status 获取代理状态
 func Status(c *gin.Context, in *StatusRequest) {
 	task := serve.ProxyTask{}
+	if in.Uuid != "" {
+		task.Uuid = in.Uuid
+	}
 	tasks, err := task.Status()
 	if err != nil {
 		logger.Error("[sys] proxy task status error.", zap.Error(err))

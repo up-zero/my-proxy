@@ -1,6 +1,7 @@
 package proxy
 
 type StatusRequest struct {
+	Uuid      string `json:"uuid"`       // 代理唯一标识
 	Name      string `json:"name"`       // 代理名称
 	GroupUuid string `json:"group_uuid"` // 分组唯一标识
 }

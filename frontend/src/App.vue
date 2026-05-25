@@ -67,13 +67,13 @@
         </div>
 
         <!-- 显示内容 -->
-        <div class="m-content">
+        <div :class="['m-content', { 'full-layout': isFullPage }]">
           <a-breadcrumb>
             <!-- <a-breadcrumb-item>{{ route.matched[0]?.name }}</a-breadcrumb-item> -->
             <a-breadcrumb-item>{{ route.name }}</a-breadcrumb-item>
           </a-breadcrumb>
 
-          <RouterView class="p-page" />
+          <RouterView :class="['p-page', { 'full-page-host': isFullPage }]" />
           <div class="footer">
             <a href="https://github.com/up-zero/my-proxy" target="_blank">@up-zero</a></div>
         </div>
@@ -125,6 +125,7 @@ const getMenu = (menus: any) => {
 const menus = computed(() => {
   return getMenu(router.options.routes);
 });
+const isFullPage = computed(() => Boolean(route.meta?.fullPage));
 const openKeys = computed(() => {
   return menus.value
     .filter((item: any) => item.children && item.children.length > 0)
@@ -152,6 +153,14 @@ const topMenuClick = ({ key }: any) => {
 
 <style lang="less">
 @import "@/assets/less/global.less";
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 
 .text-center {
   text-align: center;
@@ -217,21 +226,17 @@ const topMenuClick = ({ key }: any) => {
   height: calc(100vh - @headerHeight);
   padding: 20px;
   background-color: #f2f4f7;
-  &.capture-layout {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   .p-page {
     background-color: #fff;
     padding: 20px;
-    margin-top: 20px;
-    height: calc(100vh - @headerHeight - 100px);
+    margin-top: 16px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    &.capture-page-host {
-      flex: 1;
-      min-height: 0;
-      height: auto;
+    &.full-page-host {
       overflow: hidden;
       display: flex;
       flex-direction: column;

@@ -10,7 +10,16 @@ const router = createRouter({
     },
     {
       path: "/",
-      redirect: "/proxyManage/index",
+      redirect: "/dashboard",
+    },
+    {
+      path: "/dashboard",
+      name: "仪表盘",
+      meta: {
+        isMenu: true,
+        fullPage: true,
+      },
+      component: () => import("../views/dashboard/index.vue"),
     },
     {
       path: "/proxyManage",
@@ -41,6 +50,7 @@ const router = createRouter({
           name: "抓包分析",
           meta: {
             hidden: true,
+            fullPage: true,
           },
           component: () => import("../views/proxyManage/capture.vue"),
         },

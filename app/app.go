@@ -14,6 +14,7 @@ import (
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/middleware"
 	"github.com/up-zero/my-proxy/models"
+	"github.com/up-zero/my-proxy/service/dashboard"
 	"github.com/up-zero/my-proxy/service/group"
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
@@ -44,6 +45,8 @@ func router() *gin.Engine {
 
 	auth := api.Group("/")
 	auth.Use(middleware.LoginAuthCheck())
+	// 仪表盘
+	auth.GET("/dashboard/overview", dashboard.Overview)
 	// 修改密码
 	auth.POST("/edit/password", BindH(user.EditPassword))
 	// Websocket 连接（抓包）
@@ -152,6 +155,7 @@ func NewApp(port string) {
 	}
 	// 初始化代理
 	serve.NewProxy()
+	dashboard.Start()
 
 	// 监听退出信号
 	quit := make(chan os.Signal)

@@ -16,8 +16,9 @@ type ProxyTask struct {
 	// statistic
 	bytesIn    atomic.Int64 // client -> target
 	bytesOut   atomic.Int64 // target -> client
-	TrafficIn  int64        `json:"traffic_in"`
-	TrafficOut int64        `json:"traffic_out"`
+	httpActive atomic.Int64
+	TrafficIn  int64 `json:"traffic_in"`
+	TrafficOut int64 `json:"traffic_out"`
 
 	tcpListener   net.Listener
 	tcpActiveConn map[net.Conn]struct{}

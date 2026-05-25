@@ -49,6 +49,7 @@ func (task *ProxyTask) Start() error {
 	task.capture = GetCaptureHub()
 	task.bytesIn.Store(0)
 	task.bytesOut.Store(0)
+	task.httpActive.Store(0)
 
 	// 启动服务
 	var err error
@@ -383,6 +384,8 @@ func (task *ProxyTask) startHttp() error {
 func (task *ProxyTask) httpMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isCapturing := task.capture.IsCapturing(task.Uuid)
+		task.httpActive.Add(1)
+		defer task.httpActive.Add(-1)
 
 		// 抓包请求头（入站）
 		if isCapturing {
@@ -548,6 +551,9 @@ func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, direct
 func (task *ProxyTask) registerTcpConn(conn net.Conn) {
 	task.mu.Lock()
 	defer task.mu.Unlock()
+	if task.tcpActiveConn == nil {
+		task.tcpActiveConn = make(map[net.Conn]struct{})
+	}
 	task.tcpActiveConn[conn] = struct{}{}
 }
 
@@ -796,6 +802,47 @@ func (task *ProxyTask) Status() ([]*ProxyTask, error) {
 		}
 		return list, nil
 	}
+}
+
+type TaskSnapshot struct {
+	models.ProxyBasic
+	TrafficIn         int64 `json:"traffic_in"`
+	TrafficOut        int64 `json:"traffic_out"`
+	ActiveConnections int64 `json:"active_connections"`
+}
+
+func (task *ProxyTask) ActiveConnections() int64 {
+	task.mu.Lock()
+	tcpConnCnt := len(task.tcpActiveConn)
+	udpSessionCnt := len(task.udpSessions)
+	task.mu.Unlock()
+
+	return int64(tcpConnCnt+udpSessionCnt) + task.httpActive.Load()
+}
+
+func (task *ProxyTask) Snapshot() *TaskSnapshot {
+	return &TaskSnapshot{
+		ProxyBasic:        task.ProxyBasic,
+		TrafficIn:         task.bytesIn.Load(),
+		TrafficOut:        task.bytesOut.Load(),
+		ActiveConnections: task.ActiveConnections(),
+	}
+}
+
+func ProxyTaskSnapshots() []*TaskSnapshot {
+	list := make([]*TaskSnapshot, 0)
+	proxyTaskMap.Range(func(key, value interface{}) bool {
+		if task, ok := value.(*ProxyTask); ok {
+			list = append(list, task.Snapshot())
+		}
+		return true
+	})
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Name < list[j].Name
+	})
+
+	return list
 }
 
 // Remove 移除任务
