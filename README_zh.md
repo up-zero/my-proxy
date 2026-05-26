@@ -1,8 +1,8 @@
-<h1 style="text-align: center;">
-    <img src="./assets/logo.png" alt="my-proxy logo" style="width: 300px;">
-</h1>
+<div align="center">
+    <img src="./assets/logo.png" alt="my-proxy logo" width="300">
+</div>
 
-<p style="text-align: center;">
+<p align="center">
    <a href="https://github.com/up-zero/my-proxy/fork" target="blank">
       <img src="https://img.shields.io/github/forks/up-zero/my-proxy?style=for-the-badge" alt="LocalAI forks"/>
    </a>
@@ -17,7 +17,7 @@
    </a>
 </p>
 
-<p style="text-align: center;">
+<p align="center">
    <a href="./README.md">English</a> | 中文
 </p>
 
