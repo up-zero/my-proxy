@@ -1,5 +1,7 @@
 package dashboard
 
+import "github.com/up-zero/my-proxy/models"
+
 type OverviewResponse struct {
 	Summary SummaryMetrics   `json:"summary"`
 	System  SystemMetrics    `json:"system"`
@@ -54,19 +56,19 @@ type SystemPoint struct {
 }
 
 type NodeLoadMetric struct {
-	Uuid              string  `json:"uuid"`
-	Name              string  `json:"name"`
-	GroupName         string  `json:"group_name"`
-	Type              string  `json:"type"`
-	State             string  `json:"state"`
-	ListenAddress     string  `json:"listen_address"`
-	ListenPort        string  `json:"listen_port"`
-	TargetAddress     string  `json:"target_address"`
-	TargetPort        string  `json:"target_port"`
-	ActiveConnections int64   `json:"active_connections"`
-	TrafficIn         int64   `json:"traffic_in"`
-	TrafficOut        int64   `json:"traffic_out"`
-	InboundRate       float64 `json:"inbound_rate"`
-	OutboundRate      float64 `json:"outbound_rate"`
-	LoadScore         float64 `json:"load_score"`
+	Uuid              string            `json:"uuid"`
+	Name              string            `json:"name"`
+	TagList           []models.TagBasic `json:"tag_list,omitempty"`
+	Type              string            `json:"type"`
+	State             string            `json:"state"`
+	ListenAddress     string            `json:"listen_address"`
+	ListenPort        string            `json:"listen_port"`
+	TargetAddress     string            `json:"target_address"`
+	TargetPort        string            `json:"target_port"`
+	ActiveConnections int64             `json:"active_connections"`
+	TrafficIn         int64             `json:"traffic_in"`
+	TrafficOut        int64             `json:"traffic_out"`
+	InboundRate       float64           `json:"inbound_rate"`
+	OutboundRate      float64           `json:"outbound_rate"`
+	LoadScore         float64           `json:"load_score"`
 }

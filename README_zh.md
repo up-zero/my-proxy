@@ -25,8 +25,8 @@
 
 ## WebUI 模式
 
-+ 登录
-![webui_login.png](./assets/webui_login.png)
++ 仪表盘
+![webui_dashboard.png](./assets/webui_dashboard.png)
 
 + 代理管理
 ![webui_proxy.png](./assets/webui_proxy.png)

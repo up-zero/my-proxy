@@ -10,7 +10,7 @@
       status-icon
       :label-col="{ span: 4 }"
     >
-      <a-form-item label="分组名称" name="name">
+      <a-form-item label="标签名称" name="name">
         <a-input v-model:value="ruleForm.name" />
       </a-form-item>
     </a-form>
@@ -24,7 +24,7 @@
 </template>
 
 <script lang="ts" setup>
-import { addGroup, editGroup } from "@/api/group";
+import { addTag, editTag } from "@/api/tag";
 import { message } from "ant-design-vue";
 import { computed, reactive, ref } from "vue";
 
@@ -44,10 +44,10 @@ const createForm = (): RuleForm => ({
 });
 
 const ruleForm = ref<RuleForm>(createForm());
-const modalTitle = computed(() => (ruleForm.value.uuid ? "编辑分组" : "新增分组"));
+const modalTitle = computed(() => (ruleForm.value.uuid ? "编辑标签" : "新增标签"));
 
 const rules = reactive({
-  name: [{ required: true, message: "请输入分组名称", trigger: "blur" }],
+  name: [{ required: true, message: "请输入标签名称", trigger: "blur" }],
 });
 
 const submitForm = async (formEl: any | undefined) => {
@@ -55,7 +55,7 @@ const submitForm = async (formEl: any | undefined) => {
   await formEl
     .validate()
     .then(() => {
-      const request = ruleForm.value.uuid ? editGroup(ruleForm.value) : addGroup(ruleForm.value);
+      const request = ruleForm.value.uuid ? editTag(ruleForm.value) : addTag(ruleForm.value);
       request.then(() => {
         message.success("操作成功");
         cancel();

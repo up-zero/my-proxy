@@ -25,9 +25,9 @@ A LAN proxy tool that supports proxy forwarding for TCP, UDP, HTTP, SOCKS5, and 
 
 ## WebUI Mode
 
-+ Login
++ Dashboard
 
-![webui_login.png](./assets/webui_login.png)
+![webui_dashboard.png](./assets/webui_dashboard.png)
 
 + Proxy Management
 

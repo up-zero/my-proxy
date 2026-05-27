@@ -4,7 +4,7 @@
       <a-button type="primary" @click="toAddPage" class="mr-2">新增</a-button>
       <a-input
         v-model:value="state.query.name"
-        placeholder="请输入分组名称"
+        placeholder="请输入标签名称"
         style="width: 220px; margin-right: 8px"
         @pressEnter="getList"
       />
@@ -19,7 +19,7 @@
         <template v-else-if="column.key === 'operation'">
           <a-popconfirm
             v-if="state.list.length"
-            title="确定删除分组?"
+            title="确定删除标签?"
             @confirm="delItem(record)"
           >
             <a-button type="link">删除</a-button>
@@ -34,7 +34,7 @@
 </template>
 
 <script lang="ts" setup>
-import { delGroup, getGroupList } from "@/api/group";
+import { delTag, getTagList } from "@/api/tag";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
 import { onMounted, reactive, ref } from "vue";
@@ -71,7 +71,7 @@ const columns = [
     width: 80,
   },
   {
-    title: "分组名称",
+    title: "标签名称",
     dataIndex: "name",
     key: "name",
   },
@@ -92,7 +92,7 @@ const columns = [
 async function getList() {
   try {
     state.isLoading = true;
-    const res = await getGroupList(state.query);
+    const res = await getTagList(state.query);
     if (!res.data) {
       state.list = [];
       state.total = 0;
@@ -117,7 +117,7 @@ function editItem(row: DataItem) {
 }
 
 const delItem = (row: DataItem) => {
-  delGroup({ uuid: row.uuid }).then(() => {
+  delTag({ uuid: row.uuid }).then(() => {
     getList();
     message.success({
       content: "操作成功",

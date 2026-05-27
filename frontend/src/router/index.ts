@@ -38,12 +38,12 @@ const router = createRouter({
           component: () => import("../views/proxyManage/index.vue"),
         },
         {
-          path: "/proxyManage/group",
-          name: "分组管理",
+          path: "/proxyManage/tag",
+          name: "标签管理",
           meta: {
             isMenu: true,
           },
-          component: () => import("../views/proxyManage/group/index.vue"),
+          component: () => import("../views/proxyManage/tag/index.vue"),
         },
         {
           path: "/proxyManage/capture",

@@ -15,10 +15,10 @@ import (
 	"github.com/up-zero/my-proxy/middleware"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/service/dashboard"
-	"github.com/up-zero/my-proxy/service/group"
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
 	"github.com/up-zero/my-proxy/service/serve"
+	tag "github.com/up-zero/my-proxy/service/tag"
 	"github.com/up-zero/my-proxy/service/user"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
@@ -77,17 +77,17 @@ func router() *gin.Engine {
 		authProxy.POST("/restart", BindH(proxy.Restart))
 	}
 
-	// 分组管理
+	// 标签管理
 	{
-		authGroup := auth.Group("/group")
-		// 分组列表
-		authGroup.POST("/list", BindH(group.List))
-		// 新增分组
-		authGroup.POST("/create", BindH(group.Create))
-		// 修改分组
-		authGroup.POST("/update", BindH(group.Update))
-		// 删除分组
-		authGroup.POST("/delete", BindH(group.Delete))
+		authTag := auth.Group("/tag")
+		// 标签列表
+		authTag.POST("/list", BindH(tag.List))
+		// 新增标签
+		authTag.POST("/create", BindH(tag.Create))
+		// 修改标签
+		authTag.POST("/update", BindH(tag.Update))
+		// 删除标签
+		authTag.POST("/delete", BindH(tag.Delete))
 	}
 
 	// 用户管理

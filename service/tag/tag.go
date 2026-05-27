@@ -1,4 +1,4 @@
-package group
+package tag
 
 import (
 	"errors"
@@ -13,10 +13,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func savePreValid(gb *models.GroupBasic) error {
-	cnt, err := gb.CountForName()
+func savePreValid(tb *models.TagBasic) error {
+	cnt, err := tb.CountForName()
 	if err != nil {
-		logger.Error("[db] get group count for save error.", zap.Error(err))
+		logger.Error("[db] get tag count for save error.", zap.Error(err))
 		return err
 	}
 	if cnt > 0 {
@@ -25,66 +25,69 @@ func savePreValid(gb *models.GroupBasic) error {
 	return nil
 }
 
-// List 分组列表
+// List 标签列表
 func List(c *gin.Context, in *ListRequest) {
-	list := make([]*models.GroupBasic, 0)
-	tx := models.DB.Model(new(models.GroupBasic))
+	list := make([]*models.TagBasic, 0)
+	tx := models.DB.Model(new(models.TagBasic))
 	if strings.TrimSpace(in.Name) != "" {
 		tx = tx.Where("name like ?", "%"+strings.TrimSpace(in.Name)+"%")
 	}
 	if err := tx.Order("created_at desc").Find(&list).Error; err != nil {
-		logger.Error("[db] get group list error.", zap.Error(err))
+		logger.Error("[db] get tag list error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 	util.ResponseOkWithList(c, list)
 }
 
-// Create 创建分组
+// Create 创建标签
 func Create(c *gin.Context, in *CreateRequest) {
-	gb := &models.GroupBasic{
+	tb := &models.TagBasic{
 		Uuid: idutil.UUIDGenerate(),
 		Name: strings.TrimSpace(in.Name),
 	}
-	if err := savePreValid(gb); err != nil {
+	if err := savePreValid(tb); err != nil {
 		util.ResponseError(c, err)
 		return
 	}
-	if err := models.DB.Create(gb).Error; err != nil {
-		logger.Error("[db] group create error.", zap.Error(err))
+	if err := models.DB.Create(tb).Error; err != nil {
+		logger.Error("[db] tag create error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 	util.ResponseOk(c)
 }
 
-// Update 编辑分组
+// Update 编辑标签
 func Update(c *gin.Context, in *UpdateRequest) {
-	gb := &models.GroupBasic{
+	tb := &models.TagBasic{
 		Uuid: in.Uuid,
 		Name: strings.TrimSpace(in.Name),
 	}
-	if err := savePreValid(gb); err != nil {
+	if err := savePreValid(tb); err != nil {
 		util.ResponseError(c, err)
 		return
 	}
-	if err := models.DB.Model(new(models.GroupBasic)).Where("uuid = ?", in.Uuid).Update("name", gb.Name).Error; err != nil {
-		logger.Error("[db] group update error.", zap.Error(err))
+	if err := models.DB.Model(new(models.TagBasic)).Where("uuid = ?", in.Uuid).Update("name", tb.Name).Error; err != nil {
+		logger.Error("[db] tag update error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 	util.ResponseOk(c)
 }
 
-// Delete 删除分组
+// Delete 删除标签
 func Delete(c *gin.Context, in *DeleteRequest) {
 	if err := models.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(new(models.ProxyBasic)).Where("group_uuid = ?", in.Uuid).Update("group_uuid", "").Error; err != nil {
+		if err := tx.Where("tag_uuid = ?", in.Uuid).Delete(new(models.ProxyTag)).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("uuid = ?", in.Uuid).Delete(new(models.TagBasic)).Error; err != nil {
 			return err
 		}
 		return nil
 	}); err != nil {
-		logger.Error("[db] group delete error.", zap.Error(err))
+		logger.Error("[db] tag delete error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}

@@ -14,9 +14,9 @@
       <a-form-item ref="name" label="名称" name="name" laba-position="top">
         <a-input v-model:value="ruleForm.name" />
       </a-form-item>
-      <a-form-item label="分组" name="group_uuid">
-        <a-select v-model:value="ruleForm.group_uuid" allow-clear placeholder="请选择分组">
-          <a-select-option v-for="item in groupList" :key="item.uuid" :value="item.uuid">
+      <a-form-item label="标签" name="tag_uuid_list">
+        <a-select v-model:value="ruleForm.tag_uuid_list" mode="multiple" allow-clear placeholder="请选择标签">
+          <a-select-option v-for="item in tagList" :key="item.uuid" :value="item.uuid">
             {{ item.name }}
           </a-select-option>
         </a-select>
@@ -59,12 +59,12 @@
 import { message } from "ant-design-vue";
 import { computed, ref, watch } from "vue";
 import { addProxy, editProxy } from "@/api/proxy";
-import { getGroupList } from "@/api/group";
+import { getTagList } from "@/api/tag";
 
 interface RuleForm {
   uuid: string;
   name: string;
-  group_uuid: string;
+  tag_uuid_list: string[];
   type: string;
   listen_address: string;
   listen_port: string;
@@ -78,7 +78,7 @@ const emit = defineEmits(["getList"]);
 const createForm = (): RuleForm => ({
   uuid: "",
   name: "",
-  group_uuid: "",
+  tag_uuid_list: [],
   type: "",
   listen_address: "",
   listen_port: "",
@@ -89,7 +89,7 @@ const createForm = (): RuleForm => ({
 const formSize = ref("default");
 const ruleFormRef = ref();
 const ruleForm = ref<RuleForm>(createForm());
-const groupList = ref([] as any[]);
+const tagList = ref([] as any[]);
 const modalTitle = computed(() => (ruleForm.value.uuid ? "编辑代理" : "添加代理"));
 const isSocks5Type = computed(() => ruleForm.value.type === "SOCKS5");
 
@@ -112,9 +112,9 @@ watch(
   }
 );
 
-const loadGroups = async () => {
-  const res = await getGroupList({});
-  groupList.value = res.data || [];
+const loadTags = async () => {
+  const res = await getTagList({});
+  tagList.value = res.data || [];
 };
 
 const submitForm = async (formEl: any | undefined) => {
@@ -159,9 +159,9 @@ const cancel = () => {
 const showbox = ref(false);
 
 const init = async (row?: RuleForm) => {
-  await loadGroups();
+  await loadTags();
   if (row) {
-    ruleForm.value = { ...createForm(), ...row };
+    ruleForm.value = { ...createForm(), ...row, tag_uuid_list: row.tag_uuid_list || [] };
   } else {
     ruleForm.value = createForm();
   }

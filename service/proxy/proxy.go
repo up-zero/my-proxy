@@ -14,20 +14,8 @@ import (
 	"github.com/up-zero/my-proxy/service/serve"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
-
-func loadProxyGroupMap() (map[string]string, error) {
-	list := make([]*models.GroupBasic, 0)
-	if err := models.DB.Model(new(models.GroupBasic)).Find(&list).Error; err != nil {
-		logger.Error("[db] get group list error.", zap.Error(err))
-		return nil, err
-	}
-	groupMap := make(map[string]string, len(list))
-	for _, item := range list {
-		groupMap[item.Uuid] = item.Name
-	}
-	return groupMap, nil
-}
 
 func loadProxyBasicMap() (map[string]*models.ProxyBasic, error) {
 	list := make([]*models.ProxyBasic, 0)
@@ -42,9 +30,101 @@ func loadProxyBasicMap() (map[string]*models.ProxyBasic, error) {
 	return proxyMap, nil
 }
 
+func normalizeTagUuidList(tagUuidList []string) []string {
+	res := make([]string, 0, len(tagUuidList))
+	seen := make(map[string]struct{}, len(tagUuidList))
+	for _, item := range tagUuidList {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if _, ok := seen[item]; ok {
+			continue
+		}
+		seen[item] = struct{}{}
+		res = append(res, item)
+	}
+	return res
+}
+
+func applyProxyTagList(pb *models.ProxyBasic, tagList []models.TagBasic) {
+	pb.TagList = append([]models.TagBasic(nil), tagList...)
+	pb.TagUuidList = make([]string, 0, len(tagList))
+	for _, tag := range tagList {
+		pb.TagUuidList = append(pb.TagUuidList, tag.Uuid)
+	}
+}
+
+func applyTaskTagList(task *serve.ProxyTask, tagList []models.TagBasic) {
+	task.TagList = append([]models.TagBasic(nil), tagList...)
+	task.TagUuidList = make([]string, 0, len(tagList))
+	for _, tag := range tagList {
+		task.TagUuidList = append(task.TagUuidList, tag.Uuid)
+	}
+}
+
+func populateProxyTags(list []*models.ProxyBasic) error {
+	if len(list) == 0 {
+		return nil
+	}
+	proxyUuids := make([]string, 0, len(list))
+	for _, item := range list {
+		proxyUuids = append(proxyUuids, item.Uuid)
+	}
+	proxyTagMap, err := models.LoadProxyTagListMap(proxyUuids)
+	if err != nil {
+		logger.Error("[db] get proxy tag relations error.", zap.Error(err))
+		return err
+	}
+	for _, item := range list {
+		applyProxyTagList(item, proxyTagMap[item.Uuid])
+	}
+	return nil
+}
+
+func populateTaskTags(list []*serve.ProxyTask) error {
+	if len(list) == 0 {
+		return nil
+	}
+	proxyUuids := make([]string, 0, len(list))
+	for _, item := range list {
+		proxyUuids = append(proxyUuids, item.Uuid)
+	}
+	proxyTagMap, err := models.LoadProxyTagListMap(proxyUuids)
+	if err != nil {
+		logger.Error("[db] get proxy tag relations error.", zap.Error(err))
+		return err
+	}
+	for _, item := range list {
+		applyTaskTagList(item, proxyTagMap[item.Uuid])
+	}
+	return nil
+}
+
+func hasAnyMatchedTag(proxyTagUuidList []string, selectedTagUuidList []string) bool {
+	if len(selectedTagUuidList) == 0 {
+		return true
+	}
+	selectedMap := make(map[string]struct{}, len(selectedTagUuidList))
+	for _, item := range selectedTagUuidList {
+		selectedMap[item] = struct{}{}
+	}
+	for _, item := range proxyTagUuidList {
+		if _, ok := selectedMap[item]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeProxyBasic(pb *models.ProxyBasic) {
 	pb.Name = strings.TrimSpace(pb.Name)
-	pb.GroupUuid = strings.TrimSpace(pb.GroupUuid)
+	if len(pb.TagUuidList) == 0 && len(pb.TagList) > 0 {
+		for _, tag := range pb.TagList {
+			pb.TagUuidList = append(pb.TagUuidList, tag.Uuid)
+		}
+	}
+	pb.TagUuidList = normalizeTagUuidList(pb.TagUuidList)
 	pb.Type = strings.ToUpper(strings.TrimSpace(pb.Type))
 	pb.ListenAddress = strings.TrimSpace(pb.ListenAddress)
 	pb.ListenPort = strings.TrimSpace(pb.ListenPort)
@@ -107,15 +187,13 @@ func Status(c *gin.Context, in *StatusRequest) {
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
-	groupMap, err := loadProxyGroupMap()
-	if err != nil {
+	if err := populateTaskTags(tasks); err != nil {
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 	for _, item := range tasks {
 		if pb, ok := proxyMap[item.Uuid]; ok {
-			item.GroupUuid = pb.GroupUuid
-			item.GroupName = groupMap[pb.GroupUuid]
+			item.Name = pb.Name
 		}
 	}
 	if in.Name != "" {
@@ -123,9 +201,9 @@ func Status(c *gin.Context, in *StatusRequest) {
 			return strings.Contains(pt.Name, in.Name)
 		})
 	}
-	if in.GroupUuid != "" {
+	if len(in.TagUuidList) > 0 {
 		tasks = sliceutil.Filter(tasks, func(pt *serve.ProxyTask) bool {
-			return pt.GroupUuid == in.GroupUuid
+			return hasAnyMatchedTag(pt.TagUuidList, in.TagUuidList)
 		})
 	}
 	util.ResponseOkWithList(c, tasks)
@@ -137,10 +215,16 @@ func savePreValid(pb *models.ProxyBasic) error {
 	if err := validateProxyBasicFields(pb); err != nil {
 		return err
 	}
-	if pb.GroupUuid != "" {
-		if err := (&models.GroupBasic{Uuid: pb.GroupUuid}).First(); err != nil {
-			logger.Error("[db] get group basic error.", zap.Error(err))
-			return fmt.Errorf("group does not exist")
+	if len(pb.TagUuidList) > 0 {
+		tagMap, err := models.LoadTagMap()
+		if err != nil {
+			logger.Error("[db] get tag map error.", zap.Error(err))
+			return err
+		}
+		for _, tagUuid := range pb.TagUuidList {
+			if _, ok := tagMap[tagUuid]; !ok {
+				return fmt.Errorf("tag(%s) does not exist", tagUuid)
+			}
 		}
 	}
 	// 名称判重
@@ -181,7 +265,14 @@ func create(pb *models.ProxyBasic) error {
 	}
 
 	// 落库
-	if err := models.DB.Create(pb).Error; err != nil {
+	if err := models.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(pb).Error; err != nil {
+			return err
+		}
+		return models.ReplaceProxyTags(tx, pb.Uuid, pb.TagUuidList)
+	}); err != nil {
+		task.Stop()
+		task.Remove()
 		logger.Error("[sys] proxy basic create error.", zap.Error(err))
 		return err
 	}
@@ -238,16 +329,20 @@ func Edit(c *gin.Context, in *EditRequest) {
 	}
 
 	// 落库
-	if err := models.DB.Model(new(models.ProxyBasic)).Where("uuid = ?", pb.Uuid).Updates(map[string]any{
-		"name":           pb.Name,
-		"group_uuid":     pb.GroupUuid,
-		"type":           pb.Type,
-		"listen_address": pb.ListenAddress,
-		"listen_port":    pb.ListenPort,
-		"target_address": pb.TargetAddress,
-		"target_port":    pb.TargetPort,
-		"state":          pb.State,
-	}).Error; err != nil {
+	if err := models.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(new(models.ProxyBasic)).Where("uuid = ?", pb.Uuid).Updates(map[string]any{
+			"name":           pb.Name,
+			"type":           pb.Type,
+			"listen_address": pb.ListenAddress,
+			"listen_port":    pb.ListenPort,
+			"target_address": pb.TargetAddress,
+			"target_port":    pb.TargetPort,
+			"state":          pb.State,
+		}).Error; err != nil {
+			return err
+		}
+		return models.ReplaceProxyTags(tx, pb.Uuid, pb.TagUuidList)
+	}); err != nil {
 		logger.Error("[sys] proxy basic updates error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return
@@ -262,6 +357,10 @@ func Export(c *gin.Context, in *ExportRequest) {
 	if err := models.DB.Model(new(models.ProxyBasic)).Where("uuid IN ?", in.Uuid).Find(&list).Error; err != nil {
 		logger.Error("[db] proxy basic find error.", zap.Error(err))
 		util.ResponseError(c, err)
+		return
+	}
+	if err := populateProxyTags(list); err != nil {
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 
@@ -293,6 +392,7 @@ func Import(c *gin.Context) {
 	for _, pb := range list {
 		// 创建代理
 		pb.Uuid = idutil.UUIDGenerate()
+		pb.State = models.ProxyStateStopped
 		if err := create(pb); err != nil {
 			logger.Error("[sys] proxy basic create error.", zap.Error(err))
 			util.ResponseError(c, err)
@@ -323,7 +423,12 @@ func Delete(c *gin.Context, in *DeleteRequest) {
 
 	// 移除代理
 	task.Remove()
-	if err := models.DB.Delete(new(models.ProxyBasic), "uuid = ?", pb.Uuid).Error; err != nil {
+	if err := models.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("proxy_uuid = ?", pb.Uuid).Delete(new(models.ProxyTag)).Error; err != nil {
+			return err
+		}
+		return tx.Delete(new(models.ProxyBasic), "uuid = ?", pb.Uuid).Error
+	}); err != nil {
 		logger.Error("[sys] proxy basic delete error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return
@@ -345,7 +450,12 @@ func BatchDelete(c *gin.Context, in *BatchDeleteRequest) {
 		task.Remove()
 	}
 	// 移除代理
-	if err := models.DB.Delete(new(models.ProxyBasic), "uuid in ?", in.Uuid).Error; err != nil {
+	if err := models.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("proxy_uuid IN ?", in.Uuid).Delete(new(models.ProxyTag)).Error; err != nil {
+			return err
+		}
+		return tx.Delete(new(models.ProxyBasic), "uuid in ?", in.Uuid).Error
+	}); err != nil {
 		logger.Error("[sys] proxy basic delete error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return

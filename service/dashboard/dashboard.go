@@ -180,7 +180,7 @@ func (c *collector) buildOverview() (*OverviewResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	groupMap, err := loadProxyGroupMap()
+	proxyTagMap, err := loadProxyTagMap(proxyList)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (c *collector) buildOverview() (*OverviewResponse, error) {
 		nodes = append(nodes, NodeLoadMetric{
 			Uuid:              proxyBasic.Uuid,
 			Name:              proxyBasic.Name,
-			GroupName:         groupMap[proxyBasic.GroupUuid],
+			TagList:           proxyTagMap[proxyBasic.Uuid],
 			Type:              proxyBasic.Type,
 			State:             state,
 			ListenAddress:     proxyBasic.ListenAddress,
@@ -353,15 +353,15 @@ func loadProxyBasics() ([]*models.ProxyBasic, error) {
 	return list, nil
 }
 
-func loadProxyGroupMap() (map[string]string, error) {
-	list := make([]*models.GroupBasic, 0)
-	if err := models.DB.Model(new(models.GroupBasic)).Find(&list).Error; err != nil {
-		logger.Error("[db] get group list error", zap.Error(err))
+func loadProxyTagMap(proxyList []*models.ProxyBasic) (map[string][]models.TagBasic, error) {
+	proxyUuids := make([]string, 0, len(proxyList))
+	for _, item := range proxyList {
+		proxyUuids = append(proxyUuids, item.Uuid)
+	}
+	proxyTagMap, err := models.LoadProxyTagListMap(proxyUuids)
+	if err != nil {
+		logger.Error("[db] get proxy tag list error", zap.Error(err))
 		return nil, err
 	}
-	groupMap := make(map[string]string, len(list))
-	for _, item := range list {
-		groupMap[item.Uuid] = item.Name
-	}
-	return groupMap, nil
+	return proxyTagMap, nil
 }

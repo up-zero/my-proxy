@@ -11,8 +11,8 @@
         </div>
         <div style="display: flex; align-items: center;">
           <a-input v-model:value="state.query.name" placeholder="请输入代理名称" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
-          <a-select v-model:value="state.query.group_uuid" allow-clear placeholder="请选择分组名称" style="width: 180px; margin-right: 8px;">
-            <a-select-option v-for="item in state.groupList" :key="item.uuid" :value="item.uuid">
+          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear placeholder="请选择标签" style="width: 240px; margin-right: 8px;">
+            <a-select-option v-for="item in state.tagList" :key="item.uuid" :value="item.uuid">
               {{ item.name }}
             </a-select-option>
           </a-select>
@@ -22,7 +22,8 @@
     </a-form>
 
     <!-- 表格 -->
-    <a-table :scroll="{ y: 'calc(100vh - 320px)' }" :dataSource="state.list" :columns="columns" bordered
+    <a-table :scroll="{ x: 1560, y: 'calc(100vh - 320px)' }" :dataSource="state.list" :columns="columns" bordered
+      table-layout="fixed"
       :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
         selectedRowKeys: selectedRowKeys,
         onChange: onSelectChange,
@@ -32,14 +33,19 @@
           <span class="state-span danger" v-if="record.state === 'STOPPED'">已停止</span>
           <span class="state-span success" v-else-if="record.state === 'RUNNING'">运行中</span>
         </template>
-        <template v-else-if="column.key === 'group_name'">
-          <span>{{ record.group_name || '-' }}</span>
+        <template v-else-if="column.key === 'tag_list'">
+          <div class="tag-list-cell">
+            <template v-if="record.tag_list?.length">
+              <a-tag v-for="tag in record.tag_list" :key="tag.uuid">{{ tag.name }}</a-tag>
+            </template>
+            <span v-else>-</span>
+          </div>
         </template>
         <template v-else-if="column.key === 'target_address'">
-          <span>{{ record.target_address || '-' }}</span>
+          <span class="single-line-text">{{ record.target_address || '-' }}</span>
         </template>
         <template v-else-if="column.key === 'target_port'">
-          <span>{{ record.target_port || '-' }}</span>
+          <span class="single-line-text">{{ record.target_port || '-' }}</span>
         </template>
         <template v-if="column.key === 'traffic_in'">
 
@@ -47,23 +53,25 @@
 
         </template>
         <template v-if="column.key === 'listen_port'">
-          <a @click="showQuickAccessModal(record)" class="port-link">{{ record.listen_port }}</a>
+          <a @click="showQuickAccessModal(record)" class="port-link single-line-text">{{ record.listen_port }}</a>
         </template>
         <template v-else-if="column.key === 'operation'">
-          <a-popconfirm v-if="state.list.length" title="确定删除?" @confirm="delItem(record)">
-            <a-button type="link">删除</a-button>
-          </a-popconfirm>
-          <a-button type="link" @click="editItem(record)">编辑</a-button>
-          <a-popconfirm v-if="record.state === 'STOPPED'" title="是否启动?" @confirm="startItem(record)">
-            <a-button type="link">启动</a-button>
-          </a-popconfirm>
-          <a-popconfirm v-if="record.state === 'RUNNING'" title="是否停止?" @confirm="stopItem(record)">
-            <a-button type="link">停止</a-button>
-          </a-popconfirm>
-          <a-popconfirm v-if="state.list.length" title="是否重启?" @confirm="restartItem(record)">
-            <a-button type="link">重启</a-button>
-          </a-popconfirm>
-          <a-button type="link" :disabled="record.state !== 'RUNNING'" @click="captureItem(record)">抓包</a-button>
+          <div class="operation-actions">
+            <a-popconfirm v-if="state.list.length" title="确定删除?" @confirm="delItem(record)">
+              <a-button type="link">删除</a-button>
+            </a-popconfirm>
+            <a-button type="link" @click="editItem(record)">编辑</a-button>
+            <a-popconfirm v-if="record.state === 'STOPPED'" title="是否启动?" @confirm="startItem(record)">
+              <a-button type="link">启动</a-button>
+            </a-popconfirm>
+            <a-popconfirm v-if="record.state === 'RUNNING'" title="是否停止?" @confirm="stopItem(record)">
+              <a-button type="link">停止</a-button>
+            </a-popconfirm>
+            <a-popconfirm v-if="state.list.length" title="是否重启?" @confirm="restartItem(record)">
+              <a-button type="link">重启</a-button>
+            </a-popconfirm>
+            <a-button type="link" :disabled="record.state !== 'RUNNING'" @click="captureItem(record)">抓包</a-button>
+          </div>
         </template>
       </template>
     </a-table>
@@ -113,7 +121,7 @@ import {
   delBacthProxy,
   exportProxy,
 } from "@/api/proxy";
-import { getGroupList } from "@/api/group";
+import { getTagList } from "@/api/tag";
 import addBox from "./add.vue";
 import { ExclamationCircleOutlined, InfoCircleOutlined } from "@ant-design/icons-vue";
 import { message, Modal } from "ant-design-vue";
@@ -126,8 +134,8 @@ import { useRouter } from "vue-router";
 interface DataItem {
   uuid: string;
   name: string;
-  group_uuid?: string;
-  group_name?: string;
+  tag_uuid_list?: string[];
+  tag_list?: Array<{ uuid: string; name: string }>;
   type: string;
   listen_port: string;
   target_address: string;
@@ -137,7 +145,7 @@ interface DataItem {
 
 const QUERY = (): any => ({
   name: "",
-  group_uuid: undefined,
+  tag_uuid_list: [],
   page: 1,
   per_page: 10,
   position: 1,
@@ -149,7 +157,7 @@ const state = reactive({
   isLoading: false,
   query: QUERY(),
   list: [] as any,
-  groupList: [] as any,
+  tagList: [] as any,
   total: 0,
   checkList: [] as string[],
 });
@@ -268,79 +276,106 @@ const getNum = (num:number) => {
   }
 }
 onMounted(async () => {
-  await loadGroups();
+  await loadTags();
   getList();
 });
-const columns = [
-  {
-    title: "序号",
-    dataIndex: "index",
-    key: "index",
-    width: 80,
-  },
-  {
-    dataIndex: "name",
-    title: "名称",
-    key: "name",
-    width: 200,
-  },
-  {
-    dataIndex: "group_name",
-    title: "分组",
-    key: "group_name",
-    width: 160,
-  },
-  {
-    title: "类型",
-    dataIndex: "type",
-    key: "type",
-  },
-  {
-    title: "监听地址",
-    dataIndex: "listen_address",
-    key: "listen_address",
-  },
-  {
-    title: "监听端口",
-    dataIndex: "listen_port",
-    key: "listen_port",
-  },
-  {
-    title: "目标地址",
-    key: "target_address",
-    dataIndex: "target_address",
-  },
-  {
-    title: "目标端口",
-    key: "target_port",
-    dataIndex: "target_port",
-  },
-  {
-    title: "状态",
-    dataIndex: "state",
-    key: "state",
-    // slots: { customRender: "state" },
-  },
-  {
-    title: "出/入站流量 ",
-    dataIndex: "traffic_in",
-    key: "traffic_in",
-    width: 175,
-    // slots: { customRender: "state" },
-  },
-  {
-    title: "操作",
-    dataIndex: "operation",
-    key: "operation",
-    width: 340,
-    // slots: { customRender: "operation" },
-  },
-];
+const tagColumnWidth = computed(() => {
+  const maxTagTextLength = state.list.reduce((max: number, item: any) => {
+    const tagText = Array.isArray(item.tag_list)
+      ? item.tag_list.map((tag: any) => tag.name).join(" ")
+      : "";
+
+    return Math.max(max, tagText.length);
+  }, 0);
+
+  if (maxTagTextLength === 0) {
+    return 72;
+  }
+
+  return Math.min(Math.max(maxTagTextLength * 14 + 24, 120), 180);
+});
+
+const columns = computed(() => {
+  return [
+    {
+      title: "序号",
+      dataIndex: "index",
+      key: "index",
+      width: 70,
+    },
+    {
+      dataIndex: "name",
+      title: "名称",
+      key: "name",
+      width: 200,
+      ellipsis: true,
+    },
+    {
+      dataIndex: "tag_list",
+      title: "标签",
+      key: "tag_list",
+      width: tagColumnWidth.value,
+    },
+    {
+      title: "类型",
+      dataIndex: "type",
+      key: "type",
+      width: 90,
+    },
+    {
+      title: "监听地址",
+      dataIndex: "listen_address",
+      key: "listen_address",
+      width: 140,
+      ellipsis: true,
+    },
+    {
+      title: "监听端口",
+      dataIndex: "listen_port",
+      key: "listen_port",
+      width: 80,
+    },
+    {
+      title: "目标地址",
+      key: "target_address",
+      dataIndex: "target_address",
+      width: 140,
+      ellipsis: true,
+    },
+    {
+      title: "目标端口",
+      key: "target_port",
+      dataIndex: "target_port",
+      width: 100,
+    },
+    {
+      title: "状态",
+      dataIndex: "state",
+      key: "state",
+      width: 100,
+      // slots: { customRender: "state" },
+    },
+    {
+      title: "出/入站流量 ",
+      dataIndex: "traffic_in",
+      key: "traffic_in",
+      width: 170,
+      // slots: { customRender: "state" },
+    },
+    {
+      title: "操作",
+      dataIndex: "operation",
+      key: "operation",
+      width: 260,
+      // slots: { customRender: "operation" },
+    },
+  ];
+});
 /*****************表格******************* */
 
-async function loadGroups() {
-  const res = await getGroupList({});
-  state.groupList = res.data || [];
+async function loadTags() {
+  const res = await getTagList({});
+  state.tagList = res.data || [];
 }
 
 // 获取列表
@@ -473,6 +508,10 @@ const delBatch = () => {
     background-color: #fff !important; /* 表头为白色 */
   }
 
+  .m-table :deep(.ant-table-cell) {
+    white-space: nowrap;
+  }
+
   .m-table :deep(.ant-table-tbody) > tr:hover td {
     background-color: #f0f8ff !important; /* 鼠标悬停时使用浅蓝色 */
   }
@@ -502,6 +541,41 @@ const delBatch = () => {
 
   .m-page {
     margin-top: 30px;
+  }
+
+  .single-line-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  .tag-list-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    :deep(.ant-tag) {
+      margin-inline-end: 4px;
+    }
+  }
+
+  .traf-span {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .operation-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+
+    :deep(.ant-btn) {
+      padding-inline: 8px;
+      white-space: nowrap;
+    }
   }
 
   /* 监听端口链接样式 */

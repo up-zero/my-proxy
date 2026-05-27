@@ -90,7 +90,7 @@
                     </span>
                   </div>
                   <div class="node-meta">
-                    <span>{{ item.group_name || '未分组' }}</span>
+                    <span>{{ item.tag_list?.length ? item.tag_list.map((tag) => tag.name).join(' / ') : '未打标签' }}</span>
                     <span>{{ item.listen_address }}:{{ item.listen_port }}</span>
                   </div>
                   <div class="node-stats">
@@ -158,7 +158,7 @@ interface SystemPoint {
 interface NodeLoadMetric {
   uuid: string;
   name: string;
-  group_name: string;
+  tag_list: Array<{ uuid: string; name: string }>;
   type: string;
   state: string;
   listen_address: string;
