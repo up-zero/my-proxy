@@ -55,6 +55,18 @@ my-proxy status <name>
 
 ![cli_status.png](./assets/cli_status.png)
 
++ Terminal dashboard
+
+```bash
+# Open terminal stats
+my-proxy stats
+
+# Customize the refresh interval
+my-proxy stats --interval 2s
+```
+
+The terminal stats view mirrors the core Web dashboard elements, including summary metrics, rate trends, connection trends, system resource usage, and the Top N node load list. Press `r` to refresh immediately and `q` to exit.
+
 + Proxy management
 
 ```bash

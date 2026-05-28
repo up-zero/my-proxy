@@ -53,6 +53,18 @@ my-proxy status <name>
 
 ![cli_status.png](./assets/cli_status.png)
 
++ 终端仪表盘
+
+```bash
+# 打开终端资源监控面板
+my-proxy stats
+
+# 自定义刷新间隔
+my-proxy stats --interval 2s
+```
+
+终端统计面板会同步展示 Web 仪表盘中的核心数据元素，包括汇总指标、实时速率走势、连接数走势、系统资源占用以及节点负载 Top 列表。按 `r` 立即刷新，按 `q` 退出。
+
 + 代理管理
 
 ```bash
