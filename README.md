@@ -97,6 +97,31 @@ Interactive command-line interfaces are provided for creating and editing proxie
 
 ## Deployment
 
+### One-click install on Linux / macOS
+
+Install the latest release directly from GitHub Releases:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | bash
+```
+
+Install a specific version, custom directory, or custom service port:
+
+```bash
+# Install a specific release
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | MY_PROXY_VERSION=v1.0.0 bash
+
+# Install to a user directory
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | INSTALL_DIR="$HOME/.local/bin" bash
+
+# Change the service port
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | MY_PROXY_SERVICE_PORT=12312 bash
+```
+
+After installation, run `my-proxy version` to verify the binary, then use the printed service status command to inspect the running service.
+
+### Manual deployment with supervisor (Linux)
+
 1. Upload the `my-proxy` executable to `/usr/local/bin`.
 
 2. Install `supervisor`, then create `/etc/supervisor/conf.d/my-proxy.conf` (note: the configuration path may vary by supervisor version; for example, on CentOS you may need to create `/etc/supervisord.d/my-proxy.ini`). Use the following content:
@@ -159,14 +184,44 @@ docker logs my-proxy-service | grep "admin"
 ## Build
 
 ```bash
-# linux amd64
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o my-proxy-amd64
+# Linux / macOS
+./scripts/build-release.sh --version 1.0.0 --clean
 
-# linux arm64
-GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o my-proxy-arm64
+# Windows PowerShell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 1.0.0 -Clean
+```
 
-# windows amd64
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o my-proxy-amd64.exe
+The scripts will:
+
+- build the frontend bundle;
+- run `go test ./...`;
+- cross-compile `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`, `windows/amd64`, and `windows/arm64`;
+- package release archives for GitHub Releases;
+- generate `checksums.txt`.
+
+The output directory defaults to `dist/release/<tag>/`, for example:
+
+```text
+dist/release/v1.0.0/
+├── checksums.txt
+├── my-proxy-darwin-amd64.tar.gz
+├── my-proxy-darwin-arm64.tar.gz
+├── my-proxy-linux-amd64.tar.gz
+├── my-proxy-linux-arm64.tar.gz
+├── my-proxy-windows-amd64.zip
+└── my-proxy-windows-arm64.zip
+```
+
+Upload all generated files in that directory to the matching GitHub Release.
+
+Useful options:
+
+```bash
+# Build only selected targets
+./scripts/build-release.sh --targets linux/amd64,windows/amd64
+
+# Skip frontend build or Go tests when needed
+./scripts/build-release.sh --skip-frontend --skip-test
 ```
 
 

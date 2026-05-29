@@ -95,6 +95,31 @@ my-proxy delete <name>
 
 ## 部署
 
+### Linux / macOS 一键安装
+
+直接从 GitHub Releases 安装最新版本：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | bash
+```
+
+安装指定版本、自定义安装目录或自定义服务端口：
+
+```bash
+# 安装指定版本
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | MY_PROXY_VERSION=v1.0.0 bash
+
+# 安装到用户目录
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | INSTALL_DIR="$HOME/.local/bin" bash
+
+# 修改服务端口
+curl -fsSL https://raw.githubusercontent.com/up-zero/my-proxy/master/scripts/install.sh | MY_PROXY_SERVICE_PORT=12312 bash
+```
+
+安装完成后，可以执行 `my-proxy version` 验证二进制是否可用，再按安装脚本输出的状态命令检查服务运行情况。
+
+### 使用 supervisor 手动部署（Linux）
+
 1. 上传 `my-proxy` 可执行文件到 `/usr/local/bin` 中目录
 
 2. 安装 `supervisor`，创建 `/etc/supervisor/conf.d/my-proxy.conf` 文件（说明：不同版本的 supervisor 配置文件的路径不同，例如 Centos 需要创建 /etc/supervisord.d/my-proxy.ini 文件 ），内容如下：
@@ -156,12 +181,42 @@ docker logs my-proxy-service | grep "admin"
 ## 构建
 
 ```bash
-# linux amd64
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o my-proxy-amd64
+# Linux / macOS
+./scripts/build-release.sh --version 1.0.0 --clean
 
-# linux arm64
-GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o my-proxy-arm64
+# Windows PowerShell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 1.0.0 -Clean
+```
 
-# windows amd64
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o my-proxy-amd64.exe
+脚本会自动完成：
+
+- 构建前端静态资源；
+- 执行 `go test ./...`；
+- 交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64`、`windows/amd64`、`windows/arm64`；
+- 打包适合 GitHub Release 上传的归档文件；
+- 生成 `checksums.txt` 校验文件。
+
+默认输出目录为 `dist/release/<tag>/`，例如：
+
+```text
+dist/release/v1.0.0/
+├── checksums.txt
+├── my-proxy-darwin-amd64.tar.gz
+├── my-proxy-darwin-arm64.tar.gz
+├── my-proxy-linux-amd64.tar.gz
+├── my-proxy-linux-arm64.tar.gz
+├── my-proxy-windows-amd64.zip
+└── my-proxy-windows-arm64.zip
+```
+
+将该目录中的所有文件上传到对应 tag 的 GitHub Release 即可。
+
+常用参数示例：
+
+```bash
+# 只构建指定平台
+./scripts/build-release.sh --targets linux/amd64,windows/amd64
+
+# 按需跳过前端构建或 Go 测试
+./scripts/build-release.sh --skip-frontend --skip-test
 ``` 
