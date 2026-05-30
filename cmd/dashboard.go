@@ -100,18 +100,18 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m dashboardModel) View() string {
 	if m.width < 72 || m.height < 20 {
-		return dashboardFrameStyle.Render("终端窗口过小，请放大后查看资源监控面板。\n建议至少使用 72x20 的终端大小。")
+		return dashboardFrameStyle.Render("Terminal window is too small. Enlarge it to view the resource dashboard.\nRecommended minimum terminal size: 72x20.")
 	}
 
 	contentWidth := maxInt(40, m.width-4)
 	header := m.renderHeader(contentWidth)
 
 	if m.overview == nil {
-		message := "正在拉取仪表盘数据..."
+		message := "Loading dashboard data..."
 		if m.err != "" {
-			message = dashboardErrorStyle.Render("拉取失败：" + m.err)
+			message = dashboardErrorStyle.Render("Failed to load: " + m.err)
 		}
-		body := renderPanel(contentWidth, "实时总览", "终端资源监控 UI", lipgloss.Color("63"), message)
+		body := renderPanel(contentWidth, "Live Overview", "Terminal resource monitoring UI", lipgloss.Color("63"), message)
 		return dashboardFrameStyle.Render(lipgloss.JoinVertical(lipgloss.Left, header, "", body))
 	}
 
@@ -122,16 +122,16 @@ func (m dashboardModel) View() string {
 }
 
 func (m dashboardModel) renderHeader(width int) string {
-	statusText := dashboardHintStyle.Render("按 r 立即刷新 · 按 q 退出")
+	statusText := dashboardHintStyle.Render("Press r to refresh now · Press q to quit")
 	if m.loading {
-		statusText = dashboardWarnStyle.Render("采样中...") + "  " + statusText
+		statusText = dashboardWarnStyle.Render("Sampling...") + "  " + statusText
 	} else if m.err != "" {
-		statusText = dashboardErrorStyle.Render("最近刷新失败："+m.err) + "  " + statusText
+		statusText = dashboardErrorStyle.Render("Last refresh failed: "+m.err) + "  " + statusText
 	} else if m.overview != nil {
 		statusText = dashboardOkStyle.Render(updatedAtText(m.overview.Summary.UpdatedAt)) + "  " + statusText
 	}
 
-	left := dashboardTitleStyle.Render("my-proxy 终端仪表盘")
+	left := dashboardTitleStyle.Render("my-proxy Terminal Dashboard")
 	right := lipgloss.NewStyle().Align(lipgloss.Right).Width(maxInt(0, width-lipgloss.Width(left)-2)).Render(statusText)
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 }
@@ -172,37 +172,37 @@ func renderSummaryCards(overview *serviceDashboard.OverviewResponse, width int) 
 	bodyWidth := panelContentWidth(width)
 	cards := []summaryCard{
 		{
-			title: "代理总数",
+			title: "Total Proxies",
 			value: formatNumber(int64(overview.Summary.ProxyTotal)),
-			sub:   fmt.Sprintf("运行 %s / 停止 %s", formatNumber(int64(overview.Summary.ProxyRunning)), formatNumber(int64(overview.Summary.ProxyStopped))),
+			sub:   fmt.Sprintf("Running %s / Stopped %s", formatNumber(int64(overview.Summary.ProxyRunning)), formatNumber(int64(overview.Summary.ProxyStopped))),
 			color: lipgloss.Color("39"),
 		},
 		{
-			title: "当前连接数",
+			title: "Current Connections",
 			value: formatNumber(overview.Summary.TotalConnections),
-			sub:   "活跃 TCP / UDP / HTTP 请求",
+			sub:   "Active TCP / UDP / HTTP requests",
 			color: lipgloss.Color("214"),
 		},
 		{
-			title: "累计入站",
+			title: "Total Inbound",
 			value: formatBytesInt64(overview.Summary.TotalTrafficIn),
-			sub:   "实时 " + formatRate(overview.Summary.InboundRate),
+			sub:   "Live " + formatRate(overview.Summary.InboundRate),
 			color: lipgloss.Color("45"),
 		},
 		{
-			title: "累计出站",
+			title: "Total Outbound",
 			value: formatBytesInt64(overview.Summary.TotalTrafficOut),
-			sub:   "实时 " + formatRate(overview.Summary.OutboundRate),
+			sub:   "Live " + formatRate(overview.Summary.OutboundRate),
 			color: lipgloss.Color("42"),
 		},
 		{
-			title: "CPU / 内存",
+			title: "CPU / Memory",
 			value: fmt.Sprintf("%s / %s", formatPercent(overview.System.CPUPercent), formatPercent(overview.System.MemoryPercent)),
-			sub:   fmt.Sprintf("Go 堆 %s · Goroutines %d", formatBytesUint64(overview.System.GoMemoryAlloc), overview.System.Goroutines),
+			sub:   fmt.Sprintf("Go heap %s · Goroutines %d", formatBytesUint64(overview.System.GoMemoryAlloc), overview.System.Goroutines),
 			color: lipgloss.Color("99"),
 		},
 		{
-			title: "服务运行时长",
+			title: "Service Uptime",
 			value: formatUptime(overview.Summary.UptimeSeconds),
 			sub:   updatedAtText(overview.Summary.UpdatedAt),
 			color: lipgloss.Color("135"),
@@ -230,7 +230,7 @@ func renderSummaryCards(overview *serviceDashboard.OverviewResponse, width int) 
 		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, items...))
 	}
 	body := lipgloss.JoinVertical(lipgloss.Left, rows...)
-	return renderPanel(width, "摘要指标", "", lipgloss.Color("63"), body)
+	return renderPanel(width, "Summary Metrics", "", lipgloss.Color("63"), body)
 }
 
 func renderSummaryCard(card summaryCard, width int) string {
@@ -253,7 +253,7 @@ func renderTrendPanel(overview *serviceDashboard.OverviewResponse, width int) st
 		renderConnectionPanel(overview, bodyWidth),
 		renderSystemPanel(overview, bodyWidth),
 	}
-	return renderPanel(width, "趋势概览", "流量、连接与系统资源等", lipgloss.Color("99"), strings.Join(sections, "\n\n"))
+	return renderPanel(width, "Trend Overview", "Traffic, connections, and system resources", lipgloss.Color("99"), strings.Join(sections, "\n\n"))
 }
 
 func renderTrafficPanel(overview *serviceDashboard.OverviewResponse, width int) string {
@@ -266,10 +266,10 @@ func renderTrafficPanel(overview *serviceDashboard.OverviewResponse, width int) 
 	}
 
 	body := []string{
-		renderMetricSeriesBlock("入站", inValues, contentWidth, formatRate(overview.Summary.InboundRate), lipgloss.Color("45")),
-		renderMetricSeriesBlock("出站", outValues, contentWidth, formatRate(overview.Summary.OutboundRate), lipgloss.Color("42")),
+		renderMetricSeriesBlock("Inbound", inValues, contentWidth, formatRate(overview.Summary.InboundRate), lipgloss.Color("45")),
+		renderMetricSeriesBlock("Outbound", outValues, contentWidth, formatRate(overview.Summary.OutboundRate), lipgloss.Color("42")),
 	}
-	return renderSubPanel(width, "流量速率", "入站 / 出站实时趋势", lipgloss.Color("45"), strings.Join(body, "\n"))
+	return renderSubPanel(width, "Traffic Rate", "Inbound / outbound live trends", lipgloss.Color("45"), strings.Join(body, "\n"))
 }
 
 func renderConnectionPanel(overview *serviceDashboard.OverviewResponse, width int) string {
@@ -280,9 +280,9 @@ func renderConnectionPanel(overview *serviceDashboard.OverviewResponse, width in
 	}
 
 	body := []string{
-		renderMetricSeriesBlock("连接", values, contentWidth, formatNumber(overview.Summary.TotalConnections), lipgloss.Color("214")),
+		renderMetricSeriesBlock("Connections", values, contentWidth, formatNumber(overview.Summary.TotalConnections), lipgloss.Color("214")),
 	}
-	return renderSubPanel(width, "连接活跃度", "当前连接走势与瞬时活跃度", lipgloss.Color("214"), strings.Join(body, "\n"))
+	return renderSubPanel(width, "Connection Activity", "Connection trend and current activity", lipgloss.Color("214"), strings.Join(body, "\n"))
 }
 
 func renderSystemPanel(overview *serviceDashboard.OverviewResponse, width int) string {
@@ -296,14 +296,14 @@ func renderSystemPanel(overview *serviceDashboard.OverviewResponse, width int) s
 
 	body := []string{
 		renderMetricSeriesBlock("CPU", cpuValues, contentWidth, formatPercent(overview.System.CPUPercent), lipgloss.Color("39")),
-		renderMetricSeriesBlock("内存", memoryValues, contentWidth, fmt.Sprintf("%s (%s / %s)", formatPercent(overview.System.MemoryPercent), formatBytesUint64(overview.System.MemoryUsed), formatBytesUint64(overview.System.MemoryTotal)), lipgloss.Color("99")),
+		renderMetricSeriesBlock("Memory", memoryValues, contentWidth, fmt.Sprintf("%s (%s / %s)", formatPercent(overview.System.MemoryPercent), formatBytesUint64(overview.System.MemoryUsed), formatBytesUint64(overview.System.MemoryTotal)), lipgloss.Color("99")),
 	}
-	return renderSubPanel(width, "系统资源", "CPU / 内存使用趋势", lipgloss.Color("99"), strings.Join(body, "\n"))
+	return renderSubPanel(width, "System Resources", "CPU / memory usage trends", lipgloss.Color("99"), strings.Join(body, "\n"))
 }
 
 func renderNodePanel(overview *serviceDashboard.OverviewResponse, width, height int) string {
 	if len(overview.Nodes) == 0 {
-		return renderPanel(width, "活跃节点", "按连接数与实时速率综合排序", lipgloss.Color("81"), dashboardHintStyle.Render("暂无代理节点"))
+		return renderPanel(width, "Active Nodes", "Ranked by connections and live throughput", lipgloss.Color("81"), dashboardHintStyle.Render("No proxy nodes available"))
 	}
 	bodyWidth := panelContentWidth(width)
 
@@ -327,7 +327,7 @@ func renderNodePanel(overview *serviceDashboard.OverviewResponse, width, height 
 		}
 	}
 	body := strings.Join(items, "\n")
-	return renderPanel(width, fmt.Sprintf("活跃节点 Top %d", limit), "按连接数与实时速率综合排序", lipgloss.Color("81"), body)
+	return renderPanel(width, fmt.Sprintf("Top %d Active Nodes", limit), "Ranked by connections and live throughput", lipgloss.Color("81"), body)
 }
 
 func renderNodeItem(rank int, node serviceDashboard.NodeLoadMetric, width int) string {
@@ -336,7 +336,7 @@ func renderNodeItem(rank int, node serviceDashboard.NodeLoadMetric, width int) s
 		badge = dashboardOkStyle.Render("RUNNING")
 	}
 
-	tagText := "未打标签"
+	tagText := "Untagged"
 	if len(node.TagList) > 0 {
 		names := make([]string, 0, len(node.TagList))
 		for _, tag := range node.TagList {
@@ -349,9 +349,9 @@ func renderNodeItem(rank int, node serviceDashboard.NodeLoadMetric, width int) s
 	head := fmt.Sprintf("%d. %s", rank, truncateText(node.Name, nameWidth))
 	typeText := dashboardInfoStyle.Render("[" + node.Type + "]")
 	endpoint := truncateText(fmt.Sprintf("%s:%s", node.ListenAddress, node.ListenPort), maxInt(12, width/2))
-	stats := fmt.Sprintf("连接 %s   ↑ %s   ↓ %s", formatNumber(node.ActiveConnections), formatRate(node.InboundRate), formatRate(node.OutboundRate))
-	totals := fmt.Sprintf("累计 ↑ %s   ↓ %s", formatBytesInt64(node.TrafficIn), formatBytesInt64(node.TrafficOut))
-	tags := truncateText("标签: "+tagText, maxInt(14, width-4))
+	stats := fmt.Sprintf("Conn %s   ↑ %s   ↓ %s", formatNumber(node.ActiveConnections), formatRate(node.InboundRate), formatRate(node.OutboundRate))
+	totals := fmt.Sprintf("Total ↑ %s   ↓ %s", formatBytesInt64(node.TrafficIn), formatBytesInt64(node.TrafficOut))
+	tags := truncateText("Tags: "+tagText, maxInt(14, width-4))
 
 	lines := []string{
 		lipgloss.JoinHorizontal(lipgloss.Top, dashboardInfoStyle.Render(head), " ", typeText, " ", badge),
@@ -555,19 +555,19 @@ func formatUptime(totalSeconds int64) string {
 	minutes := (totalSeconds % 3600) / 60
 	seconds := totalSeconds % 60
 	if days > 0 {
-		return fmt.Sprintf("%d天 %d时", days, hours)
+		return fmt.Sprintf("%dd %dh", days, hours)
 	}
 	if hours > 0 {
-		return fmt.Sprintf("%d时 %d分", hours, minutes)
+		return fmt.Sprintf("%dh %dm", hours, minutes)
 	}
-	return fmt.Sprintf("%d分 %d秒", minutes, seconds)
+	return fmt.Sprintf("%dm %ds", minutes, seconds)
 }
 
 func updatedAtText(timestamp int64) string {
 	if timestamp <= 0 {
-		return "等待采样"
+		return "Waiting for sample"
 	}
-	return "更新于 " + time.UnixMilli(timestamp).Format("15:04:05")
+	return "Updated at " + time.UnixMilli(timestamp).Format("15:04:05")
 }
 
 func truncateText(value string, limit int) string {

@@ -186,43 +186,4 @@ docker logs my-proxy-service | grep "admin"
 ```bash
 # Linux / macOS
 ./scripts/build-release.sh --version 1.0.0 --clean
-
-# Windows PowerShell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 1.0.0 -Clean
 ```
-
-The scripts will:
-
-- build the frontend bundle;
-- run `go test ./...`;
-- cross-compile `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`, `windows/amd64`, and `windows/arm64`;
-- package release archives for GitHub Releases;
-- generate `checksums.txt`.
-
-The output directory defaults to `dist/release/<tag>/`, for example:
-
-```text
-dist/release/v1.0.0/
-├── checksums.txt
-├── my-proxy-darwin-amd64.tar.gz
-├── my-proxy-darwin-arm64.tar.gz
-├── my-proxy-linux-amd64.tar.gz
-├── my-proxy-linux-arm64.tar.gz
-├── my-proxy-windows-amd64.zip
-└── my-proxy-windows-arm64.zip
-```
-
-Upload all generated files in that directory to the matching GitHub Release.
-
-Useful options:
-
-```bash
-# Build only selected targets
-./scripts/build-release.sh --targets linux/amd64,windows/amd64
-
-# Skip frontend build or Go tests when needed
-./scripts/build-release.sh --skip-frontend --skip-test
-```
-
-
-

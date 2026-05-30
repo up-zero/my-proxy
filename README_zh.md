@@ -183,40 +183,4 @@ docker logs my-proxy-service | grep "admin"
 ```bash
 # Linux / macOS
 ./scripts/build-release.sh --version 1.0.0 --clean
-
-# Windows PowerShell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 1.0.0 -Clean
 ```
-
-脚本会自动完成：
-
-- 构建前端静态资源；
-- 执行 `go test ./...`；
-- 交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64`、`windows/amd64`、`windows/arm64`；
-- 打包适合 GitHub Release 上传的归档文件；
-- 生成 `checksums.txt` 校验文件。
-
-默认输出目录为 `dist/release/<tag>/`，例如：
-
-```text
-dist/release/v1.0.0/
-├── checksums.txt
-├── my-proxy-darwin-amd64.tar.gz
-├── my-proxy-darwin-arm64.tar.gz
-├── my-proxy-linux-amd64.tar.gz
-├── my-proxy-linux-arm64.tar.gz
-├── my-proxy-windows-amd64.zip
-└── my-proxy-windows-arm64.zip
-```
-
-将该目录中的所有文件上传到对应 tag 的 GitHub Release 即可。
-
-常用参数示例：
-
-```bash
-# 只构建指定平台
-./scripts/build-release.sh --targets linux/amd64,windows/amd64
-
-# 按需跳过前端构建或 Go 测试
-./scripts/build-release.sh --skip-frontend --skip-test
-``` 
