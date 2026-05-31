@@ -1,5 +1,6 @@
 import { login } from "@/api/user";
 import config from "@/config";
+import { t } from "@/i18n";
 import { toast } from "@/lib/util";
 import router from "@/router";
 import { defineStore } from "pinia";
@@ -35,7 +36,7 @@ export default defineStore("user", {
       this._init(res.data);
       // 跳转首页
       router.replace("/");
-      toast("登录成功");
+      toast(t("auth.loginSuccess"));
     },
     // 退出登录
     async logout() {
@@ -45,7 +46,7 @@ export default defineStore("user", {
       localStorage.removeItem(`${config.name}:token`);
       // 跳转登录页面
       router.replace("/login");
-      toast("已退出登录");
+      toast(t("auth.logoutSuccess"));
     },
   },
 });

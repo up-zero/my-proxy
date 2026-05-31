@@ -27,6 +27,7 @@ import (
 func router() *gin.Engine {
 	r := gin.New()
 	r.Use(middleware.Cors())
+	r.Use(middleware.Language())
 
 	api := r.Group("/api/v1")
 	api.GET("/ping", func(c *gin.Context) {
@@ -127,7 +128,7 @@ func router() *gin.Engine {
 			// 文件代理
 			fileServer.ServeHTTP(c.Writer, c.Request)
 		} else {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "API route not found"})
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": util.LocalizeMessage(c, "API route not found")})
 		}
 	})
 

@@ -1,4 +1,5 @@
 import config from "@/config";
+import { getCurrentLocale, t } from "@/i18n";
 import axios from "axios";
 import { ApiError } from "./error";
 
@@ -21,6 +22,7 @@ export function buildCaptureWebSocketUrl(taskUuid: string): string {
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.pathname = `${url.pathname.replace(/\/$/, "")}/v1/ws/capture`;
   url.searchParams.set("task_uuid", taskUuid);
+  url.searchParams.set("language", getCurrentLocale());
 
   const token = getStoredToken();
   if (token) {
@@ -32,6 +34,7 @@ export function buildCaptureWebSocketUrl(taskUuid: string): string {
 
 request.interceptors.request.use((conf) => {
   let token = getStoredToken();
+  conf.headers.set("language", getCurrentLocale());
   if (token) {
     conf.headers.set("Authorization", token);
   }
@@ -55,18 +58,18 @@ request.interceptors.response.use(
     const data = response.data;
     if (data.code == 60400) {
       router.push("/login");
-      toast("请登录!");
+      toast(data.msg || t("auth.loginRequired"));
       return {};
     } else if (data.code !== 200) {
       toast(data.msg, "error");
-      throw new ApiError("系统错误，api链接：" + response.config.url);
+      throw new ApiError(t("request.systemErrorWithUrl", { url: response.config.url || "" }));
     }
     return data;
   },
   (err) => {
     if (err.response.status == 401) {
       router.push("/login");
-      toast("请登录!");
+      toast(t("auth.loginRequired"));
       return {};
     }
     throw new ApiError(err.response.message);

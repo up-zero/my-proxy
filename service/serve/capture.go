@@ -54,6 +54,7 @@ type captureClient struct {
 	send       chan []byte
 	done       chan struct{}
 	taskUuid   string
+	language   string
 	remoteAddr string
 	closed     bool
 }
@@ -206,12 +207,13 @@ func (h *CaptureHub) Publish(taskUuid string, direction string, protocol string,
 }
 
 // register 注册 WebSocket客户端
-func (h *CaptureHub) register(conn *websocket.Conn, taskUuid string) *captureClient {
+func (h *CaptureHub) register(conn *websocket.Conn, taskUuid string, language string) *captureClient {
 	client := &captureClient{
 		conn:       conn,
 		send:       make(chan []byte, captureClientBufferSize),
 		done:       make(chan struct{}),
 		taskUuid:   taskUuid,
+		language:   util.NormalizeLanguage(language),
 		remoteAddr: conn.RemoteAddr().String(),
 	}
 
@@ -352,7 +354,7 @@ func (h *CaptureHub) watchAuthExpiry(client *captureClient, expireAt int64) {
 	case <-timer.C:
 		_ = client.conn.WriteControl(
 			websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, util.MsgErrAuth),
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, util.TranslateMessage(client.language, util.MsgErrAuth)),
 			time.Now().Add(captureWriteWait),
 		)
 		h.unregister(client)
@@ -401,7 +403,7 @@ func WebsocketCapture(c *gin.Context) {
 	}
 
 	hub := GetCaptureHub()
-	client := hub.register(conn, taskUuid)
+	client := hub.register(conn, taskUuid, util.GetRequestLanguage(c))
 
 	go hub.writePump(client)
 	go hub.readPump(client)

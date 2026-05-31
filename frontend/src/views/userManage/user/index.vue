@@ -4,7 +4,7 @@
 
     <a-form :inline="true" :model="state.query" class="m-search">
       <a-button type="primary" @click="toAddPage" style="margin-bottom: 10px"
-        >新增</a-button
+        >{{ t("common.add") }}</a-button
       >
     </a-form>
 
@@ -23,12 +23,12 @@
         <template v-else-if="column.key === 'operation'">
           <a-popconfirm
             v-if="state.list.length"
-            title="确定删除?"
+            :title="t('user.deleteConfirm')"
             @confirm="delItem(record)"
           >
-            <a-button type="link">删除</a-button>
+            <a-button type="link">{{ t("common.delete") }}</a-button>
           </a-popconfirm>
-          <a-button type="link" @click="editItem(record)">编辑</a-button>
+          <a-button type="link" @click="editItem(record)">{{ t("common.edit") }}</a-button>
         </template>
       </template>
     </a-table>
@@ -42,7 +42,8 @@ import { getUserList, delUser } from "@/api/user";
 import addBox from "./add.vue";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
+import { useAppI18n } from "@/i18n";
 
 interface DataItem {
   uuid: string;
@@ -60,6 +61,7 @@ const QUERY = (): any => ({
   position: 1,
 });
 const addBoxRef = ref();
+const { t } = useAppI18n();
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -71,31 +73,31 @@ const state = reactive({
 onMounted(() => {
   getList();
 });
-const columns = [
+const columns = computed(() => [
   {
-    title: "序号",
+    title: t("common.index"),
     dataIndex: "index",
     key: "index",
     width: 80,
   },
   {
     dataIndex: "username",
-    title: "用户名称",
+    title: t("user.userNameColumn"),
     key: "username",
   },
   {
-    title: "创建时间",
+    title: t("common.createdAt"),
     dataIndex: "created_at",
     key: "created_at",
   },
 
   {
-    title: "操作",
+    title: t("common.operation"),
     dataIndex: "operation",
     key: "operation",
     // slots: { customRender: "operation" },
   },
-];
+]);
 /*****************表格******************* */
 
 // 获取列表
@@ -130,7 +132,7 @@ const delItem = (row: DataItem) => {
   delUser({ uuid: [row.uuid] }).then(() => {
     getList();
     message.success({
-      content: "操作成功",
+      content: t("common.success"),
     });
   });
 };

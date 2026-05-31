@@ -18,6 +18,7 @@ const router = createRouter({
       meta: {
         isMenu: true,
         fullPage: true,
+        titleKey: "routes.dashboard",
       },
       component: () => import("../views/dashboard/index.vue"),
     },
@@ -26,6 +27,7 @@ const router = createRouter({
       name: "我的代理",
       meta: {
         isMenu: true,
+        titleKey: "routes.proxyManage",
       },
       redirect: "/proxyManage/index",
       children: [
@@ -34,6 +36,7 @@ const router = createRouter({
           name: "代理列表",
           meta: {
             isMenu: true,
+            titleKey: "routes.proxyList",
           },
           component: () => import("../views/proxyManage/index.vue"),
         },
@@ -42,6 +45,7 @@ const router = createRouter({
           name: "标签管理",
           meta: {
             isMenu: true,
+            titleKey: "routes.tagManage",
           },
           component: () => import("../views/proxyManage/tag/index.vue"),
         },
@@ -51,6 +55,7 @@ const router = createRouter({
           meta: {
             hidden: true,
             fullPage: true,
+            titleKey: "routes.captureAnalyze",
           },
           component: () => import("../views/proxyManage/capture.vue"),
         },
@@ -61,6 +66,7 @@ const router = createRouter({
       name: "用户管理",
       meta: {
         isMenu: true,
+        titleKey: "routes.userManage",
       },
       redirect: "/userManage/index",
       children: [
@@ -69,6 +75,7 @@ const router = createRouter({
           name: "用户列表",
           meta: {
             isMenu: true,
+            titleKey: "routes.userList",
           },
           component: () => import("../views/userManage/user/index.vue"),
         },
@@ -77,6 +84,9 @@ const router = createRouter({
     {
       path: "/changePassword",
       name: "修改密码",
+      meta: {
+        titleKey: "routes.changePassword",
+      },
       component: () => import("../views/userManage/changePassword.vue"),
     },
   ],

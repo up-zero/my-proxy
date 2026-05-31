@@ -4,16 +4,18 @@
     :before-upload="beforeUpload"
     :custom-request="customRequest"
   >
-    <a-button type="primary" ghost style="margin-right: 10px;">导入</a-button>
+    <a-button type="primary" ghost style="margin-right: 10px;">{{ t("common.import") }}</a-button>
   </a-upload>
 </template>
 
 <script setup lang="ts">
 import { importProxy } from "@/api/proxy";
+import { useAppI18n } from "@/i18n";
 import { message } from "ant-design-vue";
  
 
 const emit = defineEmits(["success"]);
+const { t } = useAppI18n();
 
 const beforeUpload = () => {
   return true;
@@ -28,11 +30,11 @@ const customRequest = async (options: { file: any; onSuccess: any; onError: any;
   try {
     const res = await importProxy(formData);
 
-    message.success("上传成功");
+    message.success(t("proxy.importSuccess"));
     onSuccess(res);
     emit("success"); // 通知父组件刷新列表
   } catch (e) {
-    message.error("上传失败");
+    message.error(t("proxy.importFailed"));
     onError(e);
   }
 };

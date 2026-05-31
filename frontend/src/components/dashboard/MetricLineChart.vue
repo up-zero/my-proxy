@@ -1,6 +1,6 @@
 <template>
   <div class="metric-line-chart">
-    <div v-if="!hasData" class="empty-state">暂无监控数据</div>
+    <div v-if="!hasData" class="empty-state">{{ t("dashboard.noMonitorData") }}</div>
     <div v-else ref="chartRef" class="chart-canvas"></div>
   </div>
 </template>
@@ -11,6 +11,7 @@ import { GridComponent, TooltipComponent, type TooltipComponentOption } from "ec
 import { LineChart, type LineSeriesOption } from "echarts/charts";
 import { CanvasRenderer } from "echarts/renderers";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useAppI18n } from "@/i18n";
 
 echarts.use([GridComponent, TooltipComponent, LineChart, CanvasRenderer]);
 
@@ -32,6 +33,7 @@ const props = defineProps<{
 }>();
 
 const chartRef = ref<HTMLDivElement>();
+const { t } = useAppI18n();
 let chartInstance: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
 

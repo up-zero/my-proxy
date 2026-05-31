@@ -6,7 +6,7 @@ console.log(res)
   const headers = res.headers;
   const data = res.data;
   console.log(headers.toString());
-  const fileName = /.*filename=(.*)/i.exec(headers.get("Content-Disposition"))?.[1] || filename || "下载.xls";
+  const fileName = /.*filename=(.*)/i.exec(headers.get("Content-Disposition"))?.[1] || filename || "download.xls";
   // 开始下载
 
   const blob = new Blob([data], { type: headers["content-type"] });

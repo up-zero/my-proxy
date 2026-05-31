@@ -14,14 +14,14 @@
           <section class="panel-card traffic-card">
             <div class="panel-header">
               <div>
-                <h3>实时速率</h3>
-                <p>入站 / 出站速率折线图</p>
+                  <h3>{{ t("dashboard.realtimeRate") }}</h3>
+                  <p>{{ t("dashboard.inboundOutboundLine") }}</p>
               </div>
               <div class="panel-highlight">
                 <span>{{ formatRate(state.overview?.summary.inbound_rate || 0) }}</span>
-                <em>入站</em>
+                <em>{{ t("dashboard.inbound") }}</em>
                 <span>{{ formatRate(state.overview?.summary.outbound_rate || 0) }}</span>
-                <em>出站</em>
+                <em>{{ t("dashboard.outbound") }}</em>
               </div>
             </div>
             <MetricLineChart
@@ -31,8 +31,8 @@
               :yAxisFormatter="formatTrafficValue"
             />
             <div class="chart-legend">
-              <span><i class="dot inbound"></i>入站速率</span>
-              <span><i class="dot outbound"></i>出站速率</span>
+              <span><i class="dot inbound"></i>{{ t("dashboard.inboundRate") }}</span>
+              <span><i class="dot outbound"></i>{{ t("dashboard.outboundRate") }}</span>
             </div>
           </section>
 
@@ -40,8 +40,8 @@
             <section class="panel-card compact-card">
               <div class="panel-header">
                 <div>
-                  <h3>连接数</h3>
-                  <p>当前活动连接走势</p>
+                  <h3>{{ t("dashboard.connections") }}</h3>
+                  <p>{{ t("dashboard.activeConnectionTrend") }}</p>
                 </div>
                 <div class="panel-metric">{{ formatNumber(state.overview?.summary.total_connections || 0) }}</div>
               </div>
@@ -51,8 +51,8 @@
             <section class="panel-card compact-card">
               <div class="panel-header">
                 <div>
-                  <h3>系统资源</h3>
-                  <p>CPU / 内存折线图</p>
+                  <h3>{{ t("dashboard.systemResources") }}</h3>
+                  <p>{{ t("dashboard.cpuMemoryLine") }}</p>
                 </div>
                 <div class="panel-metric">{{ formatPercent(state.overview?.system.cpu_percent || 0) }}</div>
               </div>
@@ -70,13 +70,13 @@
           <section class="panel-card node-card">
             <div class="panel-header">
               <div>
-                <h3>节点负载 Top 6</h3>
-                <p>按连接数与实时速率综合排序</p>
+                  <h3>{{ t("dashboard.nodeLoadTop") }}</h3>
+                  <p>{{ t("dashboard.nodeLoadDesc") }}</p>
               </div>
               <div class="panel-metric small">{{ updatedAtText }}</div>
             </div>
             <div class="node-list">
-              <div v-if="!nodeList.length" class="empty-node">暂无代理节点</div>
+              <div v-if="!nodeList.length" class="empty-node">{{ t("dashboard.noProxyNodes") }}</div>
               <div v-for="(item, index) in nodeList" :key="item.uuid" class="node-item">
                 <div class="node-rank">{{ index + 1 }}</div>
                 <div class="node-body">
@@ -86,18 +86,18 @@
                       <a-tag size="small">{{ item.type }}</a-tag>
                     </div>
                     <span :class="['node-state', item.state === 'RUNNING' ? 'running' : 'stopped']">
-                      {{ item.state === 'RUNNING' ? '运行中' : '已停止' }}
+                      {{ item.state === 'RUNNING' ? t("dashboard.running") : t("dashboard.stopped") }}
                     </span>
                   </div>
                   <div class="node-meta">
-                    <span>{{ item.tag_list?.length ? item.tag_list.map((tag) => tag.name).join(' / ') : '未打标签' }}</span>
+                    <span>{{ item.tag_list?.length ? item.tag_list.map((tag) => tag.name).join(' / ') : t("dashboard.untagged") }}</span>
                     <span>{{ item.listen_address }}:{{ item.listen_port }}</span>
                   </div>
                   <div class="node-stats">
-                    <span>连接数 {{ formatNumber(item.active_connections) }}</span>
-                    <span>入 {{ formatRate(item.inbound_rate) }}</span>
-                    <span>出 {{ formatRate(item.outbound_rate) }}</span>
-                    <span>总 {{ formatBytes(item.traffic_out) }} / {{ formatBytes(item.traffic_in) }}</span>
+                    <span>{{ t("dashboard.connectionCount") }} {{ formatNumber(item.active_connections) }}</span>
+                    <span>{{ t("dashboard.inbound") }} {{ formatRate(item.inbound_rate) }}</span>
+                    <span>{{ t("dashboard.outbound") }} {{ formatRate(item.outbound_rate) }}</span>
+                    <span>{{ t("dashboard.total") }} {{ formatBytes(item.traffic_out) }} / {{ formatBytes(item.traffic_in) }}</span>
                   </div>
                 </div>
               </div>
@@ -112,6 +112,7 @@
 <script lang="ts" setup>
 import { getDashboardOverview } from "@/api/dashboard";
 import MetricLineChart from "@/components/dashboard/MetricLineChart.vue";
+import { useAppI18n } from "@/i18n";
 import { errorHandle } from "@/lib/error";
 import { computed, onMounted, onUnmounted, reactive } from "vue";
 
@@ -182,6 +183,7 @@ interface DashboardOverview {
 }
 
 const POLL_INTERVAL = 3000;
+const { locale, t } = useAppI18n();
 
 const state = reactive({
   loading: false,
@@ -195,37 +197,40 @@ const summaryCards = computed(() => {
   return [
     {
       key: "proxy_total",
-      label: "代理总数",
+      label: t("dashboard.proxyTotal"),
       value: formatNumber(summary?.proxy_total || 0),
-      sub: `运行 ${formatNumber(summary?.proxy_running || 0)} / 停止 ${formatNumber(summary?.proxy_stopped || 0)}`,
+      sub: t("dashboard.proxyTotalSub", {
+        running: formatNumber(summary?.proxy_running || 0),
+        stopped: formatNumber(summary?.proxy_stopped || 0),
+      }),
     },
     {
       key: "connections",
-      label: "当前连接数",
+      label: t("dashboard.currentConnections"),
       value: formatNumber(summary?.total_connections || 0),
-      sub: "活跃 TCP / UDP / HTTP 请求",
+      sub: t("dashboard.currentConnectionsSub"),
     },
     {
       key: "traffic_in",
-      label: "累计入站",
+      label: t("dashboard.totalInbound"),
       value: formatBytes(summary?.total_traffic_in || 0),
-      sub: `实时 ${formatRate(summary?.inbound_rate || 0)}`,
+      sub: t("dashboard.realtime", { value: formatRate(summary?.inbound_rate || 0) }),
     },
     {
       key: "traffic_out",
-      label: "累计出站",
+      label: t("dashboard.totalOutbound"),
       value: formatBytes(summary?.total_traffic_out || 0),
-      sub: `实时 ${formatRate(summary?.outbound_rate || 0)}`,
+      sub: t("dashboard.realtime", { value: formatRate(summary?.outbound_rate || 0) }),
     },
     {
       key: "cpu",
-      label: "CPU",
+      label: t("dashboard.cpu"),
       value: formatPercent(state.overview?.system.cpu_percent || 0),
-      sub: `内存 ${formatPercent(state.overview?.system.memory_percent || 0)}`,
+      sub: `${t("dashboard.memory")} ${formatPercent(state.overview?.system.memory_percent || 0)}`,
     },
     {
       key: "uptime",
-      label: "服务运行时长",
+      label: t("dashboard.serviceUptime"),
       value: formatUptime(summary?.uptime_seconds || 0),
       sub: updatedAtText.value,
     },
@@ -237,12 +242,12 @@ const trafficLabels = computed(() =>
 );
 const trafficSeries = computed(() => [
   {
-    name: "入站速率",
+    name: t("dashboard.inboundRate"),
     color: "#1677ff",
     values: (state.overview?.charts.traffic || []).map((item) => item.inbound_rate),
   },
   {
-    name: "出站速率",
+    name: t("dashboard.outboundRate"),
     color: "#52c41a",
     values: (state.overview?.charts.traffic || []).map((item) => item.outbound_rate),
   },
@@ -253,7 +258,7 @@ const connectionLabels = computed(() =>
 );
 const connectionSeries = computed(() => [
   {
-    name: "连接数",
+    name: t("dashboard.connections"),
     color: "#fa8c16",
     values: (state.overview?.charts.connections || []).map((item) => item.connections),
   },
@@ -269,7 +274,7 @@ const systemSeries = computed(() => [
     values: (state.overview?.charts.system || []).map((item) => item.cpu_percent),
   },
   {
-    name: "内存",
+    name: t("dashboard.memory"),
     color: "#722ed1",
     values: (state.overview?.charts.system || []).map((item) => item.memory_percent),
   },
@@ -277,7 +282,9 @@ const systemSeries = computed(() => [
 
 const updatedAtText = computed(() => {
   const timestamp = state.overview?.summary.updated_at;
-  return timestamp ? `更新于 ${new Date(timestamp).toLocaleTimeString("zh-CN", { hour12: false })}` : "等待采样";
+  return timestamp
+    ? t("dashboard.updatedAt", { time: new Date(timestamp).toLocaleTimeString(locale.value, { hour12: false }) })
+    : t("dashboard.waitingForSample");
 });
 
 const nodeList = computed(() => state.overview?.nodes || []);
@@ -308,11 +315,11 @@ function formatPercent(value: number) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("zh-CN").format(value);
+  return new Intl.NumberFormat(locale.value).format(value);
 }
 
 function formatChartTime(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString("zh-CN", {
+  return new Date(timestamp).toLocaleTimeString(locale.value, {
     hour12: false,
     minute: "2-digit",
     second: "2-digit",
@@ -324,12 +331,12 @@ function formatUptime(totalSeconds: number) {
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   if (days > 0) {
-    return `${days}天 ${hours}时`;
+    return t("dashboard.daysHours", { days, hours });
   }
   if (hours > 0) {
-    return `${hours}时 ${minutes}分`;
+    return t("dashboard.hoursMinutes", { hours, minutes });
   }
-  return `${minutes}分 ${totalSeconds % 60}秒`;
+  return t("dashboard.minutesSeconds", { minutes, seconds: totalSeconds % 60 });
 }
 
 async function loadOverview(showError = true) {

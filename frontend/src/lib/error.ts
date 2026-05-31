@@ -1,24 +1,25 @@
 import logger from "./logger";
 import { toast } from "./util";
+import { t } from "@/i18n";
 
 /* *********接口相关错误********** */
 export class ApiError extends Error {
-  name = "api错误";
+  name = t("errors.api");
 }
 
 /* *********全局错误处理方法********** */
 export function errorHandle(err: Error | any, info: string = "") {
-  let name = "",
-    msg = "";
+  let name: string;
+  let msg: string;
   if (err instanceof Error) {
     name = err.name;
     msg = err.message;
   } else {
-    name = "未知类型";
+    name = t("errors.unknownType");
     try {
-      msg = JSON.stringify(err) || "未知错误";
+      msg = JSON.stringify(err) || t("errors.unknownError");
     } catch (e) {
-      msg = "未知错误";
+      msg = t("errors.unknownError");
     }
   }
   logger.error(name, err, info);

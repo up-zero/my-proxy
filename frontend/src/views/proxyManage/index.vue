@@ -4,19 +4,19 @@
     <a-form :model="state.query" class="m-search">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <a-button type="primary" @click="toAddPage" class="mr-2">新增</a-button>
+          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
           <fileUpload @success="getList" />
-          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">导出</a-button>
-          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">删除</a-button>
+          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">{{ t("common.export") }}</a-button>
+          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">{{ t("common.delete") }}</a-button>
         </div>
         <div style="display: flex; align-items: center;">
-          <a-input v-model:value="state.query.name" placeholder="请输入代理名称" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
-          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear placeholder="请选择标签" style="width: 240px; margin-right: 8px;">
+          <a-input v-model:value="state.query.name" :placeholder="t('proxy.inputProxyName')" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
+          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear :placeholder="t('proxy.selectTags')" style="width: 240px; margin-right: 8px;">
             <a-select-option v-for="item in state.tagList" :key="item.uuid" :value="item.uuid">
               {{ item.name }}
             </a-select-option>
           </a-select>
-          <a-button type="primary" @click="getList">搜索</a-button>
+          <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
         </div>
       </div>
     </a-form>
@@ -30,8 +30,8 @@
       }" size="middle">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'state'">
-          <span class="state-span danger" v-if="record.state === 'STOPPED'">已停止</span>
-          <span class="state-span success" v-else-if="record.state === 'RUNNING'">运行中</span>
+          <span class="state-span danger" v-if="record.state === 'STOPPED'">{{ t("proxy.statusStopped") }}</span>
+          <span class="state-span success" v-else-if="record.state === 'RUNNING'">{{ t("proxy.statusRunning") }}</span>
         </template>
         <template v-else-if="column.key === 'tag_list'">
           <div class="tag-list-cell">
@@ -57,20 +57,20 @@
         </template>
         <template v-else-if="column.key === 'operation'">
           <div class="operation-actions">
-            <a-popconfirm v-if="state.list.length" title="确定删除?" @confirm="delItem(record)">
-              <a-button type="link">删除</a-button>
+            <a-popconfirm v-if="state.list.length" :title="t('proxy.confirmDelete')" @confirm="delItem(record)">
+              <a-button type="link">{{ t("proxy.actionDelete") }}</a-button>
             </a-popconfirm>
-            <a-button type="link" @click="editItem(record)">编辑</a-button>
-            <a-popconfirm v-if="record.state === 'STOPPED'" title="是否启动?" @confirm="startItem(record)">
-              <a-button type="link">启动</a-button>
+            <a-button type="link" @click="editItem(record)">{{ t("proxy.actionEdit") }}</a-button>
+            <a-popconfirm v-if="record.state === 'STOPPED'" :title="t('proxy.confirmStart')" @confirm="startItem(record)">
+              <a-button type="link">{{ t("proxy.actionStart") }}</a-button>
             </a-popconfirm>
-            <a-popconfirm v-if="record.state === 'RUNNING'" title="是否停止?" @confirm="stopItem(record)">
-              <a-button type="link">停止</a-button>
+            <a-popconfirm v-if="record.state === 'RUNNING'" :title="t('proxy.confirmStop')" @confirm="stopItem(record)">
+              <a-button type="link">{{ t("proxy.actionStop") }}</a-button>
             </a-popconfirm>
-            <a-popconfirm v-if="state.list.length" title="是否重启?" @confirm="restartItem(record)">
-              <a-button type="link">重启</a-button>
+            <a-popconfirm v-if="state.list.length" :title="t('proxy.confirmRestart')" @confirm="restartItem(record)">
+              <a-button type="link">{{ t("proxy.actionRestart") }}</a-button>
             </a-popconfirm>
-            <a-button type="link" :disabled="record.state !== 'RUNNING'" @click="captureItem(record)">抓包</a-button>
+            <a-button type="link" :disabled="record.state !== 'RUNNING'" @click="captureItem(record)">{{ t("proxy.actionCapture") }}</a-button>
           </div>
         </template>
       </template>
@@ -81,14 +81,14 @@
     <addBox ref="addBoxRef" @get-list="getList" />
 
     <!-- 快捷访问弹窗 -->
-    <a-modal v-model:open="quickAccessModalVisible" title="快捷访问" width="735px" center footer="">
+    <a-modal v-model:open="quickAccessModalVisible" :title="t('proxy.quickAccess')" width="735px" center footer="">
       <div class="quick-access-modal" style="margin-top: 15px;">
         <!-- SSH用户名输入框 -->
         <div style="margin-bottom: 16px;">
-          <a-form-item label="SSH用户名" style="margin-bottom: 0;">
-            <a-input v-model:value="sshUser" @input="saveSshUser" placeholder="请输入SSH用户名" style="width: 300px;">
+          <a-form-item :label="t('proxy.sshUsername')" class="quick-access-form-item" style="margin-bottom: 0;">
+            <a-input v-model:value="sshUser" @input="saveSshUser" :placeholder="t('proxy.inputSshUsername')" style="width: 300px;">
               <template #addonAfter>
-                <a-tooltip title="需要SSH登录时，才需要输入">
+                <a-tooltip :title="t('proxy.sshLoginTip')">
                   <info-circle-outlined />
                 </a-tooltip>
               </template>
@@ -104,7 +104,7 @@
           </template>
         </a-table>
         <div style="margin-top: 24px; text-align: right;">
-          <a-button @click="quickAccessModalVisible = false">关闭</a-button>
+          <a-button @click="quickAccessModalVisible = false">{{ t("common.close") }}</a-button>
         </div>
       </div>
     </a-modal>
@@ -129,6 +129,7 @@ import { createVNode, onMounted, reactive, ref, computed } from "vue";
 import { downloadJson } from "@/lib/download";
 import fileUpload from "./fileUpload.vue";
 import { useRouter } from "vue-router";
+import { useAppI18n } from "@/i18n";
 
 
 interface DataItem {
@@ -153,6 +154,7 @@ const QUERY = (): any => ({
 const selectedRowKeys = ref([] as any);
 const addBoxRef = ref();
 const router = useRouter();
+const { t } = useAppI18n();
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -173,26 +175,26 @@ const saveSshUser = () => {
 };
 
 // 链接表格列定义
-const linkColumns = [
+const linkColumns = computed(() => [
   {
-    title: "名称",
+    title: t("common.name"),
     dataIndex: "name",
     key: "name",
     width: 135,
   },
   {
-    title: "链接",
+    title: t("common.link"),
     dataIndex: "url",
     key: "url",
     ellipsis: true,
   },
   {
-    title: "操作",
+    title: t("common.operation"),
     dataIndex: "action",
     key: "action",
     width: 200,
   },
-];
+]);
 
 // 获取当前域
 const getCurrentDomain = () => {
@@ -210,21 +212,21 @@ const quickLinks = computed(() => {
     {
       key: "1",
       name: "Web",
-      label: "Web访问",
+      label: t("proxy.webAccess"),
       url: `http://${domain}:${currentPort.value}`,
       disabled: false
     },
     {
       key: "2",
       name: "MobaXterm(SSH)",
-      label: "打开MobaXterm(SSH)",
+      label: t("proxy.openMobaxterm"),
       url: generateMobaSSHUrl(domain, currentPort.value, currentName),
       disabled: !hasSshUser || !hasPort
     },
     {
       key: "3",
       name: "WinSCP(SFTP)",
-      label: "打开WinSCP(SFTP)",
+      label: t("proxy.openWinScp"),
       url: generateWinScpUrl(domain, currentPort.value),
       disabled: !hasSshUser || !hasPort
     },
@@ -298,72 +300,72 @@ const tagColumnWidth = computed(() => {
 const columns = computed(() => {
   return [
     {
-      title: "序号",
+      title: t("common.index"),
       dataIndex: "index",
       key: "index",
       width: 70,
     },
     {
       dataIndex: "name",
-      title: "名称",
+      title: t("common.name"),
       key: "name",
       width: 200,
       ellipsis: true,
     },
     {
       dataIndex: "tag_list",
-      title: "标签",
+      title: t("proxy.tags"),
       key: "tag_list",
       width: tagColumnWidth.value,
     },
     {
-      title: "类型",
+      title: t("common.type"),
       dataIndex: "type",
       key: "type",
       width: 90,
     },
     {
-      title: "监听地址",
+      title: t("proxy.listenAddress"),
       dataIndex: "listen_address",
       key: "listen_address",
       width: 140,
       ellipsis: true,
     },
     {
-      title: "监听端口",
+      title: t("proxy.listenPort"),
       dataIndex: "listen_port",
       key: "listen_port",
       width: 80,
     },
     {
-      title: "目标地址",
+      title: t("proxy.targetAddress"),
       key: "target_address",
       dataIndex: "target_address",
       width: 140,
       ellipsis: true,
     },
     {
-      title: "目标端口",
+      title: t("proxy.targetPort"),
       key: "target_port",
       dataIndex: "target_port",
       width: 100,
     },
     {
-      title: "状态",
+      title: t("common.status"),
       dataIndex: "state",
       key: "state",
       width: 100,
       // slots: { customRender: "state" },
     },
     {
-      title: "出/入站流量 ",
+      title: t("proxy.trafficInOut"),
       dataIndex: "traffic_in",
       key: "traffic_in",
       width: 170,
       // slots: { customRender: "state" },
     },
     {
-      title: "操作",
+      title: t("common.operation"),
       dataIndex: "operation",
       key: "operation",
       width: 260,
@@ -410,7 +412,7 @@ const delItem = (row: DataItem) => {
   delProxy({ name: row.name }).then(() => {
     getList();
     message.success({
-      content: "操作成功",
+      content: t("common.success"),
     });
   });
 };
@@ -418,7 +420,7 @@ const startItem = (row: DataItem) => {
   startProxy({ name: row.name }).then(() => {
     getList();
     message.success({
-      content: "操作成功",
+      content: t("common.success"),
     });
   });
 };
@@ -426,7 +428,7 @@ const stopItem = (row: DataItem) => {
   stopProxy({ name: row.name }).then(() => {
     getList();
     message.success({
-      content: "操作成功",
+      content: t("common.success"),
     });
   });
 };
@@ -434,7 +436,7 @@ const restartItem = (row: DataItem) => {
   restartProxy({ name: row.name }).then(() => {
     getList();
     message.success({
-      content: "操作成功",
+      content: t("common.success"),
     });
   });
 };
@@ -469,17 +471,17 @@ const handleExport = async () => {
 };
 const delBatch = () => {
   Modal.confirm({
-    title: () => "确定要删除选中的项？",
+    title: () => t("proxy.deleteSelectedConfirm"),
     icon: () => createVNode(ExclamationCircleOutlined),
     content: () => "",
-    okText: () => "确定",
+    okText: () => t("common.confirm"),
     okType: "danger",
-    cancelText: () => "取消",
+    cancelText: () => t("common.cancel"),
     onOk() {
       delBacthProxy({ uuid: selectedRowKeys.value }).then(() => {
         getList();
         message.success({
-          content: "操作成功",
+          content: t("common.success"),
         });
       });
     },
@@ -587,6 +589,15 @@ const delBatch = () => {
       color: #40a9ff;
       text-decoration: underline;
     }
+  }
+
+  :deep(.quick-access-form-item .ant-form-item-label) {
+    flex: 0 0 112px;
+    white-space: nowrap;
+  }
+
+  :deep(.quick-access-form-item .ant-form-item-label > label) {
+    white-space: nowrap;
   }
 }
 </style>

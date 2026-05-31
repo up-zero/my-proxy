@@ -2,8 +2,9 @@ package util
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -40,7 +41,7 @@ type BaseResponse struct {
 func ResponseWithData(c *gin.Context, code int, msg string, data any) {
 	c.JSON(http.StatusOK, &BaseResponse{
 		Code: code,
-		Msg:  msg,
+		Msg:  LocalizeMessage(c, msg),
 		Data: data,
 	})
 }

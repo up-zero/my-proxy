@@ -11,24 +11,27 @@
           <div class="u-icon f-icon icon-logo">
             <img src="@/assets/favicon.ico" alt="" />My Proxy
           </div>
-          <a-dropdown trigger="hover">
-            <div class="m-user f-between f-flex-aligm-center">
-              <div class="u-img">
-                <img src="@/assets/img/logo.png" alt="" />
+          <div class="m-header-right">
+            <LanguageSwitcher variant="compact" />
+            <a-dropdown trigger="hover">
+              <div class="m-user f-between f-flex-aligm-center">
+                <div class="u-img">
+                  <img src="@/assets/img/logo.png" alt="" />
+                </div>
+                <p class="w1">{{ t("common.administrator") }}</p>
               </div>
-              <p class="w1">管理员</p>
-            </div>
-            <template #overlay>
-              <a-menu @click="topMenuClick">
-                <a-menu-item key="cp">
-                  <a-button type="link">修改密码</a-button>
-                </a-menu-item>
-                <a-menu-item key="out">
-                  <a-button type="link">退出登录</a-button>
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
+              <template #overlay>
+                <a-menu @click="topMenuClick">
+                  <a-menu-item key="cp">
+                    <a-button type="link">{{ t("header.editPassword") }}</a-button>
+                  </a-menu-item>
+                  <a-menu-item key="out">
+                    <a-button type="link">{{ t("header.logout") }}</a-button>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
         </div>
       </a-affix>
 
@@ -70,7 +73,7 @@
         <div :class="['m-content', { 'full-layout': isFullPage }]">
           <a-breadcrumb>
             <!-- <a-breadcrumb-item>{{ route.matched[0]?.name }}</a-breadcrumb-item> -->
-            <a-breadcrumb-item>{{ route.name }}</a-breadcrumb-item>
+            <a-breadcrumb-item>{{ currentRouteTitle }}</a-breadcrumb-item>
           </a-breadcrumb>
 
           <RouterView :class="['p-page', { 'full-page-host': isFullPage }]" />
@@ -84,15 +87,13 @@
 </template>
 
 <script setup lang="ts">
-  import passwordBox from '@/views/userManage/changePassword.vue'
-import zhCN from "ant-design-vue/es/locale/zh_CN";
-import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
-dayjs.locale("zh-cn");
+import passwordBox from '@/views/userManage/changePassword.vue'
+import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import { useAppI18n } from "@/i18n";
 import { useRoute, useRouter } from "vue-router";
 import store from "./stores";
 import { computed, ref } from "vue";
-const locale = ref(zhCN);
+const { antLocale: locale, t } = useAppI18n();
 const user = store.useUserStore();
 const route = useRoute();
 const router = useRouter();
@@ -104,7 +105,7 @@ const getMenu = (menus: any) => {
   menus.forEach((item: any) => {
     if (item.meta?.isMenu || user.userinfo.isAdmin) {
       let menu = {
-        name: item.name,
+        name: item.meta?.titleKey ? t(item.meta.titleKey) : item.name,
         path: item.path,
         children: [],
       };
@@ -126,6 +127,7 @@ const menus = computed(() => {
   return getMenu(router.options.routes);
 });
 const isFullPage = computed(() => Boolean(route.meta?.fullPage));
+const currentRouteTitle = computed(() => (route.meta?.titleKey ? t(route.meta.titleKey as string) : route.name));
 const openKeys = computed(() => {
   return menus.value
     .filter((item: any) => item.children && item.children.length > 0)
@@ -211,6 +213,11 @@ body,
       margin-bottom: 0;
     }
   }
+}
+.m-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .m-side {
   width: 232px;

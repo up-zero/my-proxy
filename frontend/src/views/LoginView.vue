@@ -2,6 +2,7 @@
   <div class="login-page">
     <div class="login-box">
       <img src="@/assets/logo.png" alt="" class="logo" />
+      <LanguageSwitcher class="login-language" />
 
       <a-form
         ref="ruleFormRef"
@@ -11,7 +12,7 @@
         style="text-align: left;"
       >
         <a-form-item name="username">
-          <a-input v-model:value="ruleForm.username" placeholder="请输入账号" size="large">
+          <a-input v-model:value="ruleForm.username" :placeholder="t('auth.inputUsername')" size="large">
             <template #prefix>
               <user-outlined type="user" />
             </template>
@@ -19,7 +20,7 @@
         </a-form-item>
         <a-form-item name="password">
           <a-input-password
-          placeholder="请输入密码"
+          :placeholder="t('auth.inputPassword')"
             v-model:value="ruleForm.password"
             size="large"
             type="password"
@@ -31,8 +32,8 @@
         </a-form-item>
 
         <div>
-          <a-button type="primary" @click="handleLogin" class="sub-button">
-            登录
+          <a-button type="primary" :loading="loading" @click="handleLogin" class="sub-button">
+            {{ t("auth.login") }}
           </a-button>
         </div>
       </a-form>
@@ -44,27 +45,30 @@
 <script lang="ts" setup>
 import { UserOutlined, KeyOutlined } from "@ant-design/icons-vue";
 
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import store from "@/stores";
+import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import { useAppI18n } from "@/i18n";
 
 interface RuleForm {
   username: string;
   password: string;
 }
 const loading = ref(false);
+const { t } = useAppI18n();
 
 const ruleFormRef = ref();
 const user = store.useUserStore();
-const rules = reactive({
-  username: [{ required: true, message: "请输入账号", trigger: "blur" }],
+const rules = computed(() => ({
+  username: [{ required: true, message: t("auth.pleaseInputUsername"), trigger: "blur" }],
   password: [
     {
       required: true,
-      message: "请输入密码",
+      message: t("auth.pleaseInputPassword"),
       trigger: "change",
     },
   ],
-});
+}));
 const ruleForm = reactive<RuleForm>({
   username: "",
   password: "",
@@ -85,6 +89,9 @@ async function handleLogin() {
     })
     .catch((err: any) => {
       console.log("error submit!", err);
+    })
+    .finally(() => {
+      loading.value = false;
     });
 }
 </script>
@@ -124,6 +131,11 @@ body,
     .logo {
       width: 100px;
       margin-bottom: 30px;
+    }
+    .login-language {
+      position: absolute;
+      right: 18px;
+      top: 18px;
     }
     h3 {
       padding: 20px 0 40px 0;

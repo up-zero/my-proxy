@@ -8,16 +8,17 @@
       class="demo-ruleForm"
       :size="formSize"
       status-icon
-      :label-col="{ span: 4 }"
+      :label-col="{ flex: '110px' }"
+      :wrapper-col="{ flex: 1 }"
     >
-      <a-form-item label="标签名称" name="name">
+      <a-form-item :label="t('tag.tagName')" name="name">
         <a-input v-model:value="ruleForm.name" />
       </a-form-item>
     </a-form>
     <template #footer>
       <div class="dialog-footer">
-        <a-button type="primary" @click="submitForm(ruleFormRef)">确定</a-button>
-        <a-button @click="cancel">取消</a-button>
+        <a-button type="primary" @click="submitForm(ruleFormRef)">{{ t("common.confirm") }}</a-button>
+        <a-button @click="cancel">{{ t("common.cancel") }}</a-button>
       </div>
     </template>
   </a-modal>
@@ -25,8 +26,9 @@
 
 <script lang="ts" setup>
 import { addTag, editTag } from "@/api/tag";
+import { useAppI18n } from "@/i18n";
 import { message } from "ant-design-vue";
-import { computed, reactive, ref } from "vue";
+import { computed, ref } from "vue";
 
 interface RuleForm {
   uuid: string;
@@ -34,6 +36,7 @@ interface RuleForm {
 }
 
 const emit = defineEmits(["getList"]);
+const { t } = useAppI18n();
 const formSize = ref("default");
 const ruleFormRef = ref();
 const showbox = ref(false);
@@ -44,11 +47,11 @@ const createForm = (): RuleForm => ({
 });
 
 const ruleForm = ref<RuleForm>(createForm());
-const modalTitle = computed(() => (ruleForm.value.uuid ? "编辑标签" : "新增标签"));
+const modalTitle = computed(() => (ruleForm.value.uuid ? t("tag.editTag") : t("tag.addTag")));
 
-const rules = reactive({
-  name: [{ required: true, message: "请输入标签名称", trigger: "blur" }],
-});
+const rules = computed(() => ({
+  name: [{ required: true, message: t("tag.inputTagName"), trigger: "blur" }],
+}));
 
 const submitForm = async (formEl: any | undefined) => {
   if (!formEl) return;
@@ -57,7 +60,7 @@ const submitForm = async (formEl: any | undefined) => {
     .then(() => {
       const request = ruleForm.value.uuid ? editTag(ruleForm.value) : addTag(ruleForm.value);
       request.then(() => {
-        message.success("操作成功");
+        message.success(t("common.success"));
         cancel();
         emit("getList");
       });
@@ -85,5 +88,10 @@ const init = (row?: RuleForm) => {
 defineExpose({ init });
 </script>
 
-<style scoped lang="less"></style>
+<style scoped lang="less">
+.demo-ruleForm :deep(.ant-form-item-label),
+.demo-ruleForm :deep(.ant-form-item-label > label) {
+  white-space: nowrap;
+}
+</style>
 

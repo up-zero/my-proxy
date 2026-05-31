@@ -2,22 +2,22 @@
   <div class="capture-page">
     <div class="toolbar">
       <div class="toolbar-left">
-        <a-button @click="goBack">返回列表</a-button>
+        <a-button @click="goBack">{{ t("capture.backToList") }}</a-button>
         <a-button
           type="primary"
           :danger="state.connected || state.connecting"
           :loading="state.connecting"
           @click="toggleConnection"
         >
-          {{ state.connected || state.connecting ? "停止抓包" : "开始抓包" }}
+          {{ state.connected || state.connecting ? t("capture.stopCapture") : t("capture.startCapture") }}
         </a-button>
-        <a-button @click="clearPackets" :disabled="!packets.length">清空数据</a-button>
-        <a-switch v-model:checked="state.autoScroll" checked-children="自动滚动" un-checked-children="手动滚动" />
+        <a-button @click="clearPackets" :disabled="!packets.length">{{ t("capture.clearData") }}</a-button>
+        <a-switch v-model:checked="state.autoScroll" :checked-children="t('capture.autoScroll')" :un-checked-children="t('capture.manualScroll')" />
       </div>
       <div class="toolbar-right">
         <a-tag :color="connectionColor">{{ connectionText }}</a-tag>
         <span v-if="state.reconnectScheduled" class="reconnect-tip">
-          {{ Math.ceil(state.reconnectDelayMs / 1000) }}s 后第 {{ state.reconnectAttempts }} 次重连
+          {{ t("capture.reconnectAfterAttempt", { seconds: Math.ceil(state.reconnectDelayMs / 1000), attempt: state.reconnectAttempts }) }}
         </span>
       </div>
     </div>
@@ -27,7 +27,7 @@
         v-if="state.authExpired"
         type="error"
         show-icon
-        message="登录已过期，请重新登录后重新开启抓包。"
+        :message="t('capture.authExpiredAlert')"
         style="margin-bottom: 16px"
       />
       <a-alert
@@ -43,49 +43,49 @@
           <div class="capture-body">
       <div class="summary-grid">
         <div class="summary-card">
-          <div class="summary-title">任务信息</div>
+          <div class="summary-title">{{ t("capture.taskInfo") }}</div>
           <div class="summary-lines">
             <div class="summary-line">
-              <span class="label">代理名称</span>
+              <span class="label">{{ t("capture.proxyName") }}</span>
               <span class="value">{{ state.task?.name || routeTask.name || "-" }}</span>
             </div>
             <div class="summary-line">
-              <span class="label">代理类型</span>
+              <span class="label">{{ t("capture.proxyType") }}</span>
               <span class="value">{{ state.task?.type || routeTask.type || "-" }}</span>
             </div>
           </div>
         </div>
         <div class="summary-card">
-          <div class="summary-title">地址信息</div>
+          <div class="summary-title">{{ t("capture.addressInfo") }}</div>
           <div class="summary-lines">
             <div class="summary-line">
-              <span class="label">监听地址</span>
+              <span class="label">{{ t("capture.listenAddress") }}</span>
               <span class="value">{{ listenEndpoint }}</span>
             </div>
             <div class="summary-line">
-              <span class="label">目标地址</span>
+              <span class="label">{{ t("capture.targetAddress") }}</span>
               <span class="value">{{ targetEndpoint }}</span>
             </div>
           </div>
         </div>
         <div class="summary-card">
-          <div class="summary-title">抓包概览</div>
+          <div class="summary-title">{{ t("capture.captureOverview") }}</div>
           <div class="stat-inline-grid">
             <div class="stat-inline-item">
-              <span class="stat-inline-label">已收包</span>
+              <span class="stat-inline-label">{{ t("capture.packetsReceived") }}</span>
               <span class="stat-inline-value">{{ state.totalPackets }}</span>
             </div>
             <div class="stat-inline-item">
-              <span class="stat-inline-label">累计字节</span>
+              <span class="stat-inline-label">{{ t("capture.totalBytes") }}</span>
               <span class="stat-inline-value">{{ formatBytes(state.totalBytes) }}</span>
             </div>
             <div class="stat-inline-item">
-              <span class="stat-inline-label">自动滚动</span>
-              <span class="stat-inline-value">{{ state.autoScroll ? "开启" : "关闭" }}</span>
+              <span class="stat-inline-label">{{ t("capture.autoScrollStatus") }}</span>
+              <span class="stat-inline-value">{{ state.autoScroll ? t("common.enabled") : t("common.disabled") }}</span>
             </div>
             <div class="stat-inline-item">
-              <span class="stat-inline-label">数据保留</span>
-              <span class="stat-inline-value">最近 {{ MAX_PACKET_COUNT }} 条</span>
+              <span class="stat-inline-label">{{ t("capture.dataRetention") }}</span>
+              <span class="stat-inline-value">{{ t("capture.latestCount", { count: MAX_PACKET_COUNT }) }}</span>
             </div>
           </div>
         </div>
@@ -94,11 +94,11 @@
       <div class="content-grid">
         <div class="packet-list-card">
           <div class="panel-header">
-            <span>抓包列表</span>
-            <span class="panel-desc">按时间倒序展示最新数据</span>
+            <span>{{ t("capture.packetList") }}</span>
+            <span class="panel-desc">{{ t("capture.packetListDesc") }}</span>
           </div>
           <div v-if="!packets.length" class="empty-wrap">
-            <a-empty description="暂无抓包数据" />
+            <a-empty :description="t('capture.noPacketData')" />
           </div>
           <div v-else ref="listRef" class="packet-list-scroll">
             <div class="packet-list">
@@ -125,22 +125,22 @@
 
         <div class="packet-detail-card">
           <div class="panel-header">
-            <span>数据详情</span>
-            <span class="panel-desc">支持文本预览和 HEX 查看</span>
+            <span>{{ t("capture.dataDetail") }}</span>
+            <span class="panel-desc">{{ t("capture.dataDetailDesc") }}</span>
           </div>
           <div v-if="!selectedPacket" class="empty-wrap">
-            <a-empty description="请选择一条抓包记录" />
+            <a-empty :description="t('capture.selectPacketRecord')" />
           </div>
           <template v-else>
             <div class="detail-meta">
-              <div><strong>时间：</strong>{{ parseTime(selectedPacket.timestamp) }}</div>
-              <div><strong>方向：</strong>{{ selectedPacket.direction }}</div>
-              <div><strong>协议：</strong>{{ selectedPacket.protocol }}</div>
-              <div><strong>大小：</strong>{{ formatBytes(selectedPacket.size) }}</div>
+              <div><strong>{{ t("common.time") }}：</strong>{{ parseTime(selectedPacket.timestamp) }}</div>
+              <div><strong>{{ t("common.direction") }}：</strong>{{ selectedPacket.direction }}</div>
+              <div><strong>{{ t("common.protocol") }}：</strong>{{ selectedPacket.protocol }}</div>
+              <div><strong>{{ t("common.size") }}：</strong>{{ formatBytes(selectedPacket.size) }}</div>
             </div>
             <a-tabs>
-              <a-tab-pane key="text" tab="文本预览">
-                <pre class="payload-pre">{{ selectedPacket.previewText || "(二进制或不可见字符较多，建议查看 HEX)" }}</pre>
+              <a-tab-pane key="text" :tab="t('capture.textPreview')">
+                <pre class="payload-pre">{{ selectedPacket.previewText || t("capture.binarySuggestion") }}</pre>
               </a-tab-pane>
               <a-tab-pane key="hex" tab="HEX">
                 <pre class="payload-pre">{{ selectedPacket.formattedHex }}</pre>
@@ -158,6 +158,7 @@
 
 <script setup lang="ts">
 import { getProxyStatus } from "@/api/proxy";
+import { useAppI18n } from "@/i18n";
 import { errorHandle } from "@/lib/error";
 import { buildCaptureWebSocketUrl } from "@/lib/request";
 import { parseTime, toast } from "@/lib/util";
@@ -199,6 +200,7 @@ const AUTH_CLOSE_CODE = 1008;
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useAppI18n();
 const listRef = ref<HTMLDivElement>();
 const packets = ref<PacketView[]>([]);
 const selectedPacket = ref<PacketView | null>(null);
@@ -240,18 +242,18 @@ let authToastShown = false;
 
 const connectionText = computed(() => {
   if (state.authExpired) {
-    return "登录已过期";
+    return t("capture.loginExpired");
   }
   if (state.connected) {
-    return "抓包中";
+    return t("capture.capturing");
   }
   if (state.connecting) {
-    return "连接中";
+    return t("capture.connecting");
   }
   if (state.reconnectScheduled) {
-    return "等待重连";
+    return t("capture.waitingReconnect");
   }
-  return "未连接";
+  return t("capture.disconnected");
 });
 
 const connectionColor = computed(() => {
@@ -336,7 +338,7 @@ function decodePreviewText(hex: string) {
 
   const decoder = new TextDecoder("utf-8", { fatal: false });
   const text = normalizeText(decoder.decode(bytes));
-  const previewLine = text.replace(/\s+/g, " ").slice(0, 160) || "(空内容)";
+  const previewLine = text.replace(/\s+/g, " ").slice(0, 160) || t("capture.emptyContent");
 
   return {
     size: bytes.length,
@@ -386,7 +388,7 @@ function clearReconnectTimer() {
 }
 
 function isAuthClose(event: CloseEvent) {
-  return event.code === AUTH_CLOSE_CODE || /登录过期|auth/i.test(event.reason || "");
+  return event.code === AUTH_CLOSE_CODE || /登录过期|expired|auth/i.test(event.reason || "");
 }
 
 async function redirectToLogin() {
@@ -394,7 +396,7 @@ async function redirectToLogin() {
     return;
   }
   authToastShown = true;
-  await toast("登录过期，请重新登录", "error", 1.5);
+  await toast(t("capture.authExpiredAlert"), "error", 1.5);
   router.replace("/login");
 }
 
@@ -426,7 +428,7 @@ function cleanupPageConnection() {
 async function refreshTaskInfo(showError = true) {
   const taskUuid = routeTask.value.uuid;
   if (!taskUuid) {
-    state.errorMessage = "缺少 task_uuid，无法开启抓包。";
+    state.errorMessage = t("capture.missingTaskUuid");
     return "missing_task_uuid";
   }
 
@@ -437,12 +439,12 @@ async function refreshTaskInfo(showError = true) {
     state.task = task || null;
 
     if (!task) {
-      state.errorMessage = "抓包任务不存在或已被删除。";
+      state.errorMessage = t("capture.taskNotFound");
       return "not_found";
     }
 
     if (task.state !== "RUNNING") {
-      state.errorMessage = "当前代理未运行，无法建立抓包连接。";
+      state.errorMessage = t("capture.proxyNotRunning");
       return "not_running";
     }
 
@@ -452,7 +454,7 @@ async function refreshTaskInfo(showError = true) {
     if (showError) {
       errorHandle(err, "load capture task failed");
     }
-    state.errorMessage = "获取代理状态失败，请稍后重试。";
+    state.errorMessage = t("capture.getProxyStatusFailed");
     return "request_error";
   } finally {
     state.loading = false;
@@ -535,11 +537,11 @@ function bindSocketEvents(ws: WebSocket) {
 
     state.connecting = false;
     state.connected = false;
-    state.lastCloseReason = event.reason || `连接已关闭(code=${event.code})`;
+    state.lastCloseReason = event.reason || `closed(code=${event.code})`;
 
     if (isAuthClose(event)) {
       state.authExpired = true;
-      state.errorMessage = "登录已过期，抓包连接已关闭。";
+      state.errorMessage = t("capture.authExpiredAlert");
       clearReconnectTimer();
       await redirectToLogin();
       return;
@@ -549,8 +551,8 @@ function bindSocketEvents(ws: WebSocket) {
       return;
     }
 
-    state.errorMessage = "抓包连接已断开，正在尝试自动重连。";
-    message.warning("抓包连接已断开，正在尝试重连");
+    state.errorMessage = t("capture.wsClosed");
+    message.warning(t("capture.wsClosedToast"));
     scheduleReconnect();
   };
 }
@@ -573,7 +575,7 @@ async function connectCapture(isReconnect = false) {
 
   manualClose = false;
   state.connecting = true;
-  state.errorMessage = isReconnect ? "正在重新连接抓包通道..." : "";
+  state.errorMessage = isReconnect ? t("capture.reconnectingChannel") : "";
 
   const ws = new WebSocket(buildCaptureWebSocketUrl(routeTask.value.uuid));
   captureSocket = ws;

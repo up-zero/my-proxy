@@ -1,0 +1,563 @@
+import config from "@/config";
+import zhCN from "ant-design-vue/es/locale/zh_CN";
+import enUS from "ant-design-vue/es/locale/en_US";
+import dayjs from "dayjs";
+import "dayjs/locale/en";
+import "dayjs/locale/zh-cn";
+import { computed, ref } from "vue";
+
+export type AppLocale = "zh-CN" | "en-US";
+
+interface MessageTree {
+  [key: string]: string | MessageTree;
+}
+
+type MessageValue = string | MessageTree;
+type MessageParams = Record<string, string | number>;
+
+const STORAGE_KEY = `${config.name}:language`;
+const DEFAULT_LOCALE: AppLocale = "zh-CN";
+
+const messages: Record<AppLocale, MessageTree> = {
+  "zh-CN": {
+    language: {
+      zhCN: "简体中文",
+      enUS: "English",
+      switchLabel: "语言",
+    },
+    common: {
+      administrator: "管理员",
+      confirm: "确定",
+      cancel: "取消",
+      close: "关闭",
+      search: "搜索",
+      add: "新增",
+      edit: "编辑",
+      delete: "删除",
+      start: "启动",
+      stop: "停止",
+      restart: "重启",
+      capture: "抓包",
+      import: "导入",
+      export: "导出",
+      name: "名称",
+      type: "类型",
+      status: "状态",
+      operation: "操作",
+      link: "链接",
+      enabled: "开启",
+      disabled: "关闭",
+      none: "-",
+      success: "操作成功",
+      createdAt: "创建时间",
+      index: "序号",
+      text: "文本预览",
+      hex: "HEX",
+      time: "时间",
+      direction: "方向",
+      protocol: "协议",
+      size: "大小",
+      action: "操作",
+    },
+    header: {
+      editPassword: "修改密码",
+      logout: "退出登录",
+    },
+    routes: {
+      dashboard: "仪表盘",
+      proxyManage: "我的代理",
+      proxyList: "代理列表",
+      tagManage: "标签管理",
+      captureAnalyze: "抓包分析",
+      userManage: "用户管理",
+      userList: "用户列表",
+      changePassword: "修改密码",
+      login: "登录",
+    },
+    auth: {
+      login: "登录",
+      inputUsername: "请输入账号",
+      inputPassword: "请输入密码",
+      loginSuccess: "登录成功",
+      logoutSuccess: "已退出登录",
+      pleaseInputUsername: "请输入账号",
+      pleaseInputPassword: "请输入密码",
+      loginRequired: "请登录!",
+    },
+    branding: {
+      loginTitle: "My Proxy",
+      loginSubtitle: "局域网代理管理面板",
+    },
+    request: {
+      systemErrorWithUrl: "系统错误，api链接：{url}",
+      networkError: "网络异常",
+    },
+    errors: {
+      api: "接口错误",
+      unknownType: "未知类型",
+      unknownError: "未知错误",
+    },
+    dashboard: {
+      realtimeRate: "实时速率",
+      inboundOutboundLine: "入站 / 出站速率折线图",
+      inbound: "入站",
+      outbound: "出站",
+      inboundRate: "入站速率",
+      outboundRate: "出站速率",
+      connections: "连接数",
+      activeConnectionTrend: "当前活动连接走势",
+      systemResources: "系统资源",
+      cpuMemoryLine: "CPU / 内存折线图",
+      nodeLoadTop: "节点负载 Top 6",
+      nodeLoadDesc: "按连接数与实时速率综合排序",
+      noProxyNodes: "暂无代理节点",
+      running: "运行中",
+      stopped: "已停止",
+      untagged: "未打标签",
+      connectionCount: "连接数",
+      total: "总",
+      proxyTotal: "代理总数",
+      proxyTotalSub: "运行 {running} / 停止 {stopped}",
+      currentConnections: "当前连接数",
+      currentConnectionsSub: "活跃 TCP / UDP / HTTP 请求",
+      totalInbound: "累计入站",
+      totalOutbound: "累计出站",
+      realtime: "实时 {value}",
+      cpu: "CPU",
+      memory: "内存",
+      serviceUptime: "服务运行时长",
+      updatedAt: "更新于 {time}",
+      waitingForSample: "等待采样",
+      daysHours: "{days}天 {hours}时",
+      hoursMinutes: "{hours}时 {minutes}分",
+      minutesSeconds: "{minutes}分 {seconds}秒",
+      noMonitorData: "暂无监控数据",
+    },
+    proxy: {
+      addProxy: "添加代理",
+      editProxy: "编辑代理",
+      proxyName: "代理名称",
+      inputProxyName: "请输入代理名称",
+      tags: "标签",
+      selectTags: "请选择标签",
+      proxyType: "代理类型",
+      selectProxyType: "请选择代理类型",
+      listenAddress: "监听地址",
+      listenPort: "监听端口",
+      targetAddress: "目标地址",
+      targetPort: "目标端口",
+      description: "说明",
+      socks5Tip: "SOCKS5 为动态代理，无需配置目标地址和目标端口。",
+      statusStopped: "已停止",
+      statusRunning: "运行中",
+      trafficInOut: "出/入站流量",
+      confirmDelete: "确定删除?",
+      confirmStart: "是否启动?",
+      confirmStop: "是否停止?",
+      confirmRestart: "是否重启?",
+      deleteSelectedConfirm: "确定要删除选中的项？",
+      actionDelete: "删除",
+      actionEdit: "编辑",
+      actionStart: "启动",
+      actionStop: "停止",
+      actionRestart: "重启",
+      actionCapture: "抓包",
+      quickAccess: "快捷访问",
+      sshUsername: "SSH用户名",
+      inputSshUsername: "请输入SSH用户名",
+      sshLoginTip: "需要 SSH 登录时，才需要输入",
+      webAccess: "Web访问",
+      openMobaxterm: "打开 MobaXterm(SSH)",
+      openWinScp: "打开 WinSCP(SFTP)",
+      importSuccess: "上传成功",
+      importFailed: "上传失败",
+      latestDataDesc: "按时间倒序展示最新数据",
+    },
+    capture: {
+      backToList: "返回列表",
+      startCapture: "开始抓包",
+      stopCapture: "停止抓包",
+      clearData: "清空数据",
+      autoScroll: "自动滚动",
+      manualScroll: "手动滚动",
+      reconnectAfterAttempt: "{seconds}s 后第 {attempt} 次重连",
+      authExpiredAlert: "登录已过期，请重新登录后重新开启抓包。",
+      taskInfo: "任务信息",
+      proxyName: "代理名称",
+      proxyType: "代理类型",
+      addressInfo: "地址信息",
+      listenAddress: "监听地址",
+      targetAddress: "目标地址",
+      captureOverview: "抓包概览",
+      packetsReceived: "已收包",
+      totalBytes: "累计字节",
+      autoScrollStatus: "自动滚动",
+      dataRetention: "数据保留",
+      latestCount: "最近 {count} 条",
+      packetList: "抓包列表",
+      packetListDesc: "按时间倒序展示最新数据",
+      noPacketData: "暂无抓包数据",
+      dataDetail: "数据详情",
+      dataDetailDesc: "支持文本预览和 HEX 查看",
+      selectPacketRecord: "请选择一条抓包记录",
+      textPreview: "文本预览",
+      binarySuggestion: "(二进制或不可见字符较多，建议查看 HEX)",
+      loginExpired: "登录已过期",
+      capturing: "抓包中",
+      connecting: "连接中",
+      waitingReconnect: "等待重连",
+      disconnected: "未连接",
+      missingTaskUuid: "缺少 task_uuid，无法开启抓包。",
+      taskNotFound: "抓包任务不存在或已被删除。",
+      proxyNotRunning: "当前代理未运行，无法建立抓包连接。",
+      getProxyStatusFailed: "获取代理状态失败，请稍后重试。",
+      wsClosed: "抓包连接已断开，正在尝试自动重连。",
+      wsClosedToast: "抓包连接已断开，正在尝试重连",
+      reconnectingChannel: "正在重新连接抓包通道...",
+      emptyContent: "(空内容)",
+    },
+    tag: {
+      addTag: "新增标签",
+      editTag: "编辑标签",
+      tagName: "标签名称",
+      inputTagName: "请输入标签名称",
+      deleteConfirm: "确定删除标签?",
+    },
+    user: {
+      addUser: "新增用户",
+      editUser: "编辑用户",
+      username: "用户名",
+      password: "密码",
+      userNameColumn: "用户名称",
+      deleteConfirm: "确定删除?",
+    },
+    password: {
+      title: "修改密码",
+      oldPassword: "旧密码",
+      newPassword: "新密码",
+      confirmPassword: "确认密码",
+      pleaseInput: "请输入",
+      pleaseReenterPassword: "请再次输入密码",
+      passwordMismatch: "两次密码不一致",
+    },
+  },
+  "en-US": {
+    language: {
+      zhCN: "简体中文",
+      enUS: "English",
+      switchLabel: "Language",
+    },
+    common: {
+      administrator: "Admin",
+      confirm: "Confirm",
+      cancel: "Cancel",
+      close: "Close",
+      search: "Search",
+      add: "Add",
+      edit: "Edit",
+      delete: "Delete",
+      start: "Start",
+      stop: "Stop",
+      restart: "Restart",
+      capture: "Capture",
+      import: "Import",
+      export: "Export",
+      name: "Name",
+      type: "Type",
+      status: "Status",
+      operation: "Operation",
+      link: "Link",
+      enabled: "Enabled",
+      disabled: "Disabled",
+      none: "-",
+      success: "Operation succeeded",
+      createdAt: "Created At",
+      index: "No.",
+      text: "Text Preview",
+      hex: "HEX",
+      time: "Time",
+      direction: "Direction",
+      protocol: "Protocol",
+      size: "Size",
+      action: "Action",
+    },
+    header: {
+      editPassword: "Password",
+      logout: "Sign Out",
+    },
+    routes: {
+      dashboard: "Dashboard",
+      proxyManage: "Proxies",
+      proxyList: "Proxy List",
+      tagManage: "Tags",
+      captureAnalyze: "Capture",
+      userManage: "Users",
+      userList: "User List",
+      changePassword: "Password",
+      login: "Sign In",
+    },
+    auth: {
+      login: "Sign In",
+      inputUsername: "Enter username",
+      inputPassword: "Enter password",
+      loginSuccess: "Signed in successfully",
+      logoutSuccess: "Signed out successfully",
+      pleaseInputUsername: "Please enter username",
+      pleaseInputPassword: "Please enter password",
+      loginRequired: "Please sign in!",
+    },
+    branding: {
+      loginTitle: "My Proxy",
+      loginSubtitle: "LAN proxy control panel",
+    },
+    request: {
+      systemErrorWithUrl: "System error, API URL: {url}",
+      networkError: "Network error",
+    },
+    errors: {
+      api: "API error",
+      unknownType: "Unknown type",
+      unknownError: "Unknown error",
+    },
+    dashboard: {
+      realtimeRate: "Live Throughput",
+      inboundOutboundLine: "Inbound / outbound rate trend",
+      inbound: "Inbound",
+      outbound: "Outbound",
+      inboundRate: "Inbound rate",
+      outboundRate: "Outbound rate",
+      connections: "Connections",
+      activeConnectionTrend: "Current active connection trend",
+      systemResources: "System",
+      cpuMemoryLine: "CPU / memory trend",
+      nodeLoadTop: "Top 6 Nodes",
+      nodeLoadDesc: "Ranked by connections and throughput",
+      noProxyNodes: "No proxy nodes yet",
+      running: "Running",
+      stopped: "Stopped",
+      untagged: "No tags",
+      connectionCount: "Connections",
+      total: "Total",
+      proxyTotal: "Total Proxies",
+      proxyTotalSub: "Running {running} / Stopped {stopped}",
+      currentConnections: "Current Connections",
+      currentConnectionsSub: "Active TCP / UDP / HTTP traffic",
+      totalInbound: "Total Inbound",
+      totalOutbound: "Total Outbound",
+      realtime: "Real-time {value}",
+      cpu: "CPU",
+      memory: "Memory",
+      serviceUptime: "Uptime",
+      updatedAt: "Updated at {time}",
+      waitingForSample: "Waiting for samples",
+      daysHours: "{days}d {hours}h",
+      hoursMinutes: "{hours}h {minutes}m",
+      minutesSeconds: "{minutes}m {seconds}s",
+      noMonitorData: "No metrics",
+    },
+    proxy: {
+      addProxy: "Add Proxy",
+      editProxy: "Edit Proxy",
+      proxyName: "Proxy Name",
+      inputProxyName: "Enter proxy name",
+      tags: "Tags",
+      selectTags: "Select tags",
+      proxyType: "Proxy Type",
+      selectProxyType: "Select proxy type",
+      listenAddress: "Listen Address",
+      listenPort: "Listen Port",
+      targetAddress: "Target Address",
+      targetPort: "Target Port",
+      description: "Description",
+      socks5Tip: "SOCKS5 is a dynamic proxy, so target address and target port are not required.",
+      statusStopped: "Stopped",
+      statusRunning: "Running",
+      trafficInOut: "Traffic",
+      confirmDelete: "Confirm deletion?",
+      confirmStart: "Start this proxy?",
+      confirmStop: "Stop this proxy?",
+      confirmRestart: "Restart this proxy?",
+      deleteSelectedConfirm: "Delete selected items?",
+      actionDelete: "Del",
+      actionEdit: "Edit",
+      actionStart: "Start",
+      actionStop: "Stop",
+      actionRestart: "Restart",
+      actionCapture: "Cap",
+      quickAccess: "Quick Access",
+      sshUsername: "SSH Username",
+      inputSshUsername: "Enter SSH username",
+      sshLoginTip: "Only required when SSH login is needed",
+      webAccess: "Open Web",
+      openMobaxterm: "MobaXterm (SSH)",
+      openWinScp: "WinSCP (SFTP)",
+      importSuccess: "Upload succeeded",
+      importFailed: "Upload failed",
+      latestDataDesc: "Newest first",
+    },
+    capture: {
+      backToList: "Back to List",
+      startCapture: "Start Capture",
+      stopCapture: "Stop Capture",
+      clearData: "Clear Data",
+      autoScroll: "Auto",
+      manualScroll: "Manual",
+      reconnectAfterAttempt: "Reconnect attempt {attempt} in {seconds}s",
+      authExpiredAlert: "Login has expired. Please sign in again before restarting packet capture.",
+      taskInfo: "Task Info",
+      proxyName: "Proxy Name",
+      proxyType: "Proxy Type",
+      addressInfo: "Address Info",
+      listenAddress: "Listen Address",
+      targetAddress: "Target Address",
+      captureOverview: "Overview",
+      packetsReceived: "Packets",
+      totalBytes: "Total Bytes",
+      autoScrollStatus: "Scroll",
+      dataRetention: "Retention",
+      latestCount: "Latest {count}",
+      packetList: "Packet List",
+      packetListDesc: "Newest first",
+      noPacketData: "No captured packets yet",
+      dataDetail: "Packet Detail",
+      dataDetailDesc: "Text preview and HEX",
+      selectPacketRecord: "Select a packet record",
+      textPreview: "Text Preview",
+      binarySuggestion: "(Payload contains binary or many non-printable characters, consider HEX view)",
+      loginExpired: "Login expired",
+      capturing: "Capturing",
+      connecting: "Connecting",
+      waitingReconnect: "Waiting to reconnect",
+      disconnected: "Disconnected",
+      missingTaskUuid: "Missing task_uuid. Unable to start capture.",
+      taskNotFound: "Capture task does not exist or has been removed.",
+      proxyNotRunning: "The current proxy is not running, so capture cannot be started.",
+      getProxyStatusFailed: "Failed to get proxy status. Please try again later.",
+      wsClosed: "Capture connection was closed. Trying to reconnect automatically.",
+      wsClosedToast: "Capture connection was closed. Reconnecting...",
+      reconnectingChannel: "Reconnecting to capture channel...",
+      emptyContent: "(Empty payload)",
+    },
+    tag: {
+      addTag: "Add Tag",
+      editTag: "Edit Tag",
+      tagName: "Tag Name",
+      inputTagName: "Enter tag name",
+      deleteConfirm: "Delete this tag?",
+    },
+    user: {
+      addUser: "Add User",
+      editUser: "Edit User",
+      username: "Username",
+      password: "Password",
+      userNameColumn: "Username",
+      deleteConfirm: "Confirm deletion?",
+    },
+    password: {
+      title: "Password",
+      oldPassword: "Current",
+      newPassword: "New",
+      confirmPassword: "Confirm",
+      pleaseInput: "Please enter",
+      pleaseReenterPassword: "Please enter the password again",
+      passwordMismatch: "The two passwords do not match",
+    },
+  },
+};
+
+function getNestedMessage(target: MessageTree, key: string): string | undefined {
+  const segments = key.split(".");
+  let value: MessageValue | undefined = target;
+
+  for (const segment of segments) {
+    if (!value || typeof value === "string") {
+      return undefined;
+    }
+    value = value[segment];
+  }
+
+  return typeof value === "string" ? value : undefined;
+}
+
+function replaceParams(template: string, params?: MessageParams) {
+  if (!params) {
+    return template;
+  }
+
+  return template.replace(/\{(\w+)}/g, (_, key: string) => `${params[key] ?? `{${key}}`}`);
+}
+
+function setDayjsLocale(locale: AppLocale) {
+  dayjs.locale(locale === "zh-CN" ? "zh-cn" : "en");
+}
+
+export function normalizeLocale(locale?: string | null): AppLocale {
+  const value = String(locale || "").trim().toLowerCase();
+  if (value.startsWith("zh")) {
+    return "zh-CN";
+  }
+  if (value.startsWith("en")) {
+    return "en-US";
+  }
+  return DEFAULT_LOCALE;
+}
+
+function readStoredLocale(): AppLocale | null {
+  try {
+    const value = localStorage.getItem(STORAGE_KEY);
+    return value ? normalizeLocale(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+function detectBrowserLocale(): AppLocale {
+  if (typeof navigator === "undefined") {
+    return DEFAULT_LOCALE;
+  }
+  return normalizeLocale(navigator.language);
+}
+
+function resolveInitialLocale(): AppLocale {
+  return readStoredLocale() || detectBrowserLocale();
+}
+
+const currentLocale = ref<AppLocale>(resolveInitialLocale());
+setDayjsLocale(currentLocale.value);
+
+export function getCurrentLocale() {
+  return currentLocale.value;
+}
+
+export function setLocale(locale: string) {
+  const nextLocale = normalizeLocale(locale);
+  currentLocale.value = nextLocale;
+  setDayjsLocale(nextLocale);
+  try {
+    localStorage.setItem(STORAGE_KEY, nextLocale);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function t(key: string, params?: MessageParams) {
+  const locale = currentLocale.value;
+  const localized = getNestedMessage(messages[locale], key) ?? getNestedMessage(messages[DEFAULT_LOCALE], key) ?? key;
+  return replaceParams(localized, params);
+}
+
+export function useAppI18n() {
+  return {
+    locale: computed(() => currentLocale.value),
+    antLocale: computed(() => (currentLocale.value === "zh-CN" ? zhCN : enUS)),
+    languageOptions: [
+      { value: "zh-CN", label: getNestedMessage(messages["zh-CN"], "language.zhCN") || "简体中文" },
+      { value: "en-US", label: getNestedMessage(messages["en-US"], "language.enUS") || "English" },
+    ] as Array<{ value: AppLocale; label: string }>,
+    t,
+    setLocale,
+  };
+}
+
+
+

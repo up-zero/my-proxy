@@ -1,14 +1,14 @@
 <template>
   <div class="p-page">
     <a-form :inline="true" :model="state.query" class="m-search">
-      <a-button type="primary" @click="toAddPage" class="mr-2">新增</a-button>
+      <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
       <a-input
         v-model:value="state.query.name"
-        placeholder="请输入标签名称"
+        :placeholder="t('tag.inputTagName')"
         style="width: 220px; margin-right: 8px"
         @pressEnter="getList"
       />
-      <a-button type="primary" @click="getList">搜索</a-button>
+      <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
     </a-form>
 
     <a-table :dataSource="state.list" :columns="columns" bordered :pagination="false" class="m-table" size="middle">
@@ -19,12 +19,12 @@
         <template v-else-if="column.key === 'operation'">
           <a-popconfirm
             v-if="state.list.length"
-            title="确定删除标签?"
+            :title="t('tag.deleteConfirm')"
             @confirm="delItem(record)"
           >
-            <a-button type="link">删除</a-button>
+            <a-button type="link">{{ t("common.delete") }}</a-button>
           </a-popconfirm>
-          <a-button type="link" @click="editItem(record)">编辑</a-button>
+          <a-button type="link" @click="editItem(record)">{{ t("common.edit") }}</a-button>
         </template>
       </template>
     </a-table>
@@ -37,8 +37,9 @@
 import { delTag, getTagList } from "@/api/tag";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import addBox from "./add.vue";
+import { useAppI18n } from "@/i18n";
 
 interface DataItem {
   uuid: string;
@@ -52,6 +53,7 @@ const QUERY = (): any => ({
 });
 
 const addBoxRef = ref();
+const { t } = useAppI18n();
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -63,31 +65,31 @@ onMounted(() => {
   getList();
 });
 
-const columns = [
+const columns = computed(() => [
   {
-    title: "序号",
+    title: t("common.index"),
     dataIndex: "index",
     key: "index",
     width: 80,
   },
   {
-    title: "标签名称",
+    title: t("tag.tagName"),
     dataIndex: "name",
     key: "name",
   },
   {
-    title: "创建时间",
+    title: t("common.createdAt"),
     dataIndex: "created_at",
     key: "created_at",
     width: 220,
   },
   {
-    title: "操作",
+    title: t("common.operation"),
     dataIndex: "operation",
     key: "operation",
     width: 180,
   },
-];
+]);
 
 async function getList() {
   try {
@@ -120,7 +122,7 @@ const delItem = (row: DataItem) => {
   delTag({ uuid: row.uuid }).then(() => {
     getList();
     message.success({
-      content: "操作成功",
+      content: t("common.success"),
     });
   });
 };
