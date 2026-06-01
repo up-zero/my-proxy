@@ -26,7 +26,7 @@ func NewGormDB() {
 		panic(err)
 	}
 	// 数据库迁移
-	err = db.AutoMigrate(&TagBasic{}, &ProxyBasic{}, &ProxyTag{}, &UserBasic{}, &ConfigBasic{})
+	err = db.AutoMigrate(&TagBasic{}, &ProxyBasic{}, &ProxyTag{}, &UserBasic{}, &ConfigBasic{}, &TrafficPolicy{}, &AlertRecord{})
 	if err != nil {
 		panic(err)
 	}

@@ -58,7 +58,7 @@
         <template v-else-if="column.key === 'operation'">
           <div class="operation-actions">
             <a-popconfirm v-if="state.list.length" :title="t('proxy.confirmDelete')" @confirm="delItem(record)">
-              <a-button type="link">{{ t("proxy.actionDelete") }}</a-button>
+              <a-button type="link" danger>{{ t("proxy.actionDelete") }}</a-button>
             </a-popconfirm>
             <a-button type="link" @click="editItem(record)">{{ t("proxy.actionEdit") }}</a-button>
             <a-popconfirm v-if="record.state === 'STOPPED'" :title="t('proxy.confirmStart')" @confirm="startItem(record)">

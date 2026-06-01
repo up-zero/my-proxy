@@ -50,6 +50,15 @@ const router = createRouter({
           component: () => import("../views/proxyManage/tag/index.vue"),
         },
         {
+          path: "/proxyManage/trafficPolicy",
+          name: "限速配额",
+          meta: {
+            isMenu: true,
+            titleKey: "routes.trafficPolicy",
+          },
+          component: () => import("../views/proxyManage/trafficPolicy/index.vue"),
+        },
+        {
           path: "/proxyManage/capture",
           name: "抓包分析",
           meta: {
@@ -58,6 +67,26 @@ const router = createRouter({
             titleKey: "routes.captureAnalyze",
           },
           component: () => import("../views/proxyManage/capture.vue"),
+        },
+      ],
+    },
+    {
+      path: "/operation",
+      name: "运维中心",
+      meta: {
+        isMenu: true,
+        titleKey: "routes.operationCenter",
+      },
+      redirect: "/operation/alert",
+      children: [
+        {
+          path: "/operation/alert",
+          name: "告警通知",
+          meta: {
+            isMenu: true,
+            titleKey: "routes.alertNotify",
+          },
+          component: () => import("../views/operation/alert/index.vue"),
         },
       ],
     },

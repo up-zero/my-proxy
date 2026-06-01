@@ -10,7 +10,7 @@
           <a-menu @click="handleMenuClick">
             <a-menu-item v-for="item in languageOptions" :key="item.value">
               <div class="compact-option">
-                <span>{{ item.label }}</span>
+                <span>{{ item.label }} &nbsp;</span>
                 <CheckOutlined v-if="item.value === locale" />
               </div>
             </a-menu-item>

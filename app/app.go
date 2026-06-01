@@ -14,11 +14,13 @@ import (
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/middleware"
 	"github.com/up-zero/my-proxy/models"
+	"github.com/up-zero/my-proxy/service/alert"
 	"github.com/up-zero/my-proxy/service/dashboard"
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
 	"github.com/up-zero/my-proxy/service/serve"
 	tag "github.com/up-zero/my-proxy/service/tag"
+	"github.com/up-zero/my-proxy/service/trafficpolicy"
 	"github.com/up-zero/my-proxy/service/user"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
@@ -91,6 +93,30 @@ func router() *gin.Engine {
 		authTag.POST("/delete", BindH(tag.Delete))
 	}
 
+	// 限速配额
+	{
+		authTrafficPolicy := auth.Group("/traffic-policy")
+		// 流量策略列表
+		authTrafficPolicy.POST("/list", BindH(trafficpolicy.List))
+		// 新增流量策略
+		authTrafficPolicy.POST("/create", BindH(trafficpolicy.Create))
+		// 修改流量策略
+		authTrafficPolicy.POST("/update", BindH(trafficpolicy.Update))
+		// 启用流量策略
+		authTrafficPolicy.POST("/enable", BindH(trafficpolicy.Enable))
+		// 禁用流量策略
+		authTrafficPolicy.POST("/disable", BindH(trafficpolicy.Disable))
+		// 删除流量策略
+		authTrafficPolicy.POST("/delete", BindH(trafficpolicy.Delete))
+	}
+
+	// 告警通知
+	{
+		authAlert := auth.Group("/alert")
+		// 告警列表
+		authAlert.POST("/list", BindH(alert.List))
+	}
+
 	// 用户管理
 	{
 		authUser := auth.Group("/user")
@@ -157,6 +183,7 @@ func NewApp(port string) {
 	// 初始化代理
 	serve.NewProxy()
 	dashboard.Start()
+	trafficpolicy.StartRuntime()
 
 	// 监听退出信号
 	quit := make(chan os.Signal)

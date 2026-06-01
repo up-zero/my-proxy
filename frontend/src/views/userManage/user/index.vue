@@ -15,6 +15,7 @@
       bordered
       :pagination="false"
       class="m-table"
+      size="middle"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'created_at'">
@@ -26,7 +27,7 @@
             :title="t('user.deleteConfirm')"
             @confirm="delItem(record)"
           >
-            <a-button type="link">{{ t("common.delete") }}</a-button>
+            <a-button type="link" danger>{{ t("common.delete") }}</a-button>
           </a-popconfirm>
           <a-button type="link" @click="editItem(record)">{{ t("common.edit") }}</a-button>
         </template>

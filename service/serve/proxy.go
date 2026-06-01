@@ -19,6 +19,7 @@ import (
 
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
+	"github.com/up-zero/my-proxy/service/trafficpolicy"
 	"go.uber.org/zap"
 )
 
@@ -472,6 +473,7 @@ func (w *httpResponseWriter) Write(b []byte) (int, error) {
 	if n > 0 {
 		// 统计（出站）
 		w.task.bytesOut.Add(int64(n))
+		w.task.applyTrafficPolicy("OUT", int64(n))
 
 		// 抓包（出站）
 		if w.isCapturing {
@@ -503,8 +505,22 @@ func (task *ProxyTask) recordPayload(counter *atomic.Int64, direction string, pr
 		return
 	}
 	counter.Add(int64(len(payload)))
+	if direction == "OUT" {
+		task.applyTrafficPolicy(direction, int64(len(payload)))
+	}
 	if task.capture.IsCapturing(task.Uuid) {
 		task.capture.Publish(task.Uuid, direction, protocol, payload)
+	}
+}
+
+func (task *ProxyTask) applyTrafficPolicy(direction string, bytes int64) {
+	if delay := trafficpolicy.RecordTraffic(trafficpolicy.TrafficEvent{
+		ProxyUuid:         task.Uuid,
+		Direction:         direction,
+		Bytes:             bytes,
+		ActiveConnections: task.ActiveConnections(),
+	}); delay > 0 {
+		time.Sleep(delay)
 	}
 }
 
@@ -670,6 +686,7 @@ func (task *ProxyTask) handleUdpResponse(clientAddr net.Addr, targetConn *net.UD
 
 		// 统计（出站）
 		task.bytesOut.Add(int64(n))
+		task.applyTrafficPolicy("OUT", int64(n))
 
 		// 抓包（出站）
 		if task.capture.IsCapturing(task.Uuid) {

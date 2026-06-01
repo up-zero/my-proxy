@@ -1,14 +1,20 @@
 <template>
   <div class="p-page">
     <a-form :inline="true" :model="state.query" class="m-search">
-      <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
-      <a-input
-        v-model:value="state.query.name"
-        :placeholder="t('tag.inputTagName')"
-        style="width: 220px; margin-right: 8px"
-        @pressEnter="getList"
-      />
-      <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
+      <div class="search-row">
+        <div>
+          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
+        </div>
+        <div class="search-right">
+          <a-input
+            v-model:value="state.query.name"
+            :placeholder="t('tag.inputTagName')"
+            style="width: 220px; margin-right: 8px"
+            @pressEnter="getList"
+          />
+          <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
+        </div>
+      </div>
     </a-form>
 
     <a-table :dataSource="state.list" :columns="columns" bordered :pagination="false" class="m-table" size="middle">
@@ -22,7 +28,7 @@
             :title="t('tag.deleteConfirm')"
             @confirm="delItem(record)"
           >
-            <a-button type="link">{{ t("common.delete") }}</a-button>
+            <a-button type="link" danger>{{ t("common.delete") }}</a-button>
           </a-popconfirm>
           <a-button type="link" @click="editItem(record)">{{ t("common.edit") }}</a-button>
         </template>
@@ -132,6 +138,17 @@ const delItem = (row: DataItem) => {
 .p-page {
   .m-search {
     margin-bottom: 10px;
+  }
+
+  .search-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .search-right {
+    display: flex;
+    align-items: center;
   }
 
   .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
