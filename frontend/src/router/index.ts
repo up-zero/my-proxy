@@ -88,6 +88,15 @@ const router = createRouter({
           },
           component: () => import("../views/operation/alert/index.vue"),
         },
+        {
+          path: "/operation/audit",
+          name: "日志审计",
+          meta: {
+            isMenu: true,
+            titleKey: "routes.auditLog",
+          },
+          component: () => import("../views/operation/audit/index.vue"),
+        },
       ],
     },
     {

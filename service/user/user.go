@@ -7,6 +7,7 @@ import (
 	"github.com/up-zero/gotool/idutil"
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
+	"github.com/up-zero/my-proxy/service/audit"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -44,6 +45,9 @@ func Login(c *gin.Context, in *LoginRequest) {
 		util.ResponseMsg(c, util.CodeErr, err.Error())
 		return
 	}
+
+	// 记录登录审计日志
+	_ = audit.CreateRecord(in.Username, models.AuditModuleAuth, models.AuditActionLogin, in.Username, ub.Uuid, "用户登录成功", audit.GetSourceIp(c))
 
 	util.ResponseOkWithData(c, &LoginResponse{
 		Token:        token,

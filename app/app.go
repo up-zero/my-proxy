@@ -15,6 +15,7 @@ import (
 	"github.com/up-zero/my-proxy/middleware"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/service/alert"
+	"github.com/up-zero/my-proxy/service/audit"
 	"github.com/up-zero/my-proxy/service/dashboard"
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
@@ -115,6 +116,13 @@ func router() *gin.Engine {
 		authAlert := auth.Group("/alert")
 		// 告警列表
 		authAlert.POST("/list", BindH(alert.List))
+	}
+
+	// 日志审计
+	{
+		authAudit := auth.Group("/audit")
+		// 审计日志列表
+		authAudit.POST("/list", BindH(audit.List))
 	}
 
 	// 用户管理

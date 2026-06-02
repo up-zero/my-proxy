@@ -11,6 +11,7 @@ import (
 	"github.com/up-zero/gotool/sliceutil"
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
+	"github.com/up-zero/my-proxy/service/audit"
 	"github.com/up-zero/my-proxy/service/serve"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
@@ -298,6 +299,8 @@ func Create(c *gin.Context, in *CreateRequest) {
 		return
 	}
 
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionCreate, pb.Name, pb.Uuid, fmt.Sprintf("新增代理：%s，类型：%s，监听端口：%s", pb.Name, pb.Type, pb.ListenPort))
+
 	util.ResponseOk(c)
 }
 
@@ -347,6 +350,8 @@ func Edit(c *gin.Context, in *EditRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionUpdate, pb.Name, pb.Uuid, fmt.Sprintf("修改代理：%s", pb.Name))
 
 	util.ResponseOk(c)
 }
@@ -398,6 +403,7 @@ func Import(c *gin.Context) {
 			util.ResponseError(c, err)
 			return
 		}
+		audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionImport, pb.Name, pb.Uuid, fmt.Sprintf("导入代理：%s", pb.Name))
 	}
 
 	util.ResponseOk(c)
@@ -434,6 +440,8 @@ func Delete(c *gin.Context, in *DeleteRequest) {
 		return
 	}
 
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionDelete, pb.Name, pb.Uuid, fmt.Sprintf("删除代理：%s", pb.Name))
+
 	util.ResponseOk(c)
 }
 
@@ -460,6 +468,7 @@ func BatchDelete(c *gin.Context, in *BatchDeleteRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionDelete, "", "", fmt.Sprintf("批量删除代理，数量：%d", len(in.Uuid)))
 	util.ResponseOk(c)
 }
 
@@ -482,6 +491,8 @@ func Start(c *gin.Context, in *StartRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionStart, pb.Name, pb.Uuid, fmt.Sprintf("启动代理：%s", pb.Name))
 
 	util.ResponseOk(c)
 }
@@ -506,6 +517,8 @@ func Stop(c *gin.Context, in *StopRequest) {
 		return
 	}
 
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionStop, pb.Name, pb.Uuid, fmt.Sprintf("停止代理：%s", pb.Name))
+
 	util.ResponseOk(c)
 }
 
@@ -528,6 +541,8 @@ func Restart(c *gin.Context, in *RestartRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionRestart, pb.Name, pb.Uuid, fmt.Sprintf("重启代理：%s", pb.Name))
 
 	util.ResponseOk(c)
 }

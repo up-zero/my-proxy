@@ -11,6 +11,7 @@ import (
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/service/alert"
+	"github.com/up-zero/my-proxy/service/audit"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
 )
@@ -259,6 +260,7 @@ func Create(c *gin.Context, in *SaveRequest) {
 	if err := createAlertIfTriggered(policy, ""); err != nil {
 		logger.Error("[db] traffic policy alert create error.", zap.Error(err))
 	}
+	audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionCreate, policy.Name, policy.Uuid, fmt.Sprintf("新增限速策略：%s", policy.Name))
 	util.ResponseOk(c)
 }
 
@@ -298,6 +300,7 @@ func Update(c *gin.Context, in *SaveRequest) {
 	if err := createAlertIfTriggered(policy, ""); err != nil {
 		logger.Error("[db] traffic policy alert create error.", zap.Error(err))
 	}
+	audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionUpdate, policy.Name, policy.Uuid, fmt.Sprintf("修改限速策略：%s", policy.Name))
 	util.ResponseOk(c)
 }
 
@@ -310,6 +313,11 @@ func Disable(c *gin.Context, in *UuidRequest) {
 }
 
 func updateStatus(c *gin.Context, uuid string, status string) {
+	// 查询策略名称用于审计日志
+	policy := &models.TrafficPolicy{Uuid: uuid}
+	if err := models.DB.Model(new(models.TrafficPolicy)).Where("uuid = ?", uuid).First(policy).Error; err != nil {
+		logger.Error("[db] traffic policy get for status update error.", zap.Error(err))
+	}
 	if err := models.DB.Model(new(models.TrafficPolicy)).Where("uuid = ?", uuid).Update("status", status).Error; err != nil {
 		logger.Error("[db] traffic policy status update error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
@@ -317,20 +325,28 @@ func updateStatus(c *gin.Context, uuid string, status string) {
 	}
 	RefreshRuntime()
 	if status == models.TrafficPolicyStatusEnabled {
-		policy := &models.TrafficPolicy{Uuid: uuid}
-		if err := models.DB.Model(new(models.TrafficPolicy)).Where("uuid = ?", uuid).First(policy).Error; err == nil {
+		if policy.Name != "" {
 			_ = createAlertIfTriggered(policy, "")
 		}
+		audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionEnable, policy.Name, uuid, fmt.Sprintf("启用限速策略：%s", policy.Name))
+	} else {
+		audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionDisable, policy.Name, uuid, fmt.Sprintf("停用限速策略：%s", policy.Name))
 	}
 	util.ResponseOk(c)
 }
 
 func Delete(c *gin.Context, in *UuidRequest) {
+	// 查询策略名称用于审计日志
+	policy := &models.TrafficPolicy{Uuid: in.Uuid}
+	if err := models.DB.Model(new(models.TrafficPolicy)).Where("uuid = ?", in.Uuid).First(policy).Error; err != nil {
+		logger.Error("[db] traffic policy get for delete error.", zap.Error(err))
+	}
 	if err := models.DB.Where("uuid = ?", in.Uuid).Delete(new(models.TrafficPolicy)).Error; err != nil {
 		logger.Error("[db] traffic policy delete error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 	RefreshRuntime()
+	audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionDelete, policy.Name, in.Uuid, fmt.Sprintf("删除限速策略：%s", policy.Name))
 	util.ResponseOk(c)
 }
