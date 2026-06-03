@@ -58,6 +58,8 @@ const messages: Record<AppLocale, MessageTree> = {
       protocol: "协议",
       size: "大小",
       action: "操作",
+      expand: "展开菜单",
+      collapse: "收起菜单",
     },
     header: {
       editPassword: "修改密码",
@@ -342,6 +344,8 @@ const messages: Record<AppLocale, MessageTree> = {
       protocol: "Protocol",
       size: "Size",
       action: "Action",
+      expand: "Expand menu",
+      collapse: "Collapse menu",
     },
     header: {
       editPassword: "Password",

@@ -37,36 +37,54 @@
 
       <div class="m-main f-flex">
         <!-- 菜单 -->
-        <div class="m-side">
-          <a-menu
-            mode="inline"
-            :default-active="route.path"
-            :selectedKeys="[route.path]"
-            :openKeys="openKeys"
-            @click="routerTo"
-          >
-            <template v-for="item in menus">
-              <a-menu-item
-                v-if="!item.children || item.children.length == 0"
-                :key="item.path"
-                >{{ item.name }}</a-menu-item
-              >
-              <template v-else>
-                <a-sub-menu :key="item.path">
-                  <template #title>
-                    <span>{{ item.name }}</span>
+        <div :class="['m-side', { 'm-side-collapsed': collapsed }]">
+          <div class="m-side-scroll">
+            <a-menu
+              mode="inline"
+              :selectedKeys="[route.path]"
+              v-model:openKeys="menuOpenKeys"
+              :inlineCollapsed="collapsed"
+              triggerSubMenuAction="hover"
+              @click="routerTo"
+            >
+              <template v-for="item in menus">
+                <a-menu-item
+                  v-if="!item.children || item.children.length == 0"
+                  :key="item.path"
+                >
+                  <template #icon>
+                    <component :is="iconMap[item.icon as string]" v-if="item.icon" />
                   </template>
-                  <a-menu-item
-                    v-for="sub of item.children"
-                    :key="sub.path"
-                    v-show="!sub.meta?.hidden"
-                    :index="sub.path"
-                    >{{ sub.name }}</a-menu-item
-                  >
-                </a-sub-menu>
+                  {{ item.name }}
+                </a-menu-item>
+                <template v-else>
+                  <a-sub-menu :key="item.path">
+                    <template #icon>
+                      <component :is="iconMap[item.icon as string]" v-if="item.icon" />
+                    </template>
+                    <template #title>
+                      <span>{{ item.name }}</span>
+                    </template>
+                    <a-menu-item
+                      v-for="sub of item.children"
+                      :key="sub.path"
+                      v-show="!sub.meta?.hidden"
+                      :index="sub.path"
+                    >
+                      <template #icon>
+                        <component :is="iconMap[sub.icon as string]" v-if="sub.icon" />
+                      </template>
+                      {{ sub.name }}
+                    </a-menu-item>
+                  </a-sub-menu>
+                </template>
               </template>
-            </template>
-          </a-menu>
+            </a-menu>
+          </div>
+          <div class="m-side-trigger" @click="collapsed = !collapsed" :title="collapsed ? t('common.expand') : t('common.collapse')">
+            <MenuFoldOutlined v-if="!collapsed" />
+            <MenuUnfoldOutlined v-else />
+          </div>
         </div>
 
         <!-- 显示内容 -->
@@ -92,12 +110,59 @@ import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useAppI18n } from "@/i18n";
 import { useRoute, useRouter } from "vue-router";
 import store from "./stores";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import {
+  DashboardOutlined,
+  ApartmentOutlined,
+  ToolOutlined,
+  UserOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  KeyOutlined,
+  LogoutOutlined,
+  UnorderedListOutlined,
+  TagsOutlined,
+  ControlOutlined,
+  BellOutlined,
+  AuditOutlined,
+  TeamOutlined,
+} from "@ant-design/icons-vue";
+
+const iconMap: Record<string, any> = {
+  DashboardOutlined,
+  ApartmentOutlined,
+  ToolOutlined,
+  UserOutlined,
+  UnorderedListOutlined,
+  TagsOutlined,
+  ControlOutlined,
+  BellOutlined,
+  AuditOutlined,
+  TeamOutlined,
+};
+
+const collapsed = ref(false);
+
+// 根据当前路由自动展开对应子菜单
+const menuOpenKeys = ref<string[]>([]);
+
 const { antLocale: locale, t } = useAppI18n();
 const user = store.useUserStore();
 const route = useRoute();
 const router = useRouter();
 const passwordBoxRef = ref();
+
+// 监听路由变化，自动更新展开的子菜单
+watch(() => route.path, () => {
+  const matched = route.matched;
+  const keys: string[] = [];
+  for (const record of matched) {
+    if (record.path && record.path !== '/' && record.path !== route.path) {
+      keys.push(record.path);
+    }
+  }
+  menuOpenKeys.value = keys;
+}, { immediate: true });
 
 const getMenu = (menus: any) => {
   let res: any = [];
@@ -107,12 +172,18 @@ const getMenu = (menus: any) => {
       let menu = {
         name: item.meta?.titleKey ? t(item.meta.titleKey) : item.name,
         path: item.path,
+        icon: item.meta?.icon || null,
         children: [],
       };
       if (item.children && item.children.length > 0) {
         const childrenMenu = getMenu(item.children);
         if (childrenMenu.length == 1) {
-          menu = childrenMenu[0];
+          const child = childrenMenu[0];
+          // 继承父级 icon（如果子级没有定义）
+          if (!child.icon && item.meta?.icon) {
+            child.icon = item.meta.icon;
+          }
+          menu = child;
           // 只有一个子菜单提升层级
         } else {
           menu.children = childrenMenu;
@@ -128,11 +199,6 @@ const menus = computed(() => {
 });
 const isFullPage = computed(() => Boolean(route.meta?.fullPage));
 const currentRouteTitle = computed(() => (route.meta?.titleKey ? t(route.meta.titleKey as string) : route.name));
-const openKeys = computed(() => {
-  return menus.value
-    .filter((item: any) => item.children && item.children.length > 0)
-    .map((item: any) => item.path);
-});
 
 // 退出登录
 async function logout() {
@@ -140,6 +206,10 @@ async function logout() {
 }
 const routerTo = ({ key }: any) => {
   router.push(key);
+  // 移动端或小屏点击菜单后自动折叠
+  if (window.innerWidth < 768) {
+    collapsed.value = true;
+  }
 };
 const topMenuClick = ({ key }: any) => {
   console.log(key);
@@ -220,13 +290,56 @@ body,
   gap: 14px;
 }
 .m-side {
+  position: relative;
   width: 232px;
   height: calc(100vh - @headerHeight);
-  overflow-y: auto;
+  overflow: hidden;
   padding-top: 12px;
-  :deep(.a-menu) {
-    border: none;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s;
+  flex-shrink: 0;
+  .m-side-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    :deep(.a-menu) {
+      border: none;
+    }
   }
+  &.m-side-collapsed {
+    width: 80px;
+  }
+}
+.m-side-trigger {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #999;
+  font-size: 14px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  z-index: 10;
+  // 展开时：右下角
+  right: 8px;
+  bottom: 8px;
+  &:hover {
+    color: #1890ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+.m-side-collapsed .m-side-trigger {
+  // 折叠时：下方居中
+  right: auto;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 .m-content {
   flex: 1;

@@ -19,6 +19,7 @@ const router = createRouter({
         isMenu: true,
         fullPage: true,
         titleKey: "routes.dashboard",
+        icon: "DashboardOutlined",
       },
       component: () => import("../views/dashboard/index.vue"),
     },
@@ -28,6 +29,7 @@ const router = createRouter({
       meta: {
         isMenu: true,
         titleKey: "routes.proxyManage",
+        icon: "ApartmentOutlined",
       },
       redirect: "/proxyManage/index",
       children: [
@@ -76,6 +78,7 @@ const router = createRouter({
       meta: {
         isMenu: true,
         titleKey: "routes.operationCenter",
+        icon: "ToolOutlined",
       },
       redirect: "/operation/alert",
       children: [
@@ -105,6 +108,7 @@ const router = createRouter({
       meta: {
         isMenu: true,
         titleKey: "routes.userManage",
+        icon: "UserOutlined",
       },
       redirect: "/userManage/index",
       children: [
@@ -113,6 +117,7 @@ const router = createRouter({
           name: "用户列表",
           meta: {
             isMenu: true,
+            icon: "TeamOutlined",
             titleKey: "routes.userList",
           },
           component: () => import("../views/userManage/user/index.vue"),
