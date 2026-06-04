@@ -1,5 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+// 权限常量（按菜单项）
+export const PERMS = {
+  dashboardView: "dashboard.view",        // 仪表盘
+  proxyView: "proxy.view",                // 代理列表
+  tagManage: "tag.manage",                // 标签管理
+  trafficPolicy: "traffic_policy.manage", // 限速配额
+  alertView: "alert.view",                // 告警通知
+  auditView: "audit.view",                // 日志审计
+  userManage: "user.manage",              // 用户列表
+  roleManage: "role.manage",              // 权限策略
+};
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -20,6 +32,7 @@ const router = createRouter({
         fullPage: true,
         titleKey: "routes.dashboard",
         icon: "DashboardOutlined",
+        perm: PERMS.dashboardView,
       },
       component: () => import("../views/dashboard/index.vue"),
     },
@@ -30,6 +43,7 @@ const router = createRouter({
         isMenu: true,
         titleKey: "routes.proxyManage",
         icon: "ApartmentOutlined",
+        perm: PERMS.proxyView,
       },
       redirect: "/proxyManage/index",
       children: [
@@ -39,6 +53,7 @@ const router = createRouter({
           meta: {
             isMenu: true,
             titleKey: "routes.proxyList",
+            perm: PERMS.proxyView,
           },
           component: () => import("../views/proxyManage/index.vue"),
         },
@@ -48,6 +63,7 @@ const router = createRouter({
           meta: {
             isMenu: true,
             titleKey: "routes.tagManage",
+            perm: PERMS.tagManage,
           },
           component: () => import("../views/proxyManage/tag/index.vue"),
         },
@@ -57,6 +73,7 @@ const router = createRouter({
           meta: {
             isMenu: true,
             titleKey: "routes.trafficPolicy",
+            perm: PERMS.trafficPolicy,
           },
           component: () => import("../views/proxyManage/trafficPolicy/index.vue"),
         },
@@ -79,6 +96,7 @@ const router = createRouter({
         isMenu: true,
         titleKey: "routes.operationCenter",
         icon: "ToolOutlined",
+        perm: PERMS.alertView,
       },
       redirect: "/operation/alert",
       children: [
@@ -88,6 +106,7 @@ const router = createRouter({
           meta: {
             isMenu: true,
             titleKey: "routes.alertNotify",
+            perm: PERMS.alertView,
           },
           component: () => import("../views/operation/alert/index.vue"),
         },
@@ -97,6 +116,7 @@ const router = createRouter({
           meta: {
             isMenu: true,
             titleKey: "routes.auditLog",
+            perm: PERMS.auditView,
           },
           component: () => import("../views/operation/audit/index.vue"),
         },
@@ -108,7 +128,8 @@ const router = createRouter({
       meta: {
         isMenu: true,
         titleKey: "routes.userManage",
-        icon: "UserOutlined",
+        icon: "TeamOutlined",
+        perm: PERMS.userManage,
       },
       redirect: "/userManage/index",
       children: [
@@ -117,10 +138,20 @@ const router = createRouter({
           name: "用户列表",
           meta: {
             isMenu: true,
-            icon: "TeamOutlined",
             titleKey: "routes.userList",
+            perm: PERMS.userManage,
           },
           component: () => import("../views/userManage/user/index.vue"),
+        },
+        {
+          path: "/userManage/role",
+          name: "权限策略",
+          meta: {
+            isMenu: true,
+            titleKey: "routes.permPolicy",
+            perm: PERMS.roleManage,
+          },
+          component: () => import("../views/userManage/role/index.vue"),
         },
       ],
     },

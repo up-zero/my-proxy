@@ -7,10 +7,9 @@ import { defineStore } from "pinia";
 
 const USERINFO = () => ({
   isAdmin: false,
-  menu: {
-    ids: [],
-    tree: [],
-  },
+  roleID: "",
+  roleName: "",
+  permissions: [] as string[],
 });
 
 export default defineStore("user", {
@@ -24,9 +23,23 @@ export default defineStore("user", {
     _init(result: any) {
       console.log(result, "222222");
 
-      // 设置token
+      // 设置 token
       if (result.token)
         localStorage.setItem(`${config.name}:token`, result.token);
+
+      // 设置用户信息
+      const isAdmin = result.level === "root";
+      this.userinfo = {
+        isAdmin,
+        roleID: result.role_id || "",
+        roleName: result.role_name || "",
+        permissions: result.permissions || [],
+      };
+    },
+    // 判断是否有某个权限
+    hasPermission(perm: string): boolean {
+      if (this.userinfo.isAdmin) return true;
+      return this.userinfo.permissions.includes(perm);
     },
     // 登录
     async login(loginForm: any) {

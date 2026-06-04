@@ -19,6 +19,7 @@ import (
 	"github.com/up-zero/my-proxy/service/dashboard"
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
+	"github.com/up-zero/my-proxy/service/role"
 	"github.com/up-zero/my-proxy/service/serve"
 	tag "github.com/up-zero/my-proxy/service/tag"
 	"github.com/up-zero/my-proxy/service/trafficpolicy"
@@ -137,6 +138,20 @@ func router() *gin.Engine {
 		authUser.POST("/update", BindH(user.Update))
 		// 删除用户
 		authUser.POST("/delete", BindH(user.Delete))
+	}
+
+	// 角色管理
+	{
+		authRole := auth.Group("/role")
+		authRole.Use(middleware.AdminAuthCheck())
+		// 角色列表
+		authRole.POST("/list", BindH(role.List))
+		// 新增角色
+		authRole.POST("/create", BindH(role.Create))
+		// 修改角色
+		authRole.POST("/update", BindH(role.Update))
+		// 删除角色
+		authRole.POST("/delete", BindH(role.Delete))
 	}
 
 	// 前端静态代理

@@ -18,7 +18,10 @@
       size="middle"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'created_at'">
+        <template v-if="column.key === 'role_id'">
+          <a-tag :color="getRoleColor(record.role_id)">{{ getRoleName(record.role_id) }}</a-tag>
+        </template>
+        <template v-else-if="column.key === 'created_at'">
           <span> {{ parseTime(record.created_at) }} </span>
         </template>
         <template v-else-if="column.key === 'operation'">
@@ -40,6 +43,7 @@
 
 <script lang="ts" setup>
 import { getUserList, delUser } from "@/api/user";
+import { getRoleList } from "@/api/role";
 import addBox from "./add.vue";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
@@ -51,6 +55,7 @@ interface DataItem {
   username: string;
   password: string;
   level: string;
+  role_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +68,7 @@ const QUERY = (): any => ({
 });
 const addBoxRef = ref();
 const { t } = useAppI18n();
+const roleMap = ref<Record<string, any>>({});
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -73,7 +79,38 @@ const state = reactive({
 
 onMounted(() => {
   getList();
+  loadRoles();
 });
+
+async function loadRoles() {
+  try {
+    const res = await getRoleList({});
+    const roles = res.data || [];
+    const map: Record<string, any> = {};
+    for (const r of roles) {
+      map[r.uuid] = r;
+    }
+    roleMap.value = map;
+  } catch {
+    roleMap.value = {};
+  }
+}
+
+function getRoleName(roleId: string): string {
+  if (!roleId || !roleMap.value[roleId]) return t("common.none");
+  const role = roleMap.value[roleId];
+  const key = `role.roleNames.${role.name}`;
+  const translated = t(key);
+  return translated !== key ? translated : role.name;
+}
+
+function getRoleColor(roleId: string): string {
+  if (!roleId || !roleMap.value[roleId]) return "";
+  const role = roleMap.value[roleId];
+  if (role.name === "admin") return "red";
+  if (role.name === "ops") return "blue";
+  return "default";
+}
 const columns = computed(() => [
   {
     title: t("common.index"),
@@ -87,16 +124,19 @@ const columns = computed(() => [
     key: "username",
   },
   {
+    title: t("user.role"),
+    dataIndex: "role_id",
+    key: "role_id",
+  },
+  {
     title: t("common.createdAt"),
     dataIndex: "created_at",
     key: "created_at",
   },
-
   {
     title: t("common.operation"),
     dataIndex: "operation",
     key: "operation",
-    // slots: { customRender: "operation" },
   },
 ]);
 /*****************表格******************* */

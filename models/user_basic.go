@@ -12,6 +12,7 @@ type UserBasic struct {
 	Username  string `json:"username"`                                                  // 用户名
 	Password  string `json:"password"`                                                  // 密码
 	Level     string `json:"level"`                                                     // 等级，root，user
+	RoleID    string `json:"role_id" gorm:"column:role_id; default:''"`                 // 角色UUID
 	CreatedAt int64  `gorm:"column:created_at; autoCreateTime:milli" json:"created_at"` // 创建时间，时间戳，毫秒
 	UpdatedAt int64  `gorm:"column:updated_at; autoUpdateTime:milli" json:"updated_at"` // 修改时间，时间戳，毫秒
 }

@@ -8,10 +8,13 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token        string `json:"token"`         // token
-	RefreshToken string `json:"refresh_token"` // 用于延期的 token
-	Username     string `json:"username"`      // 用户名
-	Level        string `json:"level"`         // 用户等级, root:超级管理员
+	Token        string   `json:"token"`         // token
+	RefreshToken string   `json:"refresh_token"` // 用于延期的 token
+	Username     string   `json:"username"`      // 用户名
+	Level        string   `json:"level"`         // 用户等级, root:超级管理员
+	RoleID       string   `json:"role_id"`       // 角色UUID
+	RoleName     string   `json:"role_name"`     // 角色名称
+	Permissions  []string `json:"permissions"`   // 权限列表
 }
 
 type RefreshTokenRequest struct {
@@ -30,6 +33,7 @@ type ListReply struct {
 type CreateRequest struct {
 	Username string `json:"username" binding:"required"` // 用户名,必填
 	Password string `json:"password" binding:"required"` // 密码,必填
+	RoleID   string `json:"role_id"`                     // 角色UUID
 }
 
 type UpdateRequest struct {

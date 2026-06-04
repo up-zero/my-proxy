@@ -139,6 +139,7 @@ const iconMap: Record<string, any> = {
   BellOutlined,
   AuditOutlined,
   TeamOutlined,
+  KeyOutlined,
 };
 
 const collapsed = ref(false);
@@ -168,7 +169,9 @@ const getMenu = (menus: any) => {
   let res: any = [];
 
   menus.forEach((item: any) => {
-    if (item.meta?.isMenu || user.userinfo.isAdmin) {
+    // 标记为 isMenu 才显示在菜单中
+    const hasPerm = !item.meta?.perm || user.hasPermission(item.meta.perm);
+    if (item.meta?.isMenu && hasPerm) {
       let menu = {
         name: item.meta?.titleKey ? t(item.meta.titleKey) : item.name,
         path: item.path,
@@ -185,8 +188,11 @@ const getMenu = (menus: any) => {
           }
           menu = child;
           // 只有一个子菜单提升层级
-        } else {
+        } else if (childrenMenu.length > 0) {
           menu.children = childrenMenu;
+        } else {
+          // 所有子菜单都被过滤掉，不显示父菜单
+          return;
         }
       }
       res.push(menu);

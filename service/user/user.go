@@ -2,6 +2,8 @@ package user
 
 import (
 	"errors"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/convertutil"
 	"github.com/up-zero/gotool/idutil"
@@ -11,7 +13,6 @@ import (
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"time"
 )
 
 // Login 用户登录
@@ -46,6 +47,21 @@ func Login(c *gin.Context, in *LoginRequest) {
 		return
 	}
 
+	// 获取角色信息
+	var roleName string
+	var permissions []string
+	if ub.Level == models.UserLevelRoot {
+		// root 用户拥有所有权限
+		roleName = models.RoleNameAdmin
+		permissions = models.AdminPermissions()
+	} else if ub.RoleID != "" {
+		role := &models.RoleBasic{Uuid: ub.RoleID}
+		if err := models.DB.First(role).Error; err == nil {
+			roleName = role.Name
+			permissions = role.GetPermissionList()
+		}
+	}
+
 	// 记录登录审计日志
 	_ = audit.CreateRecord(in.Username, models.AuditModuleAuth, models.AuditActionLogin, in.Username, ub.Uuid, "用户登录成功", audit.GetSourceIp(c))
 
@@ -54,6 +70,9 @@ func Login(c *gin.Context, in *LoginRequest) {
 		RefreshToken: refreshToken,
 		Username:     uc.Username,
 		Level:        uc.Level,
+		RoleID:       ub.RoleID,
+		RoleName:     roleName,
+		Permissions:  permissions,
 	})
 }
 
@@ -88,11 +107,28 @@ func RefreshToken(c *gin.Context, in *RefreshTokenRequest) {
 		return
 	}
 
+	// 获取角色信息
+	var roleName string
+	var permissions []string
+	if ub.Level == models.UserLevelRoot {
+		roleName = models.RoleNameAdmin
+		permissions = models.AdminPermissions()
+	} else if ub.RoleID != "" {
+		role := &models.RoleBasic{Uuid: ub.RoleID}
+		if err := models.DB.First(role).Error; err == nil {
+			roleName = role.Name
+			permissions = role.GetPermissionList()
+		}
+	}
+
 	util.ResponseOkWithData(c, &LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
 		Username:     uc.Username,
 		Level:        uc.Level,
+		RoleID:       ub.RoleID,
+		RoleName:     roleName,
+		Permissions:  permissions,
 	})
 }
 
@@ -136,6 +172,7 @@ func Create(c *gin.Context, in *CreateRequest) {
 		Username: in.Username,
 		Password: in.Password,
 		Level:    models.UserLevelUser,
+		RoleID:   in.RoleID,
 	}
 	// 用户名判重
 	cnt, err := ub.CountForSave()
@@ -180,6 +217,7 @@ func Update(c *gin.Context, in *UpdateRequest) {
 	err = models.DB.Model(new(models.UserBasic)).Where("uuid = ?", in.Uuid).Updates(map[string]interface{}{
 		"username": in.Username,
 		"password": in.Password,
+		"role_id":  in.RoleID,
 	}).Error
 	if err != nil {
 		logger.Error("[db] user update error.", zap.Error(err))
