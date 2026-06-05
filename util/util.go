@@ -8,7 +8,7 @@ import (
 
 var (
 	AppName                 = "my-proxy"
-	AppVersion              = "1.0.0"
+	AppVersion              = "1.1.0"
 	DateTimeWithMilliLayout = "2006-01-02 15:04:05.000"
 	JwtKey                  = "LnGvpbI59mPaSxA3"
 

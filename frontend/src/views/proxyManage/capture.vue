@@ -12,7 +12,6 @@
           {{ state.connected || state.connecting ? t("capture.stopCapture") : t("capture.startCapture") }}
         </a-button>
         <a-button @click="clearPackets" :disabled="!packets.length">{{ t("capture.clearData") }}</a-button>
-        <a-switch v-model:checked="state.autoScroll" :checked-children="t('capture.autoScroll')" :un-checked-children="t('capture.manualScroll')" />
       </div>
       <div class="toolbar-right">
         <a-tag :color="connectionColor">{{ connectionText }}</a-tag>
@@ -80,10 +79,6 @@
               <span class="stat-inline-value">{{ formatBytes(state.totalBytes) }}</span>
             </div>
             <div class="stat-inline-item">
-              <span class="stat-inline-label">{{ t("capture.autoScrollStatus") }}</span>
-              <span class="stat-inline-value">{{ state.autoScroll ? t("common.enabled") : t("common.disabled") }}</span>
-            </div>
-            <div class="stat-inline-item">
               <span class="stat-inline-label">{{ t("capture.dataRetention") }}</span>
               <span class="stat-inline-value">{{ t("capture.latestCount", { count: MAX_PACKET_COUNT }) }}</span>
             </div>
@@ -94,7 +89,7 @@
       <div class="content-grid">
         <div class="packet-list-card">
           <div class="panel-header">
-            <span>{{ t("capture.packetList") }}</span>
+            <span>{{ t("capture.packetList") }} ({{ packets.length }})</span>
             <span class="panel-desc">{{ t("capture.packetListDesc") }}</span>
           </div>
           <div v-if="!packets.length" class="empty-wrap">
@@ -163,7 +158,7 @@ import { errorHandle } from "@/lib/error";
 import { buildCaptureWebSocketUrl } from "@/lib/request";
 import { parseTime, toast } from "@/lib/util";
 import { message } from "ant-design-vue";
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 
 interface ProxyTaskInfo {
@@ -193,7 +188,7 @@ interface PacketView extends PacketMessage {
   formattedHex: string;
 }
 
-const MAX_PACKET_COUNT = 500;
+const MAX_PACKET_COUNT = 200;
 const RECONNECT_BASE_DELAY = 1000;
 const RECONNECT_MAX_DELAY = 10000;
 const AUTH_CLOSE_CODE = 1008;
@@ -220,7 +215,6 @@ const state = reactive({
   loading: false,
   connecting: false,
   connected: false,
-  autoScroll: true,
   authExpired: false,
   reconnectScheduled: false,
   reconnectAttempts: 0,
@@ -293,10 +287,10 @@ const targetEndpoint = computed(() => {
 });
 
 function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)}KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)}MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 function normalizeText(value: string) {
@@ -358,12 +352,6 @@ function pushPacket(packet: PacketView) {
   }
 
   selectedPacket.value = packet;
-
-  if (state.autoScroll) {
-    nextTick(() => {
-      listRef.value?.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  }
 }
 
 function selectPacket(packet: PacketView) {
