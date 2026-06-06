@@ -6,11 +6,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/up-zero/my-proxy/client/info"
 	"github.com/up-zero/my-proxy/util"
-	"os"
 )
 
 // infoCmd represents the info command
@@ -18,7 +19,7 @@ var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get detailed information",
 	Run: func(cmd *cobra.Command, args []string) {
-		// my-proxy 1.0.0
+		// my-proxy 1.1.0
 		fmt.Println(fmt.Sprintf("%s %s", util.AppName, util.AppVersion))
 		reply, err := info.Info()
 		if err != nil {

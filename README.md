@@ -152,7 +152,7 @@ sudo supervisorctl restart my-proxy
 sudo my-proxy info
 
 # Example output
-my-proxy 1.0.0
+my-proxy 1.1.0
 +----------+-------------------------+
 | Address  | http://10.0.0.11:12312  |
 |          | http://172.17.0.1:12312 |
@@ -175,7 +175,7 @@ docker run -d \
     --restart always \
     --network host \
     -v "./my-proxy/data:/root/.config/my-proxy" \
-    getcharzp/my-proxy:1.0.0
+    getcharzp/my-proxy:1.1.0
 
 # View the login account
 docker logs my-proxy-service | grep "admin"
@@ -185,5 +185,5 @@ docker logs my-proxy-service | grep "admin"
 
 ```bash
 # Linux / macOS
-./scripts/build-release.sh --version 1.0.0 --clean
+./scripts/build-release.sh --version 1.1.0 --clean
 ```
