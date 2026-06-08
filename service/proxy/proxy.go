@@ -131,10 +131,16 @@ func normalizeProxyBasic(pb *models.ProxyBasic) {
 	pb.ListenPort = strings.TrimSpace(pb.ListenPort)
 	pb.TargetAddress = strings.TrimSpace(pb.TargetAddress)
 	pb.TargetPort = strings.TrimSpace(pb.TargetPort)
+	pb.Socks5Username = strings.TrimSpace(pb.Socks5Username)
+	pb.Socks5Password = strings.TrimSpace(pb.Socks5Password)
 
 	if pb.Type == models.ProxyTypeSocks5 {
 		pb.TargetAddress = ""
 		pb.TargetPort = ""
+	} else {
+		// 非 SOCKS5 类型清空认证字段
+		pb.Socks5Username = ""
+		pb.Socks5Password = ""
 	}
 }
 
@@ -334,13 +340,15 @@ func Edit(c *gin.Context, in *EditRequest) {
 	// 落库
 	if err := models.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(new(models.ProxyBasic)).Where("uuid = ?", pb.Uuid).Updates(map[string]any{
-			"name":           pb.Name,
-			"type":           pb.Type,
-			"listen_address": pb.ListenAddress,
-			"listen_port":    pb.ListenPort,
-			"target_address": pb.TargetAddress,
-			"target_port":    pb.TargetPort,
-			"state":          pb.State,
+			"name":            pb.Name,
+			"type":            pb.Type,
+			"listen_address":  pb.ListenAddress,
+			"listen_port":     pb.ListenPort,
+			"target_address":  pb.TargetAddress,
+			"target_port":     pb.TargetPort,
+			"socks5_username": pb.Socks5Username,
+			"socks5_password": pb.Socks5Password,
+			"state":           pb.State,
 		}).Error; err != nil {
 			return err
 		}

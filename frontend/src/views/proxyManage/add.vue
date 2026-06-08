@@ -42,7 +42,16 @@
       <a-form-item v-if="!isSocks5Type" ref="target_port" :label="t('proxy.targetPort')" name="target_port">
         <a-input v-model:value="ruleForm.target_port" />
       </a-form-item>
-      <a-form-item v-else :label="t('proxy.description')">
+      <a-form-item v-if="isSocks5Type" :label="t('proxy.socks5Auth')">
+        <span class="form-tip">{{ t("proxy.socks5AuthTip") }}</span>
+      </a-form-item>
+      <a-form-item v-if="isSocks5Type" :label="t('proxy.socks5Username')" name="socks5_username">
+        <a-input v-model:value="ruleForm.socks5_username" :placeholder="t('proxy.inputSocks5Username')" />
+      </a-form-item>
+      <a-form-item v-if="isSocks5Type" :label="t('proxy.socks5Password')" name="socks5_password">
+        <a-input-password v-model:value="ruleForm.socks5_password" :placeholder="t('proxy.inputSocks5Password')" />
+      </a-form-item>
+      <a-form-item v-if="isSocks5Type" :label="t('proxy.description')">
         <span class="form-tip">{{ t("proxy.socks5Tip") }}</span>
       </a-form-item>
     </a-form>
@@ -72,6 +81,8 @@ interface RuleForm {
   listen_port: string;
   target_address: string;
   target_port: string;
+  socks5_username: string;
+  socks5_password: string;
   state?: any;
 }
 
@@ -87,6 +98,8 @@ const createForm = (): RuleForm => ({
   listen_port: "",
   target_address: "",
   target_port: "",
+  socks5_username: "",
+  socks5_password: "",
 });
 
 const formSize = ref("default");
@@ -111,6 +124,9 @@ watch(
       ruleForm.value.target_address = "";
       ruleForm.value.target_port = "";
       ruleFormRef.value?.clearValidate?.(["target_address", "target_port"]);
+    } else {
+      ruleForm.value.socks5_username = "";
+      ruleForm.value.socks5_password = "";
     }
   }
 );
@@ -129,6 +145,8 @@ const submitForm = async (formEl: any | undefined) => {
         ...ruleForm.value,
         target_address: isSocks5Type.value ? "" : ruleForm.value.target_address,
         target_port: isSocks5Type.value ? "" : ruleForm.value.target_port,
+        socks5_username: isSocks5Type.value ? ruleForm.value.socks5_username : "",
+        socks5_password: isSocks5Type.value ? ruleForm.value.socks5_password : "",
       };
       if (ruleForm.value.uuid) {
         editProxy(payload).then(() => {

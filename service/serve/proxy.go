@@ -28,6 +28,7 @@ var proxyTaskMap = new(sync.Map)
 const (
 	socks5Version              = 0x05
 	socks5AuthNone             = 0x00
+	socks5AuthUsernamePassword = 0x02
 	socks5AuthNoAcceptable     = 0xFF
 	socks5CmdConnect           = 0x01
 	socks5AtypIPv4             = 0x01
@@ -207,11 +208,24 @@ func (task *ProxyTask) handleSocks5Greeting(clientConn net.Conn) error {
 	}
 	task.recordPayload(&task.bytesIn, "IN", models.ProxyTypeSocks5, append(header, methods...))
 
+	// 根据是否配置了用户名密码，选择认证方式
+	requireAuth := task.Socks5Username != "" || task.Socks5Password != ""
 	method := byte(socks5AuthNoAcceptable)
-	for _, item := range methods {
-		if item == socks5AuthNone {
-			method = socks5AuthNone
-			break
+	if requireAuth {
+		// 需要用户名密码认证
+		for _, item := range methods {
+			if item == socks5AuthUsernamePassword {
+				method = socks5AuthUsernamePassword
+				break
+			}
+		}
+	} else {
+		// 无需认证
+		for _, item := range methods {
+			if item == socks5AuthNone {
+				method = socks5AuthNone
+				break
+			}
 		}
 	}
 
@@ -224,6 +238,74 @@ func (task *ProxyTask) handleSocks5Greeting(clientConn net.Conn) error {
 		return errors.New("socks5 auth method not supported")
 	}
 
+	// 用户名密码认证流程
+	if method == socks5AuthUsernamePassword {
+		if err := task.handleSocks5UsernamePasswordAuth(clientConn); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// handleSocks5UsernamePasswordAuth 处理 SOCKS5 用户名密码认证
+func (task *ProxyTask) handleSocks5UsernamePasswordAuth(clientConn net.Conn) error {
+	// version + username_len + username + password_len + password
+	// version(1) + username_len(1)
+	header := make([]byte, 2)
+	if _, err := io.ReadFull(clientConn, header); err != nil {
+		return err
+	}
+	if header[0] != 0x01 {
+		return fmt.Errorf("unsupported socks5 auth version(%d)", header[0])
+	}
+
+	usernameLen := int(header[1])
+	if usernameLen == 0 {
+		return errors.New("invalid socks5 username length (0)")
+	}
+
+	// username(N) + password_len(1)
+	remainFirstPart := make([]byte, usernameLen+1)
+	if _, err := io.ReadFull(clientConn, remainFirstPart); err != nil {
+		return err
+	}
+
+	passwordLen := int(remainFirstPart[usernameLen])
+	if passwordLen == 0 {
+		return errors.New("invalid socks5 password length (0)")
+	}
+
+	// password(N)
+	passwordBuf := make([]byte, passwordLen)
+	if _, err := io.ReadFull(clientConn, passwordBuf); err != nil {
+		return err
+	}
+
+	// username(N)
+	usernameBuf := remainFirstPart[:usernameLen]
+
+	authPayload := append(header, remainFirstPart...)
+	authPayload = append(authPayload, passwordBuf...)
+	task.recordPayload(&task.bytesIn, "IN", models.ProxyTypeSocks5, authPayload)
+
+	username := string(usernameBuf)
+	password := string(passwordBuf)
+	authSuccess := username == task.Socks5Username && password == task.Socks5Password
+
+	// 认证结果：version(1) + status(1)  0x00=成功
+	authResp := []byte{0x01, 0x00}
+	if !authSuccess {
+		authResp = []byte{0x01, 0x01}
+	}
+	if _, err := clientConn.Write(authResp); err != nil {
+		return err
+	}
+	task.recordPayload(&task.bytesOut, "OUT", models.ProxyTypeSocks5, authResp)
+
+	if !authSuccess {
+		return errors.New("socks5 username/password auth failed")
+	}
 	return nil
 }
 
