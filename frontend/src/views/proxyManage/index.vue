@@ -27,7 +27,7 @@
       :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
         selectedRowKeys: selectedRowKeys,
         onChange: onSelectChange,
-      }" size="middle">
+      }" size="middle" @change="handleTableChange">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'state'">
           <span class="state-span danger" v-if="record.state === 'STOPPED'">{{ t("proxy.statusStopped") }}</span>
@@ -147,6 +147,8 @@ interface DataItem {
 const QUERY = (): any => ({
   name: "",
   tag_uuid_list: [],
+  sort_field: "",
+  sort_order: "",
   page: 1,
   per_page: 10,
   position: 1,
@@ -311,6 +313,7 @@ const columns = computed(() => {
       key: "name",
       width: 200,
       ellipsis: true,
+      sorter: true,
     },
     {
       dataIndex: "tag_list",
@@ -323,6 +326,7 @@ const columns = computed(() => {
       dataIndex: "type",
       key: "type",
       width: 90,
+      sorter: true,
     },
     {
       title: t("proxy.listenAddress"),
@@ -330,12 +334,14 @@ const columns = computed(() => {
       key: "listen_address",
       width: 140,
       ellipsis: true,
+      sorter: true,
     },
     {
       title: t("proxy.listenPort"),
       dataIndex: "listen_port",
       key: "listen_port",
       width: 80,
+      sorter: true,
     },
     {
       title: t("proxy.targetAddress"),
@@ -343,12 +349,14 @@ const columns = computed(() => {
       dataIndex: "target_address",
       width: 140,
       ellipsis: true,
+      sorter: true,
     },
     {
       title: t("proxy.targetPort"),
       key: "target_port",
       dataIndex: "target_port",
       width: 100,
+      sorter: true,
     },
     {
       title: t("common.status"),
@@ -460,6 +468,12 @@ const captureItem = (row: any) => {
 const onSelectChange = (selectedRowKeys1: any[]) => {
   console.log("selectedRowKeys changed: ", selectedRowKeys1);
   selectedRowKeys.value = selectedRowKeys1;
+};
+
+const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
+  state.query.sort_field = sorter?.field || "";
+  state.query.sort_order = sorter?.order || "";
+  getList();
 };
 const handleExport = async () => {
   downloadJson(

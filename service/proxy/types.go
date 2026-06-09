@@ -4,6 +4,8 @@ type StatusRequest struct {
 	Uuid        string   `json:"uuid"`                    // 代理唯一标识
 	Name        string   `json:"name"`                    // 代理名称
 	TagUuidList []string `json:"tag_uuid_list,omitempty"` // 标签唯一标识列表
+	SortField   string   `json:"sort_field"`              // 排序字段：name, type, listen_address, listen_port, target_address, target_port
+	SortOrder   string   `json:"sort_order"`              // 排序方向：ascend, descend
 }
 
 type CreateRequest struct {

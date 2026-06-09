@@ -3,6 +3,8 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -213,7 +215,49 @@ func Status(c *gin.Context, in *StatusRequest) {
 			return hasAnyMatchedTag(pt.TagUuidList, in.TagUuidList)
 		})
 	}
+	// 排序
+	if in.SortField != "" && in.SortOrder != "" {
+		sortTasks(tasks, in.SortField, in.SortOrder)
+	}
 	util.ResponseOkWithList(c, tasks)
+}
+
+// sortTasks 对代理任务列表进行排序
+func sortTasks(tasks []*serve.ProxyTask, field string, order string) {
+	less := func(i, j int) bool {
+		var vi, vj string
+		switch field {
+		case "name":
+			vi, vj = tasks[i].Name, tasks[j].Name
+		case "type":
+			vi, vj = tasks[i].Type, tasks[j].Type
+		case "listen_address":
+			vi, vj = tasks[i].ListenAddress, tasks[j].ListenAddress
+		case "listen_port":
+			pi, _ := strconv.Atoi(tasks[i].ListenPort)
+			pj, _ := strconv.Atoi(tasks[j].ListenPort)
+			if order == "descend" {
+				return pi > pj
+			}
+			return pi < pj
+		case "target_address":
+			vi, vj = tasks[i].TargetAddress, tasks[j].TargetAddress
+		case "target_port":
+			pi, _ := strconv.Atoi(tasks[i].TargetPort)
+			pj, _ := strconv.Atoi(tasks[j].TargetPort)
+			if order == "descend" {
+				return pi > pj
+			}
+			return pi < pj
+		default:
+			return false
+		}
+		if order == "descend" {
+			return vi > vj
+		}
+		return vi < vj
+	}
+	sort.SliceStable(tasks, less)
 }
 
 // savePreValid 判断代理信息是否有效
