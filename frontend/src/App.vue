@@ -90,8 +90,14 @@
         <!-- 显示内容 -->
         <div :class="['m-content', { 'full-layout': isFullPage }]">
           <a-breadcrumb>
-            <!-- <a-breadcrumb-item>{{ route.matched[0]?.name }}</a-breadcrumb-item> -->
-            <a-breadcrumb-item>{{ currentRouteTitle }}</a-breadcrumb-item>
+            <template v-if="breadcrumbItems.length > 1">
+              <a-breadcrumb-item v-for="(item, index) in breadcrumbItems" :key="index">
+                {{ item }}
+              </a-breadcrumb-item>
+            </template>
+            <template v-else>
+              <a-breadcrumb-item>{{ currentRouteTitle }}</a-breadcrumb-item>
+            </template>
           </a-breadcrumb>
 
           <RouterView :class="['p-page', { 'full-page-host': isFullPage }]" />
@@ -205,6 +211,29 @@ const menus = computed(() => {
 });
 const isFullPage = computed(() => Boolean(route.meta?.fullPage));
 const currentRouteTitle = computed(() => (route.meta?.titleKey ? t(route.meta.titleKey as string) : route.name));
+
+// 生成面包屑路径数组
+const breadcrumbItems = computed(() => {
+  const matched = route.matched;
+  const items: string[] = [];
+  
+  for (let i = 0; i < matched.length; i++) {
+    const record = matched[i];
+    // 跳过根路由和登录页
+    if (record.path === '/' || record.path === '/login') {
+      continue;
+    }
+    
+    // 只添加有标题的路由
+    if (record.meta?.titleKey) {
+      items.push(t(record.meta.titleKey as string));
+    } else if (record.name && typeof record.name === 'string') {
+      items.push(record.name);
+    }
+  }
+  
+  return items;
+});
 
 // 退出登录
 async function logout() {
