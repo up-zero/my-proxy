@@ -101,6 +101,7 @@ const permGroups = [
     perms: [
       { key: "alert.view", nameKey: "role.permItems.alertNotify" },
       { key: "audit.view", nameKey: "role.permItems.auditLog" },
+      { key: "terminal.view", nameKey: "role.permItems.terminal" },
     ]
   },
   { 

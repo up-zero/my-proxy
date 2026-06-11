@@ -22,6 +22,7 @@ import (
 	"github.com/up-zero/my-proxy/service/role"
 	"github.com/up-zero/my-proxy/service/serve"
 	tag "github.com/up-zero/my-proxy/service/tag"
+	"github.com/up-zero/my-proxy/service/terminal"
 	"github.com/up-zero/my-proxy/service/trafficpolicy"
 	"github.com/up-zero/my-proxy/service/user"
 	"github.com/up-zero/my-proxy/util"
@@ -56,6 +57,8 @@ func router() *gin.Engine {
 	auth.POST("/edit/password", BindH(user.EditPassword))
 	// Websocket 连接（抓包）
 	auth.GET("/ws/capture", serve.WebsocketCapture)
+	// Websocket 连接（终端）
+	auth.GET("/ws/terminal", terminal.WebsocketTerminal)
 
 	// 代理管理
 	{

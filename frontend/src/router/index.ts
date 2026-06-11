@@ -6,6 +6,7 @@ export const PERMS = {
   proxyView: "proxy.view",                // 代理列表
   tagManage: "tag.manage",                // 标签管理
   trafficPolicy: "traffic_policy.manage", // 限速配额
+  terminalView: "terminal.view",          // Web 终端
   alertView: "alert.view",                // 告警通知
   auditView: "audit.view",                // 日志审计
   userManage: "user.manage",              // 用户列表
@@ -100,6 +101,17 @@ const router = createRouter({
       },
       redirect: "/operation/alert",
       children: [
+        {
+          path: "/operation/terminal",
+          name: "Web 终端",
+          meta: {
+            isMenu: true,
+            fullPage: true,
+            titleKey: "routes.terminal",
+            perm: PERMS.terminalView,
+          },
+          component: () => import("../views/terminal/index.vue"),
+        },
         {
           path: "/operation/alert",
           name: "告警通知",

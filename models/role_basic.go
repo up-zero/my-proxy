@@ -14,6 +14,7 @@ const (
 	PermTrafficPolicy = "traffic_policy.manage" // 限速配额
 	PermAlertView     = "alert.view"            // 告警通知
 	PermAuditView     = "audit.view"            // 日志审计
+	PermTerminalView  = "terminal.view"         // Web 终端
 	PermUserManage    = "user.manage"           // 用户列表
 	PermRoleManage    = "role.manage"           // 权限策略
 )
@@ -27,6 +28,7 @@ func AllPermissions() []string {
 		PermTrafficPolicy,
 		PermAlertView,
 		PermAuditView,
+		PermTerminalView,
 		PermUserManage,
 		PermRoleManage,
 	}
@@ -107,5 +109,6 @@ func OpsPermissions() []string {
 		PermTrafficPolicy,
 		PermAlertView,
 		PermAuditView,
+		PermTerminalView,
 	}
 }

@@ -99,6 +99,7 @@ function getPermDisplayName(perm: string): string {
     "traffic_policy.manage": t("role.permItems.trafficPolicy"),
     "alert.view": t("role.permItems.alertNotify"),
     "audit.view": t("role.permItems.auditLog"),
+    "terminal.view": t("role.permItems.terminal"),
     "user.manage": t("role.permItems.userList"),
     "role.manage": t("role.permItems.permPolicy"),
   };

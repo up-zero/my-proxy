@@ -15,6 +15,35 @@ export function getStoredToken(): string {
   return localStorage.getItem(`${config.name}:token`) || "";
 }
 
+export interface TerminalConnParams {
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+  id: string;
+}
+
+export function buildTerminalWebSocketUrl(params: TerminalConnParams): string {
+  const apiBase = config.apiPrefix || "/api";
+  const url = new URL(apiBase, window.location.origin);
+
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = `${url.pathname.replace(/\/$/, "")}/v1/ws/terminal`;
+  url.searchParams.set("host", params.host);
+  url.searchParams.set("port", params.port || "22");
+  url.searchParams.set("username", params.username);
+  url.searchParams.set("password", params.password || "");
+  url.searchParams.set("session_id", params.id);
+  url.searchParams.set("language", getCurrentLocale());
+
+  const token = getStoredToken();
+  if (token) {
+    url.searchParams.set("token", token);
+  }
+
+  return url.toString();
+}
+
 export function buildCaptureWebSocketUrl(taskUuid: string): string {
   const apiBase = config.apiPrefix || "/api";
   const url = new URL(apiBase, window.location.origin);
