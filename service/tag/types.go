@@ -16,3 +16,7 @@ type UpdateRequest struct {
 type DeleteRequest struct {
 	Uuid string `json:"uuid" binding:"required"` // 标签唯一标识
 }
+
+type BatchDeleteRequest struct {
+	Uuids []string `json:"uuids" binding:"required"` // 标签唯一标识列表
+}

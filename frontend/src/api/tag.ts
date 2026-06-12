@@ -20,3 +20,8 @@ export function delTag(data: Record<string, any>): Promise<any> {
   return request.post("/v1/tag/delete", data);
 }
 
+// 批量删除标签
+export function batchDelTag(data: Record<string, any>): Promise<any> {
+  return request.post("/v1/tag/batch-delete", data);
+}
+

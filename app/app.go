@@ -96,6 +96,8 @@ func router() *gin.Engine {
 		authTag.POST("/update", BindH(tag.Update))
 		// 删除标签
 		authTag.POST("/delete", BindH(tag.Delete))
+		// 批量删除标签
+		authTag.POST("/batch-delete", BindH(tag.BatchDelete))
 	}
 
 	// 限速配额

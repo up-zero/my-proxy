@@ -4,6 +4,13 @@
       <div class="search-row">
         <div>
           <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
+          <a-popconfirm
+            :title="t('tag.batchDeleteConfirm')"
+            :disabled="selectedRowKeys.length === 0"
+            @confirm="batchDelItems"
+          >
+            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("tag.batchDelete") }}</a-button>
+          </a-popconfirm>
         </div>
         <div class="search-right">
           <a-input
@@ -17,7 +24,16 @@
       </div>
     </a-form>
 
-    <a-table :dataSource="state.list" :columns="columns" bordered :pagination="false" class="m-table" size="middle">
+    <a-table
+      :dataSource="state.list"
+      :columns="columns"
+      bordered
+      :pagination="false"
+      class="m-table"
+      size="middle"
+      :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
+      row-key="uuid"
+    >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'created_at'">
           <span>{{ parseTime(record.created_at) }}</span>
@@ -40,7 +56,7 @@
 </template>
 
 <script lang="ts" setup>
-import { delTag, getTagList } from "@/api/tag";
+import { delTag, batchDelTag, getTagList } from "@/api/tag";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
 import { computed, onMounted, reactive, ref } from "vue";
@@ -60,6 +76,7 @@ const QUERY = (): any => ({
 
 const addBoxRef = ref();
 const { t } = useAppI18n();
+const selectedRowKeys = ref<string[]>([]);
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -124,6 +141,10 @@ function editItem(row: DataItem) {
   addBoxRef.value.init(row);
 }
 
+function onSelectChange(keys: string[]) {
+  selectedRowKeys.value = keys;
+}
+
 const delItem = (row: DataItem) => {
   delTag({ uuid: row.uuid }).then(() => {
     getList();
@@ -132,6 +153,20 @@ const delItem = (row: DataItem) => {
     });
   });
 };
+
+function batchDelItems() {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning({ content: t("tag.selectAtLeastOne") });
+    return;
+  }
+  batchDelTag({ uuids: selectedRowKeys.value }).then(() => {
+    selectedRowKeys.value = [];
+    getList();
+    message.success({
+      content: t("common.success"),
+    });
+  });
+}
 </script>
 
 <style lang="less" scoped>

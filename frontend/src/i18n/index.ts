@@ -261,6 +261,9 @@ const messages: Record<AppLocale, MessageTree> = {
       tagName: "标签名称",
       inputTagName: "请输入标签名称",
       deleteConfirm: "确定删除标签?",
+      batchDeleteConfirm: "确定批量删除选中的标签?",
+      batchDelete: "批量删除",
+      selectAtLeastOne: "请至少选择一条记录",
     },
     trafficPolicy: {
       addPolicy: "新增限速配额",
@@ -627,6 +630,9 @@ const messages: Record<AppLocale, MessageTree> = {
       tagName: "Tag Name",
       inputTagName: "Enter tag name",
       deleteConfirm: "Delete this tag?",
+      batchDeleteConfirm: "Delete selected tags?",
+      batchDelete: "Batch Delete",
+      selectAtLeastOne: "Please select at least one record",
     },
     trafficPolicy: {
       addPolicy: "Add Traffic Policy",

@@ -93,3 +93,21 @@ func Delete(c *gin.Context, in *DeleteRequest) {
 	}
 	util.ResponseOk(c)
 }
+
+// BatchDelete 批量删除标签
+func BatchDelete(c *gin.Context, in *BatchDeleteRequest) {
+	if err := models.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("tag_uuid IN ?", in.Uuids).Delete(new(models.ProxyTag)).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("uuid IN ?", in.Uuids).Delete(new(models.TagBasic)).Error; err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		logger.Error("[db] tag batch delete error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	util.ResponseOk(c)
+}
