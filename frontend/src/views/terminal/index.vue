@@ -325,6 +325,14 @@ function createTerminalInstance(tab: TerminalTab) {
 
   // 终端输入 -> WebSocket
   term.onData((data) => {
+    // 断连/异常时按回车触发重连
+    if (
+      (tab.status === "disconnected" || tab.status === "error") &&
+      data === "\r"
+    ) {
+      reconnectTab(tab.id);
+      return;
+    }
     if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
       tab.ws.send(JSON.stringify({ type: "data", data }));
     }
@@ -377,6 +385,7 @@ function connectTab(tab: TerminalTab) {
           tab.status = "error";
           if (tab.term) {
             tab.term.write(`\r\n❌ ${msg.data}\r\n`);
+            tab.term.write(`\x1b[90m${t("terminal.pressEnterReconnect")}\x1b[0m\r\n`);
           }
         }
       } catch {
@@ -390,7 +399,8 @@ function connectTab(tab: TerminalTab) {
     ws.onclose = () => {
       tab.status = "disconnected";
       if (tab.term) {
-        tab.term.write(`\r\n⚠️ ${t("terminal.disconnected")}\r\n`);
+        tab.term.write(`\r\n⚠️  ${t("terminal.disconnected")}\r\n`);
+        tab.term.write(`\x1b[90m${t("terminal.pressEnterReconnect")}\x1b[0m\r\n`);
       }
     };
 
@@ -398,12 +408,14 @@ function connectTab(tab: TerminalTab) {
       tab.status = "error";
       if (tab.term) {
         tab.term.write(`\r\n❌ ${t("terminal.connectionFailed")}\r\n`);
+        tab.term.write(`\x1b[90m${t("terminal.pressEnterReconnect")}\x1b[0m\r\n`);
       }
     };
   } catch (e: any) {
     tab.status = "error";
     if (tab.term) {
       tab.term.write(`\r\n❌ ${e?.message || t("terminal.connectionFailed")}\r\n`);
+      tab.term.write(`\x1b[90m${t("terminal.pressEnterReconnect")}\x1b[0m\r\n`);
     }
   }
 }
@@ -477,6 +489,35 @@ function closeTab(id: string) {
       activeTabId.value = "";
     }
   }
+}
+
+// ===================== 重连操作 =====================
+function reconnectTab(id: string) {
+  const tab = tabs.value.find((t) => t.id === id);
+  if (!tab) return;
+
+  // 关闭旧 WebSocket
+  if (tab.ws) {
+    tab.ws.onclose = null;
+    tab.ws.onerror = null;
+    tab.ws.onmessage = null;
+    tab.ws.close();
+    tab.ws = null;
+  }
+
+  // 重置终端内容
+  if (tab.term) {
+    tab.term.clear();
+    tab.term.reset();
+  }
+
+  // 重新建立连接
+  connectTab(tab);
+
+  // 切换后重新 fit
+  nextTick(() => {
+    tab.fitAddon?.fit();
+  });
 }
 
 // ===================== 连接操作 =====================

@@ -254,6 +254,10 @@ const messages: Record<AppLocale, MessageTree> = {
       noTerminal: "暂无终端连接",
       connectionFailed: "SSH 连接失败",
       authExpired: "登录已过期，请重新登录。",
+      reconnect: "重新连接",
+      pressEnterReconnect: "按 Enter 键重新连接...",
+      disconnectedTip: "连接已断开",
+      errorTip: "连接异常",
     },
     tag: {
       addTag: "新增标签",
@@ -623,6 +627,10 @@ const messages: Record<AppLocale, MessageTree> = {
       noTerminal: "No terminal connections",
       connectionFailed: "SSH connection failed",
       authExpired: "Login expired. Please sign in again.",
+      reconnect: "Reconnect",
+      pressEnterReconnect: "Press Enter to reconnect...",
+      disconnectedTip: "Connection disconnected",
+      errorTip: "Connection error",
     },
     tag: {
       addTag: "Add Tag",
