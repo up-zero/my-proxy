@@ -7,6 +7,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +41,12 @@ type Conn struct {
 	language   string
 	remoteAddr string
 	closed     bool
+
+	// 远程监控
+	monitorEnabled bool
+	monitorStop    chan struct{}
+	prevCPUIdle    uint64
+	prevCPUTotal   uint64
 }
 
 // Hub 管理所有终端连接
@@ -215,6 +223,206 @@ func (tc *Conn) resizePTY(cols, rows int) {
 	}
 }
 
+// startMonitor 启动远程监控
+func (tc *Conn) startMonitor() {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	if tc.monitorEnabled || tc.closed {
+		return
+	}
+	tc.monitorEnabled = true
+	tc.monitorStop = make(chan struct{})
+	// 重置 CPU 采样
+	tc.prevCPUIdle = 0
+	tc.prevCPUTotal = 0
+	go tc.monitorLoop()
+}
+
+// stopMonitor 停止远程监控
+func (tc *Conn) stopMonitor() {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	if !tc.monitorEnabled {
+		return
+	}
+	tc.monitorEnabled = false
+	if tc.monitorStop != nil {
+		select {
+		case <-tc.monitorStop:
+			// 已关闭
+		default:
+			close(tc.monitorStop)
+		}
+	}
+}
+
+// monitorLoop 监控循环，每秒采集一次
+func (tc *Conn) monitorLoop() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-tc.monitorStop:
+			return
+		case <-tc.done:
+			return
+		case <-ticker.C:
+			data := tc.collectMonitorData()
+			if data != nil {
+				msg := Message{
+					Type:    "monitor",
+					Monitor: data,
+				}
+				jsonData, err := json.Marshal(msg)
+				if err == nil {
+					select {
+					case tc.send <- jsonData:
+					case <-tc.done:
+						return
+					default:
+						// send channel 满则跳过本次
+					}
+				}
+			}
+		}
+	}
+}
+
+// collectMonitorData 采集远程主机监控数据
+func (tc *Conn) collectMonitorData() *MonitorData {
+	tc.mu.RLock()
+	client := tc.sshClient
+	tc.mu.RUnlock()
+
+	if client == nil {
+		return nil
+	}
+
+	// 单条命令获取 CPU / 内存 / 磁盘信息
+	// df 不加 -t 过滤 (部分 busybox/嵌入式 df 不支持), 直接列出所有挂载点再在前端/后端过滤
+	cmd := "grep '^cpu ' /proc/stat 2>/dev/null; echo '---MEM---'; grep -E '^(MemTotal|MemAvailable):' /proc/meminfo 2>/dev/null; echo '---DISK---'; df -l -B1 2>/dev/null | tail -n +2"
+
+	session, err := client.NewSession()
+	if err != nil {
+		return nil
+	}
+	defer session.Close()
+
+	// 忽略命令执行错误，尽可能解析已有输出
+	output, _ := session.CombinedOutput(cmd)
+
+	return parseMonitorOutput(string(output), tc)
+}
+
+// parseMonitorOutput 解析监控命令输出
+func parseMonitorOutput(raw string, tc *Conn) *MonitorData {
+	data := &MonitorData{}
+	section := ""
+	lines := strings.Split(raw, "\n")
+
+	memTotal := uint64(0)
+	memAvailable := uint64(0)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		switch {
+		case strings.HasPrefix(line, "cpu "):
+			section = "cpu"
+			parseCPU(line, tc, data)
+		case line == "---MEM---":
+			section = "mem"
+			continue
+		case line == "---DISK---":
+			section = "disk"
+			continue
+		}
+
+		switch section {
+		case "mem":
+			if strings.HasPrefix(line, "MemTotal:") {
+				memTotal = parseMemValue(line)
+			} else if strings.HasPrefix(line, "MemAvailable:") {
+				memAvailable = parseMemValue(line)
+			}
+		case "disk":
+			// df -B1 输出: Filesystem  Total  Used  Available  Use%  Mounted
+			// 挂载点在最后一列，total 在第 2 列，used 在第 3 列
+			// 只统计系统盘 (挂载点 /)，避免监控面板显示过多磁盘
+			parts := strings.Fields(line)
+			if len(parts) >= 6 {
+				mountPoint := parts[len(parts)-1]
+				if mountPoint != "/" {
+					continue
+				}
+				total, err1 := strconv.ParseUint(parts[1], 10, 64)
+				used, err2 := strconv.ParseUint(parts[2], 10, 64)
+				if err1 == nil && err2 == nil && total > 0 {
+					data.Disks = append(data.Disks, DiskInfo{
+						MountPoint: mountPoint,
+						Total:      total,
+						Used:       used,
+					})
+				}
+			}
+		}
+	}
+
+	if memTotal > 0 {
+		data.MemTotal = memTotal
+		data.MemUsed = memTotal - memAvailable
+	}
+
+	return data
+}
+
+// parseCPU 解析 /proc/stat 首行并计算 CPU 使用率
+func parseCPU(line string, tc *Conn, data *MonitorData) {
+	fields := strings.Fields(line)
+	if len(fields) < 5 {
+		return
+	}
+
+	// /proc/stat 首行: cpu user nice system idle iowait irq softirq steal ...
+	var cpuStats [4]uint64
+	for i := 1; i <= 4 && i < len(fields); i++ {
+		cpuStats[i-1], _ = strconv.ParseUint(fields[i], 10, 64)
+	}
+
+	idle := cpuStats[3]
+	total := cpuStats[0] + cpuStats[1] + cpuStats[2] + cpuStats[3]
+
+	tc.mu.Lock()
+	prevIdle := tc.prevCPUIdle
+	prevTotal := tc.prevCPUTotal
+	tc.prevCPUIdle = idle
+	tc.prevCPUTotal = total
+	tc.mu.Unlock()
+
+	if prevTotal > 0 && total > prevTotal {
+		totalDelta := total - prevTotal
+		idleDelta := idle - prevIdle
+		data.CPU = float64(totalDelta-idleDelta) / float64(totalDelta) * 100
+	}
+}
+
+// parseMemValue 解析 /proc/meminfo 中的数值 (kB -> B)
+func parseMemValue(line string) uint64 {
+	fields := strings.Fields(line)
+	if len(fields) < 2 {
+		return 0
+	}
+	val, err := strconv.ParseUint(fields[1], 10, 64)
+	if err != nil {
+		return 0
+	}
+	return val * 1024 // kB -> bytes
+}
+
 // writer 将 SSH 输出写入 WebSocket
 type writer struct {
 	tc *Conn
@@ -316,6 +524,14 @@ func (h *Hub) readPump(tc *Conn, sessionID string) {
 				_, _ = tc.stdinPipe.Write([]byte(msg.Data))
 			}
 			tc.mu.RUnlock()
+		case "monitor_toggle":
+			if msg.Enabled != nil {
+				if *msg.Enabled {
+					tc.startMonitor()
+				} else {
+					tc.stopMonitor()
+				}
+			}
 		default:
 			tc.mu.RLock()
 			if tc.stdinPipe != nil && !tc.closed {

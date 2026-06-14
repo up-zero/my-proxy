@@ -21,6 +21,15 @@
           <PlusOutlined class="new-tab-icon" />
           <span>{{ t("terminal.newTab") }}</span>
         </div>
+        <!-- 全局监控开关 -->
+        <div class="terminal-tab monitor-toggle" @click.stop>
+          <span class="toggle-label">{{ t("terminal.monitor") }}</span>
+          <a-switch
+            v-model:checked="monitorGlobalEnabled"
+            size="small"
+            @change="onMonitorToggle"
+          />
+        </div>
       </div>
 
       <!-- 终端内容区 -->
@@ -31,6 +40,58 @@
           :ref="(el) => setTerminalRef(tab.id, el as HTMLElement)"
           :class="['terminal-instance', { visible: activeTabId === tab.id }]"
         ></div>
+      </div>
+
+      <!-- 远程监控面板 -->
+      <div v-if="monitorGlobalEnabled" class="monitor-panel">
+        <!-- CPU with sparkline -->
+        <div class="monitor-item monitor-cpu">
+          <span class="monitor-label">CPU</span>
+          <svg
+            class="cpu-sparkline"
+            viewBox="0 0 80 24"
+            preserveAspectRatio="none"
+          >
+            <polyline
+              v-if="cpuSparklinePoints"
+              :points="cpuSparklinePoints"
+              fill="none"
+              stroke="#4ec9b0"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="monitor-value cpu-value">{{ cpuText }}</span>
+        </div>
+
+        <!-- MEM -->
+        <div class="monitor-item">
+          <span class="monitor-label">MEM</span>
+          <div class="monitor-bar-wrap">
+            <div
+              class="monitor-bar mem"
+              :style="{ width: memUsagePercent + '%' }"
+            ></div>
+          </div>
+          <span class="monitor-value">{{ memText }}</span>
+        </div>
+
+        <!-- DISKS -->
+        <div
+          v-for="disk in activeDisks"
+          :key="disk.mount"
+          class="monitor-item"
+        >
+          <span class="monitor-label disk-label">DISK {{ disk.mount }}</span>
+          <div class="monitor-bar-wrap">
+            <div
+              class="monitor-bar disk"
+              :style="{ width: disk.percent + '%' }"
+            ></div>
+          </div>
+          <span class="monitor-value">{{ formatBytes(disk.used) }} / {{ formatBytes(disk.total) }}</span>
+        </div>
       </div>
     </div>
 
@@ -131,7 +192,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, onBeforeUnmount, watch } from "vue";
+import { ref, reactive, nextTick, onBeforeUnmount, watch, computed } from "vue";
 import { useAppI18n } from "@/i18n";
 import { PlusOutlined, CloseOutlined } from "@ant-design/icons-vue";
 import { Terminal } from "@xterm/xterm";
@@ -186,6 +247,113 @@ const proxyForm = reactive({
 
 // 代理列表
 const proxyList = ref<any[]>([]);
+
+// ===================== 远程监控 =====================
+const monitorGlobalEnabled = ref(false);
+
+// 磁盘信息
+interface DiskInfo {
+  mount: string;
+  total: number;
+  used: number;
+}
+
+// 监控数据（用 reactive map 确保响应式更新）
+interface MonitorSnapshot {
+  cpu: number;
+  mem_total: number;
+  mem_used: number;
+  disks: DiskInfo[];
+}
+const monitorDataMap = reactive<Record<string, MonitorSnapshot>>({});
+
+// CPU 历史数据（最多存 60 个点）
+const cpuHistoryMap = reactive<Record<string, number[]>>({});
+const MAX_CPU_HISTORY = 60;
+
+// 当前活跃标签的监控数据
+const activeMonitorData = computed<MonitorSnapshot | null>(() => {
+  return monitorDataMap[activeTabId.value] ?? null;
+});
+
+// 当前活跃标签的 CPU 历史
+const activeCpuHistory = computed<number[]>(() => {
+  return cpuHistoryMap[activeTabId.value] ?? [];
+});
+
+// CPU sparkline SVG points（纵轴上限固定 100%，更直观反映实际 CPU 负载）
+const cpuSparklinePoints = computed(() => {
+  const history = activeCpuHistory.value;
+  if (history.length < 2) return "";
+  const w = 80, h = 24, pad = 2;
+  const max = 100;
+  return history
+    .map((v, i) => {
+      const x = pad + (i / (history.length - 1)) * (w - pad * 2);
+      const y = pad + (1 - v / max) * (h - pad * 2);
+      return `${x},${y}`;
+    })
+    .join(" ");
+});
+
+// CPU 显示文本
+const cpuText = computed(() => {
+  const d = activeMonitorData.value;
+  return d != null ? d.cpu.toFixed(1) + "%" : "--";
+});
+
+const memUsagePercent = computed(() => {
+  const d = activeMonitorData.value;
+  if (!d || d.mem_total === 0) return 0;
+  return Math.min((d.mem_used / d.mem_total) * 100, 100);
+});
+
+const memText = computed(() => {
+  const d = activeMonitorData.value;
+  return d ? formatBytes(d.mem_used) + " / " + formatBytes(d.mem_total) : "--";
+});
+
+// 当前活跃标签的磁盘列表（带计算百分比）
+const activeDisks = computed(() => {
+  const d = activeMonitorData.value;
+  if (!d || !d.disks) return [];
+  return d.disks.map((dk) => ({
+    ...dk,
+    percent: dk.total > 0 ? Math.min((dk.used / dk.total) * 100, 100) : 0,
+  }));
+});
+
+// 格式化字节数（自动选择 TB/GB/MB/KB/B 单位，保留一位小数）
+function formatBytes(bytes: number): string {
+  if (bytes >= 1099511627776) {
+    return (bytes / 1099511627776).toFixed(1) + " TB";
+  } else if (bytes >= 1073741824) {
+    return (bytes / 1073741824).toFixed(1) + " GB";
+  } else if (bytes >= 1048576) {
+    return (bytes / 1048576).toFixed(1) + " MB";
+  } else if (bytes >= 1024) {
+    return (bytes / 1024).toFixed(1) + " KB";
+  }
+  return bytes + " B";
+}
+
+// 全局监控开关切换 — 仅对当前活跃标签生效，切换标签时自动关闭旧标签监控
+function onMonitorToggle(checked: boolean) {
+  if (checked) {
+    // 只对当前活跃标签开启监控
+    const activeTab = tabs.value.find(t => t.id === activeTabId.value);
+    if (activeTab?.ws && activeTab.ws.readyState === WebSocket.OPEN) {
+      activeTab.ws.send(JSON.stringify({ type: "monitor_toggle", enabled: true }));
+    }
+  } else {
+    // 关闭所有标签的监控
+    for (const tab of tabs.value) {
+      if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+        tab.ws.send(JSON.stringify({ type: "monitor_toggle", enabled: false }));
+      }
+    }
+  }
+}
 
 // ===================== SSH 凭据缓存 =====================
 const STORAGE_KEY_LOCAL = "my-proxy:terminal:ssh:local";
@@ -295,23 +463,36 @@ function createTerminalInstance(tab: TerminalTab) {
       term.open(el);
       
       // 立即执行一次 fit，确保初始尺寸正确
+      let lastCols = 0;
+      let lastRows = 0;
       setTimeout(() => {
         fitAddon.fit();
-        // 发送初始尺寸到后端
         const { cols, rows } = term;
+        lastCols = cols;
+        lastRows = rows;
+        // 发送初始尺寸到后端
         if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
           tab.ws.send(JSON.stringify({ type: "resize", size: { cols, rows } }));
         }
       }, 100);
 
-      // 监听窗口大小变化
+      // 监听窗口大小变化（仅活跃标签同步尺寸，避免隐藏标签 resize 触发 shell 重复输出提示符）
+      let resizeTimer: ReturnType<typeof setTimeout> | null = null;
       const observer = new ResizeObserver(() => {
-        fitAddon.fit();
-        // 尺寸变化后通知后端
-        const { cols, rows } = term;
-        if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
-          tab.ws.send(JSON.stringify({ type: "resize", size: { cols, rows } }));
-        }
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          // 仅活跃标签才 fit 并同步尺寸
+          if (activeTabId.value !== tab.id) return;
+          fitAddon.fit();
+          const { cols, rows } = term;
+          // 尺寸未变化则跳过，避免无效的 PTY resize 导致 shell 重复输出提示符
+          if (cols === lastCols && rows === lastRows) return;
+          lastCols = cols;
+          lastRows = rows;
+          if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+            tab.ws.send(JSON.stringify({ type: "resize", size: { cols, rows } }));
+          }
+        }, 150);
       });
       observer.observe(el);
 
@@ -372,6 +553,10 @@ function connectTab(tab: TerminalTab) {
         const { cols, rows } = tab.term;
         ws.send(JSON.stringify({ type: "resize", size: { cols, rows } }));
       }
+      // 如果全局监控已开启且当前为活跃标签，开启监控（非活跃标签不监控）
+      if (monitorGlobalEnabled.value && activeTabId.value === tab.id) {
+        ws.send(JSON.stringify({ type: "monitor_toggle", enabled: true }));
+      }
     };
 
     ws.onmessage = (event) => {
@@ -380,6 +565,30 @@ function connectTab(tab: TerminalTab) {
         if (msg.type === "data") {
           if (tab.term) {
             tab.term.write(msg.data);
+          }
+        } else if (msg.type === "monitor") {
+          // 解析监控数据 — 写入响应式 map
+          if (msg.monitor) {
+            const snap: MonitorSnapshot = {
+              cpu: msg.monitor.cpu ?? 0,
+              mem_total: msg.monitor.mem_total ?? 0,
+              mem_used: msg.monitor.mem_used ?? 0,
+              disks: (msg.monitor.disks || []).map((d: any) => ({
+                mount: d.mount || "?",
+                total: d.total ?? 0,
+                used: d.used ?? 0,
+              })),
+            };
+            monitorDataMap[tab.id] = snap;
+
+            // 追加 CPU 历史
+            if (!cpuHistoryMap[tab.id]) {
+              cpuHistoryMap[tab.id] = [];
+            }
+            cpuHistoryMap[tab.id].push(snap.cpu);
+            if (cpuHistoryMap[tab.id].length > MAX_CPU_HISTORY) {
+              cpuHistoryMap[tab.id].shift();
+            }
           }
         } else if (msg.type === "error") {
           tab.status = "error";
@@ -436,8 +645,17 @@ function addTab(name: string, host: string, port: string, username: string, pass
     ws: null,
   };
 
+  const oldActiveId = activeTabId.value;
   tabs.value.push(tab);
   activeTabId.value = id;
+
+  // 停止旧标签上的远程监控（新标签在 ws.onopen 中按需开启）
+  if (monitorGlobalEnabled.value && oldActiveId) {
+    const oldTab = tabs.value.find(t => t.id === oldActiveId);
+    if (oldTab?.ws && oldTab.ws.readyState === WebSocket.OPEN) {
+      oldTab.ws.send(JSON.stringify({ type: "monitor_toggle", enabled: false }));
+    }
+  }
 
   // 延迟创建终端实例，等待 DOM 渲染
   nextTick(() => {
@@ -447,7 +665,20 @@ function addTab(name: string, host: string, port: string, username: string, pass
 }
 
 function switchTab(id: string) {
+  const oldActiveId = activeTabId.value;
   activeTabId.value = id;
+
+  // 切换标签时同步监控：关闭旧标签监控，开启新标签监控
+  if (monitorGlobalEnabled.value) {
+    const oldTab = tabs.value.find(t => t.id === oldActiveId);
+    if (oldTab?.ws && oldTab.ws.readyState === WebSocket.OPEN) {
+      oldTab.ws.send(JSON.stringify({ type: "monitor_toggle", enabled: false }));
+    }
+    const newTab = tabs.value.find(t => t.id === id);
+    if (newTab?.ws && newTab.ws.readyState === WebSocket.OPEN) {
+      newTab.ws.send(JSON.stringify({ type: "monitor_toggle", enabled: true }));
+    }
+  }
 
   // 切换标签时重新 fit
   nextTick(() => {
@@ -478,13 +709,24 @@ function closeTab(id: string) {
     tab.term = null;
   }
 
+  // 清理监控数据
+  delete monitorDataMap[id];
+  delete cpuHistoryMap[id];
+
   tabs.value.splice(idx, 1);
 
-  // 切换到相邻标签
+  // 切换到相邻标签，并同步监控到新活跃标签
   if (activeTabId.value === id) {
     if (tabs.value.length > 0) {
       const newIdx = Math.min(idx, tabs.value.length - 1);
       activeTabId.value = tabs.value[newIdx].id;
+      // 如果全局监控开启，启动新活跃标签的监控
+      if (monitorGlobalEnabled.value) {
+        const newActiveTab = tabs.value[newIdx];
+        if (newActiveTab?.ws && newActiveTab.ws.readyState === WebSocket.OPEN) {
+          newActiveTab.ws.send(JSON.stringify({ type: "monitor_toggle", enabled: true }));
+        }
+      }
     } else {
       activeTabId.value = "";
     }
@@ -735,6 +977,15 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+// 消除 xterm.js 内部边框产生的白线
+.terminal-instance :deep(.xterm-viewport) {
+  border: none !important;
+}
+
+.terminal-instance :deep(.xterm) {
+  border: none !important;
+}
+
 .terminal-instance {
   position: absolute;
   top: 0;
@@ -745,6 +996,116 @@ onBeforeUnmount(() => {
 
   &.visible {
     display: block;
+  }
+}
+
+.monitor-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  cursor: default;
+  border-right: none;
+
+  &:hover {
+    background: transparent;
+  }
+}
+
+.toggle-label {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.monitor-panel {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 5px 12px;
+  background: #ffffff;
+  flex-shrink: 0;
+  min-height: 34px;
+  overflow-x: auto;
+  border-top: 1px solid #e0e0e0;
+
+  .monitor-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    border-right: 1px solid #e0e0e0;
+    flex-shrink: 0;
+
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  .monitor-cpu {
+    gap: 4px;
+  }
+
+  .monitor-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &.disk-label {
+      min-width: 0;
+      max-width: 72px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .cpu-sparkline {
+    width: 80px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 2px;
+    background: #f0f0f0;
+
+    polyline {
+      vector-effect: non-scaling-stroke;
+    }
+  }
+
+  .monitor-bar-wrap {
+    width: 80px;
+    height: 8px;
+    background: #e8e8e8;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .monitor-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+
+    &.mem {
+      background: #569cd6;
+    }
+    &.disk {
+      background: #ce9178;
+    }
+  }
+
+  .monitor-value {
+    font-size: 11px;
+    color: #333;
+    white-space: nowrap;
+    font-family: Consolas, "Courier New", monospace;
+
+    &.cpu-value {
+      min-width: 52px;
+      text-align: right;
+    }
   }
 }
 

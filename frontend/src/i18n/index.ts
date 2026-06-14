@@ -258,6 +258,7 @@ const messages: Record<AppLocale, MessageTree> = {
       pressEnterReconnect: "按 Enter 键重新连接...",
       disconnectedTip: "连接已断开",
       errorTip: "连接异常",
+      monitor: "远程监控",
     },
     tag: {
       addTag: "新增标签",
@@ -631,6 +632,7 @@ const messages: Record<AppLocale, MessageTree> = {
       pressEnterReconnect: "Press Enter to reconnect...",
       disconnectedTip: "Connection disconnected",
       errorTip: "Connection error",
+      monitor: "Monitor",
     },
     tag: {
       addTag: "Add Tag",
