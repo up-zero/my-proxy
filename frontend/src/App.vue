@@ -102,7 +102,7 @@
 
           <RouterView :class="['p-page', { 'full-page-host': isFullPage }]" />
           <div class="footer">
-            <a href="https://github.com/up-zero/my-proxy" target="_blank">@up-zero</a></div>
+            <a href="https://github.com/up-zero/my-proxy" target="_blank">© 2025-{{ currentYear }} up-zero</a></div>
         </div>
       </div>
       <passwordBox ref="passwordBoxRef" />
@@ -151,6 +151,9 @@ const iconMap: Record<string, any> = {
 };
 
 const collapsed = ref(false);
+
+// 版权年份，动态获取当前年份
+const currentYear = new Date().getFullYear();
 
 // 根据当前路由自动展开对应子菜单
 const menuOpenKeys = ref<string[]>([]);
@@ -381,14 +384,14 @@ body,
 .m-content {
   flex: 1;
   height: calc(100vh - @headerHeight);
-  padding: 20px;
+  padding: 16px;
   background-color: #f2f4f7;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   .p-page {
     background-color: #fff;
-    padding: 20px;
+    padding: 16px;
     margin-top: 16px;
     flex: 1;
     min-height: 0;
