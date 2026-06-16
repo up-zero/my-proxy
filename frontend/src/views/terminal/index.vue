@@ -420,6 +420,73 @@ async function fetchProxyList() {
 }
 
 // ===================== 创建终端连接 =====================
+/**
+ * 将 viewport 高度精确收拢到 rows×rowHeight，消除底部余数空白。
+ * 双 rAF 确保在 xterm.js 内部布局完全结束后再调整；
+ * MutationObserver 兜底，防止后续 xterm 内部重绘时覆写 inline style。
+ */
+function fitSnap(term: Terminal, fitAddon: FitAddon) {
+  fitAddon.fit();
+  const rows = term.rows;
+  if (rows <= 0 || !term.element) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      _applyViewportSnap(term, rows);
+      _ensureViewportGuard(term);
+    });
+  });
+}
+
+function _applyViewportSnap(term: Terminal, rows: number) {
+  if (!term.element) return;
+  const screen = term.element.querySelector('.xterm-screen') as HTMLElement;
+  const viewport = term.element.querySelector('.xterm-viewport') as HTMLElement;
+  if (!screen || !viewport || rows <= 0) return;
+  const rowH = screen.offsetHeight / rows;
+  if (rowH <= 0) return;
+  const targetH = Math.round(rows * rowH);
+  (term as any).__vpTargetHeight = targetH; // 缓存目标值，供 guard 回退
+  viewport.style.bottom = 'auto';
+  viewport.style.height = targetH + 'px';
+}
+
+/** MutationObserver 兜底：xterm 内部重绘覆写 viewport style 时自动恢复 */
+function _ensureViewportGuard(term: Terminal) {
+  if (!term.element) return;
+  const viewport = term.element.querySelector('.xterm-viewport') as HTMLElement;
+  if (!viewport) return;
+
+  const old: MutationObserver | undefined = (term as any).__vpObserver;
+  if (old) old.disconnect();
+
+  const observer = new MutationObserver(() => {
+    const expected = (term as any).__vpTargetHeight as number | undefined;
+    if (
+      expected &&
+      viewport.style.height === expected + 'px' &&
+      viewport.style.bottom === 'auto'
+    ) {
+      return; // 样式未被改动，跳过避免死循环
+    }
+    observer.disconnect();
+    if (expected && term.element) {
+      viewport.style.bottom = 'auto';
+      viewport.style.height = expected + 'px';
+    }
+    observer.observe(viewport, { attributes: true, attributeFilter: ['style'] });
+  });
+  observer.observe(viewport, { attributes: true, attributeFilter: ['style'] });
+  (term as any).__vpObserver = observer;
+}
+
+function _cleanupViewportGuard(term: Terminal) {
+  const obs: MutationObserver | undefined = (term as any).__vpObserver;
+  if (obs) obs.disconnect();
+  delete (term as any).__vpObserver;
+  delete (term as any).__vpTargetHeight;
+}
+
 function createTerminalInstance(tab: TerminalTab) {
   if (!terminalRefs.value[tab.id]) return;
 
@@ -466,7 +533,7 @@ function createTerminalInstance(tab: TerminalTab) {
       let lastCols = 0;
       let lastRows = 0;
       setTimeout(() => {
-        fitAddon.fit();
+        fitSnap(term, fitAddon);
         const { cols, rows } = term;
         lastCols = cols;
         lastRows = rows;
@@ -483,7 +550,7 @@ function createTerminalInstance(tab: TerminalTab) {
         resizeTimer = setTimeout(() => {
           // 仅活跃标签才 fit 并同步尺寸
           if (activeTabId.value !== tab.id) return;
-          fitAddon.fit();
+          fitSnap(term, fitAddon);
           const { cols, rows } = term;
           // 尺寸未变化则跳过，避免无效的 PTY resize 导致 shell 重复输出提示符
           if (cols === lastCols && rows === lastRows) return;
@@ -548,7 +615,7 @@ function connectTab(tab: TerminalTab) {
       tab.status = "connected";
       if (tab.term) {
         tab.term.clear();
-        tab.fitAddon?.fit();
+        fitSnap(tab.term, tab.fitAddon!);
         // 连接成功后发送当前终端尺寸
         const { cols, rows } = tab.term;
         ws.send(JSON.stringify({ type: "resize", size: { cols, rows } }));
@@ -683,8 +750,8 @@ function switchTab(id: string) {
   // 切换标签时重新 fit
   nextTick(() => {
     const tab = tabs.value.find((t) => t.id === id);
-    if (tab?.fitAddon) {
-      tab.fitAddon.fit();
+    if (tab?.fitAddon && tab.term) {
+      fitSnap(tab.term, tab.fitAddon);
     }
   });
 }
@@ -705,6 +772,7 @@ function closeTab(id: string) {
   if (tab.term) {
     const observer = (tab.term as any)._resizeObserver;
     if (observer) observer.disconnect();
+    _cleanupViewportGuard(tab.term);
     tab.term.dispose();
     tab.term = null;
   }
@@ -758,7 +826,9 @@ function reconnectTab(id: string) {
 
   // 切换后重新 fit
   nextTick(() => {
-    tab.fitAddon?.fit();
+    if (tab.fitAddon && tab.term) {
+      fitSnap(tab.term, tab.fitAddon);
+    }
   });
 }
 
@@ -832,6 +902,7 @@ onBeforeUnmount(() => {
     if (tab.term) {
       const observer = (tab.term as any)._resizeObserver;
       if (observer) observer.disconnect();
+      _cleanupViewportGuard(tab.term);
       tab.term.dispose();
     }
   }
@@ -975,6 +1046,7 @@ onBeforeUnmount(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+  background: #1e1e1e;
 }
 
 // 消除 xterm.js 内部边框产生的白线
@@ -988,10 +1060,11 @@ onBeforeUnmount(() => {
 
 .terminal-instance {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 6px;
+  left: 8px;
+  right: 0;
+  bottom: 0;
+
   display: none;
 
   &.visible {
