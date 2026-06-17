@@ -1188,6 +1188,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   background: #1e1e1e;
+  color: #ffffff;
+
+  :deep(.ant-empty-description) {
+    color: #ffffff;
+  }
 }
 
 .terminal-form {
