@@ -24,4 +24,9 @@ export function deleteTrafficPolicy(data: Record<string, any>): Promise<any> {
   return request.post("/v1/traffic-policy/delete", data);
 }
 
+// 批量删除限速策略
+export function batchDeleteTrafficPolicy(data: Record<string, any>): Promise<any> {
+  return request.post("/v1/traffic-policy/batch-delete", data);
+}
+
 

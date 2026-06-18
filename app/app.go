@@ -115,6 +115,8 @@ func router() *gin.Engine {
 		authTrafficPolicy.POST("/disable", BindH(trafficpolicy.Disable))
 		// 删除流量策略
 		authTrafficPolicy.POST("/delete", BindH(trafficpolicy.Delete))
+		// 批量删除流量策略
+		authTrafficPolicy.POST("/batch-delete", BindH(trafficpolicy.BatchDelete))
 	}
 
 	// 告警通知

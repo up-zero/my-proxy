@@ -350,3 +350,22 @@ func Delete(c *gin.Context, in *UuidRequest) {
 	audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionDelete, policy.Name, in.Uuid, fmt.Sprintf("删除限速策略：%s", policy.Name))
 	util.ResponseOk(c)
 }
+
+// BatchDelete 批量删除限速策略
+func BatchDelete(c *gin.Context, in *BatchDeleteRequest) {
+	// 查询策略名称用于审计日志
+	policies := make([]models.TrafficPolicy, 0)
+	if err := models.DB.Model(new(models.TrafficPolicy)).Where("uuid IN ?", in.Uuids).Find(&policies).Error; err != nil {
+		logger.Error("[db] traffic policy get for batch delete error.", zap.Error(err))
+	}
+	if err := models.DB.Where("uuid IN ?", in.Uuids).Delete(new(models.TrafficPolicy)).Error; err != nil {
+		logger.Error("[db] traffic policy batch delete error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	RefreshRuntime()
+	for _, policy := range policies {
+		audit.LogWithContext(c, models.AuditModuleTrafficPolicy, models.AuditActionDelete, policy.Name, policy.Uuid, fmt.Sprintf("批量删除限速策略：%s", policy.Name))
+	}
+	util.ResponseOk(c)
+}

@@ -296,6 +296,9 @@ const messages: Record<AppLocale, MessageTree> = {
       confirmEnable: "是否启用该策略?",
       confirmDisable: "是否禁用该策略?",
       confirmDelete: "确定删除该策略?",
+      batchDeleteConfirm: "确定批量删除选中的策略?",
+      batchDelete: "批量删除",
+      selectAtLeastOne: "请至少选择一条记录",
     },
     alert: {
       keywordPlaceholder: "搜索标题 / 内容 / 来源",
@@ -670,6 +673,9 @@ const messages: Record<AppLocale, MessageTree> = {
       confirmEnable: "Enable this policy?",
       confirmDisable: "Disable this policy?",
       confirmDelete: "Delete this policy?",
+      batchDeleteConfirm: "Delete selected policies?",
+      batchDelete: "Batch Delete",
+      selectAtLeastOne: "Please select at least one record",
     },
     alert: {
       keywordPlaceholder: "Search title / content / source",

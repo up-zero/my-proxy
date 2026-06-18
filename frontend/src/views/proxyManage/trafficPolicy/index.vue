@@ -4,6 +4,13 @@
       <div class="search-row">
         <div>
           <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
+          <a-popconfirm
+            :title="t('trafficPolicy.batchDeleteConfirm')"
+            :disabled="selectedRowKeys.length === 0"
+            @confirm="batchDelItems"
+          >
+            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("trafficPolicy.batchDelete") }}</a-button>
+          </a-popconfirm>
         </div>
         <div class="search-right">
           <a-input v-model:value="state.query.name" :placeholder="t('trafficPolicy.inputPolicyName')" style="width: 220px; margin-right: 8px" @pressEnter="getList" />
@@ -30,6 +37,7 @@
       size="middle"
       :scroll="{ x: 1320, y: 'calc(100vh - 320px)' }"
       rowKey="uuid"
+      :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'scope'">
@@ -78,7 +86,7 @@
 <script lang="ts" setup>
 import { getProxyStatus } from "@/api/proxy";
 import { getTagList } from "@/api/tag";
-import { deleteTrafficPolicy, disableTrafficPolicy, enableTrafficPolicy, getTrafficPolicyList } from "@/api/trafficPolicy";
+import { deleteTrafficPolicy, batchDeleteTrafficPolicy, disableTrafficPolicy, enableTrafficPolicy, getTrafficPolicyList } from "@/api/trafficPolicy";
 import { useAppI18n } from "@/i18n";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
@@ -109,6 +117,7 @@ const QUERY = () => ({
 
 const { t } = useAppI18n();
 const addBoxRef = ref();
+const selectedRowKeys = ref<string[]>([]);
 const state = reactive({
   isLoading: false,
   query: QUERY(),
@@ -160,6 +169,22 @@ function toAddPage() {
 
 function editItem(row: DataItem) {
   addBoxRef.value.init(row);
+}
+
+function onSelectChange(keys: string[]) {
+  selectedRowKeys.value = keys;
+}
+
+function batchDelItems() {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning({ content: t("trafficPolicy.selectAtLeastOne") });
+    return;
+  }
+  batchDeleteTrafficPolicy({ uuids: selectedRowKeys.value }).then(() => {
+    selectedRowKeys.value = [];
+    getList();
+    message.success({ content: t("common.success") });
+  });
 }
 
 function actionList(row: DataItem) {

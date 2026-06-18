@@ -20,3 +20,7 @@ type SaveRequest struct {
 type UuidRequest struct {
 	Uuid string `json:"uuid" binding:"required"`
 }
+
+type BatchDeleteRequest struct {
+	Uuids []string `json:"uuids" binding:"required"`
+}
