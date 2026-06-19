@@ -9,7 +9,7 @@
             :disabled="selectedRowKeys.length === 0"
             @confirm="batchDelItems"
           >
-            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("tag.batchDelete") }}</a-button>
+            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("common.delete") }}</a-button>
           </a-popconfirm>
         </div>
         <div class="search-right">
