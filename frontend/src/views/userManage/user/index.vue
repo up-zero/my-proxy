@@ -3,9 +3,18 @@
     <!-- 搜索 -->
 
     <a-form :inline="true" :model="state.query" class="m-search">
-      <a-button type="primary" @click="toAddPage" style="margin-bottom: 10px"
-        >{{ t("common.add") }}</a-button
-      >
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px">
+        <div>
+          <a-button type="primary" @click="toAddPage" style="margin-right: 10px">{{ t("common.add") }}</a-button>
+          <a-popconfirm
+            :title="t('user.batchDeleteConfirm')"
+            :disabled="selectedRowKeys.length === 0"
+            @confirm="batchDelItems"
+          >
+            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("common.delete") }}</a-button>
+          </a-popconfirm>
+        </div>
+      </div>
     </a-form>
 
     <!-- 表格 -->
@@ -16,6 +25,8 @@
       :pagination="false"
       class="m-table"
       size="middle"
+      :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
+      row-key="uuid"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'role_id'">
@@ -69,12 +80,12 @@ const QUERY = (): any => ({
 const addBoxRef = ref();
 const { t } = useAppI18n();
 const roleMap = ref<Record<string, any>>({});
+const selectedRowKeys = ref<string[]>([]);
 const state = reactive({
   isLoading: false,
   query: QUERY(),
   list: [] as any,
   total: 0,
-  checkList: [] as string[],
 });
 
 onMounted(() => {
@@ -177,6 +188,24 @@ const delItem = (row: DataItem) => {
     });
   });
 };
+
+function onSelectChange(keys: string[]) {
+  selectedRowKeys.value = keys;
+}
+
+function batchDelItems() {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning({ content: t("user.selectAtLeastOne") });
+    return;
+  }
+  delUser({ uuid: selectedRowKeys.value }).then(() => {
+    selectedRowKeys.value = [];
+    getList();
+    message.success({
+      content: t("common.success"),
+    });
+  });
+}
 </script>
 
 <style lang="less" scoped>

@@ -340,6 +340,8 @@ const messages: Record<AppLocale, MessageTree> = {
       role: "角色",
       selectRole: "请选择角色",
       deleteConfirm: "确定删除?",
+      batchDeleteConfirm: "确定删除选中的用户?",
+      selectAtLeastOne: "请至少选择一条记录",
     },
     role: {
       addRole: "新增角色",
@@ -717,6 +719,8 @@ const messages: Record<AppLocale, MessageTree> = {
       role: "Role",
       selectRole: "Select role",
       deleteConfirm: "Confirm deletion?",
+      batchDeleteConfirm: "Delete selected users?",
+      selectAtLeastOne: "Please select at least one record",
     },
     role: {
       addRole: "Add Role",
