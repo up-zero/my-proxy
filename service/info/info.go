@@ -2,6 +2,7 @@ package info
 
 import (
 	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/netutil"
 	"github.com/up-zero/my-proxy/logger"
@@ -24,15 +25,10 @@ func Info(c *gin.Context) {
 		util.ResponseError(c, err)
 		return
 	}
-	serverPort, err := (&models.ConfigBasic{}).GetServerPort()
-	if err != nil {
-		logger.Error("[db] get server port error.", zap.Error(err))
-		util.ResponseError(c, err)
-		return
-	}
+	serverPort := (&models.ConfigBasic{}).GetServerPort()
 	for _, ip := range ips {
 		// http://127.0.0.1:12321
-		reply.Addresses = append(reply.Addresses, fmt.Sprintf("http://%s%s", ip, serverPort))
+		reply.Addresses = append(reply.Addresses, fmt.Sprintf("http://%s:%s", ip, serverPort))
 	}
 
 	// 用户信息

@@ -13,10 +13,15 @@ import (
 )
 
 const SourceTrafficPolicy = "TRAFFIC_POLICY"
-const retention = 30 * 24 * time.Hour
+
+// getRetention 从配置缓存中读取告警存储时长
+func getRetention() time.Duration {
+	days := models.GetConfigInt(util.ConfigKeyAlertRetentionDays, 90)
+	return time.Duration(days) * 24 * time.Hour
+}
 
 func cleanupExpiredRecords() {
-	expiredBefore := time.Now().Add(-retention).UnixMilli()
+	expiredBefore := time.Now().Add(-getRetention()).UnixMilli()
 	if err := models.DB.Where("created_at < ?", expiredBefore).Delete(new(models.AlertRecord)).Error; err != nil {
 		logger.Error("[db] cleanup expired alert records error.", zap.Error(err))
 	}
@@ -50,7 +55,7 @@ func List(c *gin.Context, in *ListRequest) {
 		in.PerPage = 500
 	}
 	list := make([]*models.AlertRecord, 0)
-	retentionStart := time.Now().Add(-retention).UnixMilli()
+	retentionStart := time.Now().Add(-getRetention()).UnixMilli()
 	tx := models.DB.Model(new(models.AlertRecord)).Where("created_at >= ?", retentionStart)
 	if keyword := strings.TrimSpace(in.Keyword); keyword != "" {
 		like := "%" + keyword + "%"

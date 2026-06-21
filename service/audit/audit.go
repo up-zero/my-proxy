@@ -12,10 +12,14 @@ import (
 	"go.uber.org/zap"
 )
 
-const retention = 90 * 24 * time.Hour
+// getRetention 从配置缓存中读取审计日志存储时长
+func getRetention() time.Duration {
+	days := models.GetConfigInt(util.ConfigKeyAuditRetentionDays, 90)
+	return time.Duration(days) * 24 * time.Hour
+}
 
 func cleanupExpiredRecords() {
-	expiredBefore := time.Now().Add(-retention).UnixMilli()
+	expiredBefore := time.Now().Add(-getRetention()).UnixMilli()
 	if err := models.DB.Where("created_at < ?", expiredBefore).Delete(new(models.AuditLog)).Error; err != nil {
 		logger.Error("[db] cleanup expired audit log records error.", zap.Error(err))
 	}
@@ -83,7 +87,7 @@ func List(c *gin.Context, in *ListRequest) {
 		in.PerPage = 500
 	}
 	list := make([]*models.AuditLog, 0)
-	retentionStart := time.Now().Add(-retention).UnixMilli()
+	retentionStart := time.Now().Add(-getRetention()).UnixMilli()
 	tx := models.DB.Model(new(models.AuditLog)).Where("created_at >= ?", retentionStart)
 	if keyword := strings.TrimSpace(in.Keyword); keyword != "" {
 		like := "%" + keyword + "%"

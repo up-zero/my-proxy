@@ -16,6 +16,7 @@ import (
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/service/alert"
 	"github.com/up-zero/my-proxy/service/audit"
+	sysconfig "github.com/up-zero/my-proxy/service/config"
 	"github.com/up-zero/my-proxy/service/dashboard"
 	"github.com/up-zero/my-proxy/service/info"
 	"github.com/up-zero/my-proxy/service/proxy"
@@ -161,6 +162,16 @@ func router() *gin.Engine {
 		authRole.POST("/delete", BindH(role.Delete))
 	}
 
+	// 系统设置
+	{
+		authSettings := auth.Group("/settings")
+		authSettings.Use(middleware.AdminAuthCheck())
+		// 获取系统设置
+		authSettings.POST("/get", sysconfig.Get)
+		// 更新系统设置
+		authSettings.POST("/update", BindH(sysconfig.Update))
+	}
+
 	// 前端静态代理
 	subFS, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
@@ -205,6 +216,9 @@ func showAdminInfo() {
 
 // NewApp 创建服务
 func NewApp(port string) {
+	// 初始化配置缓存
+	models.InitConfigCache()
+
 	// 保存服务端口
 	if err := (&models.ConfigBasic{}).SaveServerPort(port); err != nil {
 		logger.Error("[sys] save server port error.", zap.Error(err))
@@ -223,7 +237,7 @@ func NewApp(port string) {
 		r := router()
 		server := &http.Server{
 			Handler: r,
-			Addr:    port,
+			Addr:    ":" + port,
 		}
 		if err := server.ListenAndServe(); err != nil {
 			logger.Error(fmt.Sprintf("%s run error", util.AppName), zap.Any("ERROR", err))

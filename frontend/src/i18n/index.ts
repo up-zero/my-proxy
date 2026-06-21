@@ -81,6 +81,7 @@ const messages: Record<AppLocale, MessageTree> = {
       permPolicy: "权限策略",
       changePassword: "修改密码",
       login: "登录",
+      systemSettings: "系统设置",
     },
     auth: {
       login: "登录",
@@ -371,6 +372,7 @@ const messages: Record<AppLocale, MessageTree> = {
         operation: "运维中心",
         user: "用户管理",
         role: "角色管理",
+        settings: "系统设置",
       },
       permItems: {
         // 单个菜单项
@@ -386,6 +388,8 @@ const messages: Record<AppLocale, MessageTree> = {
         // 用户管理
         userList: "用户列表",
         permPolicy: "权限策略",
+        // 系统设置
+        settings: "系统设置",
       },
     },
     password: {
@@ -396,6 +400,27 @@ const messages: Record<AppLocale, MessageTree> = {
       pleaseInput: "请输入",
       pleaseReenterPassword: "请再次输入密码",
       passwordMismatch: "两次密码不一致",
+    },
+    settings: {
+      title: "系统设置",
+      saveSuccess: "保存成功",
+      save: "保存",
+      resetDefault: "恢复默认",
+      confirmReset: "确定要恢复所有设置为默认值？",
+      items: {
+        SERVER_PORT_KEY: "服务端口",
+        AUDIT_RETENTION_DAYS: "日志审计存储时长",
+        ALERT_RETENTION_DAYS: "告警通知存储时长",
+      },
+      unit: {
+        days: "天",
+      },
+      desc: {
+        SERVER_PORT_KEY: "Web 服务和 CLI 客户端连接的端口，重启后生效",
+        AUDIT_RETENTION_DAYS: "超过该时长的审计日志将被自动清理",
+        ALERT_RETENTION_DAYS: "超过该时长的告警记录将被自动清理",
+      },
+      defaultLabel: "默认",
     },
   },
   "en-US": {
@@ -460,6 +485,7 @@ const messages: Record<AppLocale, MessageTree> = {
       permPolicy: "Permission Policy",
       changePassword: "Password",
       login: "Sign In",
+      systemSettings: "System Settings",
     },
     auth: {
       login: "Sign In",
@@ -750,6 +776,7 @@ const messages: Record<AppLocale, MessageTree> = {
         operation: "Operations",
         user: "User Management",
         role: "Role Management",
+        settings: "System Settings",
       },
       permItems: {
         // Single menu item
@@ -765,6 +792,8 @@ const messages: Record<AppLocale, MessageTree> = {
         // User Management
         userList: "User List",
         permPolicy: "Permission Policy",
+        // System Settings
+        settings: "System Settings",
       },
     },
     password: {
@@ -775,6 +804,27 @@ const messages: Record<AppLocale, MessageTree> = {
       pleaseInput: "Please enter",
       pleaseReenterPassword: "Please enter the password again",
       passwordMismatch: "The two passwords do not match",
+    },
+    settings: {
+      title: "System Settings",
+      saveSuccess: "Saved successfully",
+      save: "Save",
+      resetDefault: "Reset to Default",
+      confirmReset: "Are you sure you want to reset all settings to their defaults?",
+      items: {
+        SERVER_PORT_KEY: "Service Port",
+        AUDIT_RETENTION_DAYS: "Audit Log Retention",
+        ALERT_RETENTION_DAYS: "Alert Retention",
+      },
+      unit: {
+        days: "days",
+      },
+      desc: {
+        SERVER_PORT_KEY: "Port for web service and CLI client connections, takes effect after restart",
+        AUDIT_RETENTION_DAYS: "Audit logs older than this will be automatically cleaned up",
+        ALERT_RETENTION_DAYS: "Alert records older than this will be automatically cleaned up",
+      },
+      defaultLabel: "Default",
     },
   },
 };

@@ -112,6 +112,13 @@ const permGroups = [
       { key: "role.manage", nameKey: "role.permItems.permPolicy" },
     ]
   },
+  { 
+    groupKey: "settings", 
+    groupName: "routes.systemSettings",
+    perms: [
+      { key: "settings.manage", nameKey: "role.permItems.settings" },
+    ]
+  },
 ];
 
 function getPermDisplayName(permItem: { key: string; nameKey: string }): string {

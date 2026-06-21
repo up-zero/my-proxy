@@ -12,8 +12,20 @@ var (
 	DateTimeWithMilliLayout = "2006-01-02 15:04:05.000"
 	JwtKey                  = "LnGvpbI59mPaSxA3"
 
+	// ---- 系统设置 KEY ----
+
 	// ServerPortKey 服务端口 KEY
 	ServerPortKey = "SERVER_PORT_KEY"
+	// ConfigKeyAuditRetentionDays 日志审计存储时长（天）
+	ConfigKeyAuditRetentionDays = "AUDIT_RETENTION_DAYS"
+	// ConfigKeyAlertRetentionDays 告警通知存储时长（天）
+	ConfigKeyAlertRetentionDays = "ALERT_RETENTION_DAYS"
+
+	// ---- 系统设置默认值 ----
+
+	DefaultAuditRetentionDays = "90"    // 日志审计默认 90 天
+	DefaultAlertRetentionDays = "90"    // 告警通知默认 90 天
+	DefaultServerPort         = "12312" // 服务端口默认值
 )
 
 // GetDbPath 获取数据库路径

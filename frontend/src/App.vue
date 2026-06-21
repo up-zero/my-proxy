@@ -133,6 +133,7 @@ import {
   AuditOutlined,
   TeamOutlined,
   CodeOutlined,
+  SettingOutlined,
 } from "@ant-design/icons-vue";
 
 const iconMap: Record<string, any> = {
@@ -148,6 +149,7 @@ const iconMap: Record<string, any> = {
   TeamOutlined,
   KeyOutlined,
   CodeOutlined,
+  SettingOutlined,
 };
 
 const collapsed = ref(false);

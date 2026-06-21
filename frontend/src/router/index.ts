@@ -11,6 +11,7 @@ export const PERMS = {
   auditView: "audit.view",                // 日志审计
   userManage: "user.manage",              // 用户列表
   roleManage: "role.manage",              // 权限策略
+  settingsManage: "settings.manage",      // 系统设置
 };
 
 const router = createRouter({
@@ -174,6 +175,28 @@ const router = createRouter({
         titleKey: "routes.changePassword",
       },
       component: () => import("../views/userManage/changePassword.vue"),
+    },
+    {
+      path: "/system",
+      meta: {
+        isMenu: true,
+        titleKey: "routes.systemSettings",
+        icon: "SettingOutlined",
+        perm: PERMS.settingsManage,
+      },
+      redirect: "/system/settings",
+      children: [
+        {
+          path: "/system/settings",
+          name: "systemSettings",
+          meta: {
+            isMenu: true,
+            titleKey: "routes.systemSettings",
+            perm: PERMS.settingsManage,
+          },
+          component: () => import("../views/system/settings/index.vue"),
+        },
+      ],
     },
   ],
 });

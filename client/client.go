@@ -2,15 +2,16 @@ package client
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/up-zero/gotool/netutil"
 	"github.com/up-zero/my-proxy/logger"
 	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"time"
 )
 
 func authHeaders() (map[string]string, error) {
@@ -35,12 +36,8 @@ func authHeaders() (map[string]string, error) {
 
 func serverURL(path string) (string, error) {
 	// 获取服务端口
-	serverPort, err := (&models.ConfigBasic{}).GetServerPort()
-	if err != nil {
-		logger.Error("[db] get server port error.", zap.Error(err))
-		return "", err
-	}
-	return fmt.Sprintf("http://127.0.0.1%s%s", serverPort, path), nil
+	serverPort := (&models.ConfigBasic{}).GetServerPort()
+	return fmt.Sprintf("http://127.0.0.1:%s%s", serverPort, path), nil
 }
 
 // Post 带鉴权的 post 请求
