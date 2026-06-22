@@ -10,12 +10,16 @@ var (
 	AppName                 = "my-proxy"
 	AppVersion              = "1.1.0"
 	DateTimeWithMilliLayout = "2006-01-02 15:04:05.000"
-	JwtKey                  = "LnGvpbI59mPaSxA3"
+
+	// JwtKey JWT 签名密钥，由 initJwtSecret 在首次运行时自动生成并持久化到数据库
+	JwtKey = ""
 
 	// ---- 系统设置 KEY ----
 
 	// ServerPortKey 服务端口 KEY
 	ServerPortKey = "SERVER_PORT_KEY"
+	// ConfigKeyJwtSecret JWT 签名密钥 KEY
+	ConfigKeyJwtSecret = "JWT_SECRET_KEY"
 	// ConfigKeyAuditRetentionDays 日志审计存储时长（天）
 	ConfigKeyAuditRetentionDays = "AUDIT_RETENTION_DAYS"
 	// ConfigKeyAlertRetentionDays 告警通知存储时长（天）

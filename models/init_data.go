@@ -3,15 +3,39 @@ package models
 import (
 	"github.com/up-zero/gotool/randomutil"
 	"github.com/up-zero/my-proxy/logger"
+	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
 )
 
 // initData 初始化数据
 func initData() {
+	// 初始化 JWT 签名密钥
+	initJwtSecret()
 	// 初始化角色数据
 	initRoleData()
 	// 初始化用户
 	initUserData()
+}
+
+// initJwtSecret 初始化 JWT 签名密钥
+func initJwtSecret() {
+	row := &ConfigBasic{Key: util.ConfigKeyJwtSecret}
+	if err := DB.Where("key = ?", util.ConfigKeyJwtSecret).First(row).Error; err == nil && row.Value != "" {
+		// 已有密钥，直接使用
+		util.JwtKey = row.Value
+		return
+	}
+
+	secret := randomutil.Alphanumeric(32)
+
+	// 持久化到数据库
+	row.Key = util.ConfigKeyJwtSecret
+	row.Value = secret
+	if err := DB.Create(row).Error; err != nil {
+		panic("failed to save JWT secret: " + err.Error())
+	}
+
+	util.JwtKey = secret
 }
 
 func initRoleData() {
