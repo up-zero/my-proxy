@@ -1009,7 +1009,7 @@ onBeforeUnmount(() => {
 
 .tab-close {
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted, #888);
   padding: 2px;
   border-radius: 3px;
 
@@ -1088,7 +1088,7 @@ onBeforeUnmount(() => {
 
 .toggle-label {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-muted, #999);
   white-space: nowrap;
 }
 
@@ -1097,18 +1097,18 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0;
   padding: 5px 12px;
-  background: #ffffff;
+  background: var(--color-terminal-connect-bg, #ffffff);
   flex-shrink: 0;
   min-height: 34px;
   overflow-x: auto;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-terminal-connect-border, #e0e0e0);
 
   .monitor-item {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 0 12px;
-    border-right: 1px solid #e0e0e0;
+    border-right: 1px solid var(--color-terminal-connect-border, #e0e0e0);
     flex-shrink: 0;
 
     &:last-child {
@@ -1123,7 +1123,7 @@ onBeforeUnmount(() => {
   .monitor-label {
     font-size: 11px;
     font-weight: 600;
-    color: #555;
+    color: var(--color-terminal-connect-label, #555);
     white-space: nowrap;
     flex-shrink: 0;
 
@@ -1140,7 +1140,7 @@ onBeforeUnmount(() => {
     height: 24px;
     flex-shrink: 0;
     border-radius: 2px;
-    background: #f0f0f0;
+    background: var(--color-terminal-connect-input-bg, #f0f0f0);
 
     polyline {
       vector-effect: non-scaling-stroke;
@@ -1150,7 +1150,7 @@ onBeforeUnmount(() => {
   .monitor-bar-wrap {
     width: 80px;
     height: 8px;
-    background: #e8e8e8;
+    background: var(--color-terminal-connect-input-hover, #e8e8e8);
     border-radius: 4px;
     overflow: hidden;
     flex-shrink: 0;
@@ -1171,7 +1171,7 @@ onBeforeUnmount(() => {
 
   .monitor-value {
     font-size: 11px;
-    color: #333;
+    color: var(--color-terminal-connect-text, #333);
     white-space: nowrap;
     font-family: Consolas, "Courier New", monospace;
 

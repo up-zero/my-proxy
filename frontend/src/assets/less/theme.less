@@ -1,0 +1,150 @@
+// ========================================
+// Theme CSS Custom Properties
+// Light theme (default) + Dark theme overrides
+//
+// Usage: Always use these variables instead of
+// hardcoded colors in component styles.
+// Dark mode is automatic when <html> has
+// the "theme-dark" class.
+// ========================================
+
+:root {
+  // ── Backgrounds ──────────────────────
+  --color-bg-app: #f2f4f7;
+  --color-bg-header: #ffffff;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-bg-card-secondary: #f8fafc;
+  --color-bg-card-hover: #ffffff;
+
+  // ── Table ────────────────────────────
+  --color-table-stripe: #fafafa;
+  --color-table-header: #ffffff;
+  --color-table-hover: #f0f8ff;
+
+  // ── Text ─────────────────────────────
+  --color-text-primary: #101828;
+  --color-text-secondary: #667085;
+  --color-text-muted: #98a2b3;
+  --color-text-on-header: inherit;         // header text follows parent
+
+  // ── Borders ──────────────────────────
+  --color-border: #f0f0f0;
+  --color-border-header: #e7e7e7;
+  --color-border-light: #e5e7eb;
+
+  // ── Interactive / hover ──────────────
+  --color-btn-hover-bg: #eef2f7;
+  --color-btn-hover-border: #cbd5e1;
+  --color-item-hover-border: #d9d9d9;
+
+  // ── Shadows ──────────────────────────
+  --color-shadow-card: rgba(15, 23, 42, 0.06);
+  --color-shadow-card-hover: rgba(0, 0, 0, 0.08);
+  --color-shadow-card-heavy: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  // ── Login page ───────────────────────
+  --color-login-bg-start: #87ceeb;
+  --color-login-bg-mid: #b0e0ff;
+  --color-login-bg-end: #e0f7ff;
+  --color-login-box-bg: #ffffff;
+  --color-login-box-shadow: #a3bded;
+  --color-login-copyright: #bbb;
+
+  // ── Role admin card ──────────────────
+  --color-role-admin-start: #f0f7ff;
+
+  // ── Footer ───────────────────────────
+  --color-footer-link: #999;
+
+  // ── Misc ─────────────────────────────
+  --color-bg-input-disabled: #f5f5f5;
+  --color-sidebar-trigger-bg: #ffffff;
+  --color-sidebar-trigger-color: #999;
+  --color-user-avatar-border: #f6f6f6;
+  --color-user-avatar-bg: #ececec;
+
+  // ── Capture page ─────────────────────
+  --color-capture-active-bg: #f0f7ff;
+  --color-capture-active-border: #1677ff;
+
+  // ── Terminal monitor panel ───────────
+  --color-terminal-connect-bg: #ffffff;
+  --color-terminal-connect-border: #e0e0e0;
+  --color-terminal-connect-input-bg: #f0f0f0;
+  --color-terminal-connect-input-hover: #e8e8e8;
+  --color-terminal-connect-label: #555;
+  --color-terminal-connect-text: #333;
+}
+
+// ═══════════════════════════════════════
+//  Dark theme overrides
+// ═══════════════════════════════════════
+html.theme-dark {
+  // ── Backgrounds ──────────────────────
+  --color-bg-app: #141414;
+  --color-bg-header: #1f1f1f;
+  --color-bg-sidebar: #141414;
+  --color-bg-card: #1f1f1f;
+  --color-bg-card-secondary: #262626;
+  --color-bg-card-hover: #2a2a2a;
+
+  // ── Table ────────────────────────────
+  --color-table-stripe: #262626;
+  --color-table-header: #1f1f1f;
+  --color-table-hover: #1a2740;
+
+  // ── Text ─────────────────────────────
+  --color-text-primary: #e5e7eb;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+  --color-text-on-header: #e5e7eb;
+
+  // ── Borders ──────────────────────────
+  --color-border: #333333;
+  --color-border-header: #333333;
+  --color-border-light: #333333;
+
+  // ── Interactive / hover ──────────────
+  --color-btn-hover-bg: #3a3a3a;
+  --color-btn-hover-border: #555555;
+  --color-item-hover-border: #444444;
+
+  // ── Shadows ──────────────────────────
+  --color-shadow-card: rgba(0, 0, 0, 0.3);
+  --color-shadow-card-hover: rgba(0, 0, 0, 0.5);
+  --color-shadow-card-heavy: 0 2px 12px rgba(0, 0, 0, 0.3);
+
+  // ── Login page ───────────────────────
+  --color-login-bg-start: #1a1a2e;
+  --color-login-bg-mid: #16213e;
+  --color-login-bg-end: #0f3460;
+  --color-login-box-bg: #1f1f1f;
+  --color-login-box-shadow: rgba(0, 0, 0, 0.5);
+  --color-login-copyright: #666;
+
+  // ── Role admin card ──────────────────
+  --color-role-admin-start: #1a2740;
+
+  // ── Footer ───────────────────────────
+  --color-footer-link: #666;
+
+  // ── Misc ─────────────────────────────
+  --color-bg-input-disabled: #333333;
+  --color-sidebar-trigger-bg: #2d2d2d;
+  --color-sidebar-trigger-color: #888;
+  --color-user-avatar-border: #333333;
+  --color-user-avatar-bg: #333333;
+
+  // ── Capture page ─────────────────────
+  --color-capture-active-bg: #1a2740;
+  --color-capture-active-border: #1677ff;
+
+  // ── Terminal monitor panel ───────────
+  --color-terminal-connect-bg: #1f1f1f;
+  --color-terminal-connect-border: #333333;
+  --color-terminal-connect-input-bg: #262626;
+  --color-terminal-connect-input-hover: #333333;
+  --color-terminal-connect-label: #9ca3af;
+  --color-terminal-connect-text: #e5e7eb;
+}

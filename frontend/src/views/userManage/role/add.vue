@@ -247,12 +247,12 @@ defineExpose({ init });
 }
 
 .perm-groups {
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--color-border, #f0f0f0);
   border-radius: 8px;
   padding: 12px;
   max-height: 400px;
   overflow-y: auto;
-  background: #fafafa;
+  background: var(--color-bg-card-secondary, #fafafa);
 }
 
 .perm-group {
@@ -265,7 +265,7 @@ defineExpose({ init });
 .perm-group-header {
   margin-bottom: 8px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border, #f0f0f0);
 }
 
 .perm-group-items {

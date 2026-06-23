@@ -2,7 +2,10 @@
   <div class="login-page">
     <div class="login-box">
       <img src="@/assets/logo.png" alt="" class="logo" />
-      <LanguageSwitcher class="login-language" />
+      <div class="login-toolbar">
+        <ThemeSwitcher />
+        <LanguageSwitcher variant="compact" />
+      </div>
 
       <a-form
         ref="ruleFormRef"
@@ -48,6 +51,7 @@ import { UserOutlined, KeyOutlined } from "@ant-design/icons-vue";
 import { computed, reactive, ref } from "vue";
 import store from "@/stores";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
 import { useAppI18n } from "@/i18n";
 
 interface RuleForm {
@@ -110,14 +114,14 @@ body,
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: linear-gradient(to top, #87ceeb 0%, #b0e0ff 60%, #e0f7ff 100%);
+  background: linear-gradient(to top, var(--color-login-bg-start, #87ceeb) 0%, var(--color-login-bg-mid, #b0e0ff) 60%, var(--color-login-bg-end, #e0f7ff) 100%);
   .login-box {
     width: 500px;
     max-width: 90%;
     padding: 30px 50px;
     border-radius: 4px;
-    background-color: white;
-    box-shadow: 0 0 10px #a3bded;
+    background-color: var(--color-login-box-bg, white);
+    box-shadow: 0 0 10px var(--color-login-box-shadow, #a3bded);
     text-align: center;
     position: relative;
     .copyright {
@@ -126,22 +130,25 @@ body,
       left: 50%;
       transform: translateX(-50%);
       white-space: nowrap;
-      color: #bbb;
+      color: var(--color-login-copyright, #bbb);
     }
     .logo {
       width: 100px;
       margin-bottom: 30px;
     }
-    .login-language {
+    .login-toolbar {
       position: absolute;
       right: 18px;
       top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     h3 {
       padding: 20px 0 40px 0;
     }
     .code-img {
-      background-color: #f5f5f5;
+      background-color: var(--color-bg-input-disabled, #f5f5f5);
       width: 100%;
       height: 40px;
       cursor: pointer;

@@ -517,11 +517,11 @@ const delBatch = () => {
   }
 
   .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
-    background-color: #fafafa; /* 设置偶数浅色斑马纹 */
+    background-color: var(--color-table-stripe, #fafafa); /* 设置偶数浅色斑马纹 */
   }
 
   .m-table :deep(.ant-table-thead) > tr > th {
-    background-color: #fff !important; /* 表头为白色 */
+    background-color: var(--color-table-header, #fff) !important; /* 表头 */
   }
 
   .m-table :deep(.ant-table-cell) {
@@ -529,7 +529,7 @@ const delBatch = () => {
   }
 
   .m-table :deep(.ant-table-tbody) > tr:hover td {
-    background-color: #f0f8ff !important; /* 鼠标悬停时使用浅蓝色 */
+    background-color: var(--color-table-hover, #f0f8ff) !important; /* 鼠标悬停 */
   }
 
   .mr-2 {

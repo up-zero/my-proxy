@@ -284,7 +284,7 @@ defineExpose({ init });
 .limit-label {
   flex-shrink: 0;
   margin-right: 8px;
-  color: #595959;
+  color: var(--color-text-secondary, #595959);
   white-space: nowrap;
 }
 

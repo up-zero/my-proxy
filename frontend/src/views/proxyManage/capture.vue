@@ -680,7 +680,7 @@ onUnmounted(() => {
     }
 
     .reconnect-tip {
-      color: rgba(0, 0, 0, 0.45);
+      color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
       font-size: 12px;
     }
   }
@@ -703,8 +703,8 @@ onUnmounted(() => {
   .summary-card,
   .packet-list-card,
   .packet-detail-card {
-    background: #fff;
-    border: 1px solid #f0f0f0;
+    background: var(--color-bg-card, #fff);
+    border: 1px solid var(--color-border, #f0f0f0);
     border-radius: 8px;
     padding: 16px;
   }
@@ -712,7 +712,7 @@ onUnmounted(() => {
   .summary-title {
     font-size: 16px;
     font-weight: 700;
-    color: rgba(0, 0, 0, 0.88);
+    color: var(--color-text-primary, rgba(0, 0, 0, 0.88));
     margin-bottom: 10px;
   }
 
@@ -730,7 +730,7 @@ onUnmounted(() => {
 
     .label {
       flex-shrink: 0;
-      color: rgba(0, 0, 0, 0.45);
+      color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
       font-size: 12px;
     }
 
@@ -738,6 +738,7 @@ onUnmounted(() => {
       text-align: right;
       font-size: 13px;
       font-weight: 500;
+      color: var(--color-text-primary, rgba(0, 0, 0, 0.88));
       word-break: break-all;
     }
   }
@@ -758,12 +759,13 @@ onUnmounted(() => {
 
   .stat-inline-label {
     font-size: 12px;
-    color: rgba(0, 0, 0, 0.45);
+    color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
   }
 
   .stat-inline-value {
     font-size: 13px;
     font-weight: 500;
+    color: var(--color-text-primary, rgba(0, 0, 0, 0.88));
     min-width: 0;
     word-break: break-all;
   }
@@ -791,10 +793,11 @@ onUnmounted(() => {
     gap: 12px;
     margin-bottom: 12px;
     font-weight: 600;
+    color: var(--color-text-primary);
 
     .panel-desc {
       font-size: 12px;
-      color: rgba(0, 0, 0, 0.45);
+      color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
       font-weight: 400;
     }
   }
@@ -815,7 +818,7 @@ onUnmounted(() => {
   }
 
   .packet-item {
-    border: 1px solid #f0f0f0;
+    border: 1px solid var(--color-border, #f0f0f0);
     border-radius: 6px;
     padding: 12px;
     cursor: pointer;
@@ -823,8 +826,8 @@ onUnmounted(() => {
 
     &:hover,
     &.active {
-      border-color: #1677ff;
-      background: #f0f7ff;
+      border-color: var(--color-capture-active-border, #1677ff);
+      background: var(--color-capture-active-bg, #f0f7ff);
     }
 
     .packet-item-head {
@@ -838,14 +841,14 @@ onUnmounted(() => {
     .packet-time,
     .packet-size {
       font-size: 12px;
-      color: rgba(0, 0, 0, 0.45);
+      color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
     }
 
     .packet-preview {
       font-family: Consolas, Monaco, monospace;
       font-size: 12px;
       line-height: 1.6;
-      color: rgba(0, 0, 0, 0.75);
+      color: var(--color-text-secondary, rgba(0, 0, 0, 0.75));
       word-break: break-all;
       white-space: pre-wrap;
     }
@@ -857,6 +860,7 @@ onUnmounted(() => {
     gap: 10px;
     margin-bottom: 12px;
     font-size: 13px;
+    color: var(--color-text-primary, rgba(0, 0, 0, 0.88));
     flex-shrink: 0;
   }
 
@@ -882,6 +886,9 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+    :deep(.ant-empty-description) {
+      color: var(--color-text-muted);
+    }
   }
 }
 

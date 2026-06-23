@@ -196,7 +196,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #98a2b3;
+    color: var(--color-text-muted, #98a2b3);
     background: linear-gradient(180deg, rgba(22, 119, 255, 0.03), rgba(82, 196, 26, 0.02));
     border-radius: 12px;
   }

@@ -71,17 +71,17 @@ function handleMenuClick({ key }: { key: AppLocale }) {
       height: 34px;
       padding: 0 12px;
       border-radius: 999px;
-      border: 1px solid #e5e7eb;
-      background: #f8fafc;
-      color: #344054;
+      border: 1px solid var(--color-border-light, #e5e7eb);
+      background: var(--color-bg-card-secondary, #f8fafc);
+      color: var(--color-text-primary, #344054);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
 
       &:hover {
-        border-color: #cbd5e1;
-        background: #eef2f7;
+        border-color: var(--color-btn-hover-border, #cbd5e1);
+        background: var(--color-btn-hover-bg, #eef2f7);
       }
     }
 
@@ -96,7 +96,7 @@ function handleMenuClick({ key }: { key: AppLocale }) {
 }
 
 .language-label {
-  color: #667085;
+  color: var(--color-text-secondary, #667085);
   font-size: 12px;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <a-config-provider :locale="locale">
+  <a-config-provider :locale="locale" :theme="antTheme">
     <!-- 登录页面 -->
     <RouterView v-if="route.path == '/login'" />
 
@@ -12,6 +12,7 @@
             <img src="@/assets/favicon.ico" alt="" />My Proxy
           </div>
           <div class="m-header-right">
+            <ThemeSwitcher />
             <LanguageSwitcher variant="compact" />
             <a-dropdown trigger="hover">
               <div class="m-user f-between f-flex-aligm-center">
@@ -113,10 +114,12 @@
 <script setup lang="ts">
 import passwordBox from '@/views/userManage/changePassword.vue'
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
 import { useAppI18n } from "@/i18n";
 import { useRoute, useRouter } from "vue-router";
 import store from "./stores";
 import { computed, ref, watch } from "vue";
+import antThemeLib from "ant-design-vue/es/theme";
 import {
   DashboardOutlined,
   ApartmentOutlined,
@@ -153,6 +156,17 @@ const iconMap: Record<string, any> = {
 };
 
 const collapsed = ref(false);
+
+// 主题
+const themeStore = store.useThemeStore();
+const antTheme = computed(() => ({
+  algorithm: themeStore.isDark ? antThemeLib.darkAlgorithm : antThemeLib.defaultAlgorithm,
+}));
+
+// 监听主题变化，切换 html class
+watch(() => themeStore.mode, (mode) => {
+  document.documentElement.classList.toggle("theme-dark", mode === "dark");
+}, { immediate: true });
 
 // 版权年份，动态获取当前年份
 const currentYear = new Date().getFullYear();
@@ -267,6 +281,7 @@ const topMenuClick = ({ key }: any) => {
 
 <style lang="less">
 @import "@/assets/less/global.less";
+@import "@/assets/less/theme.less";
 
 html,
 body,
@@ -274,13 +289,24 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
+  background-color: var(--color-bg-app, #f2f4f7);
 }
 
 .text-center {
   text-align: center;
 }
 .border {
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light, #eee);
+}
+
+// 深色主题 —— 静态方法组件(message / notification)
+html.theme-dark {
+  .ant-message-notice-content,
+  .ant-notification-notice {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),   // 微弱亮边勾勒轮廓
+      0 8px 24px rgba(0, 0, 0, 0.6);           // 加重投影突出层次
+  }
 }
 </style>
 
@@ -289,14 +315,15 @@ body,
 
 .m-header {
   height: @headerHeight;
-  background: #ffffff;
-  box-shadow: inset 0px -1px 0px 0px #e7e7e7;
+  background: var(--color-bg-header, #ffffff);
+  box-shadow: inset 0px -1px 0px 0px var(--color-border-header, #e7e7e7);
   padding-left: 20px;
   padding-right: 24px;
   .u-icon {
     display: flex;
     align-items: center;
     width: 180px;
+    color: var(--color-text-on-header);
     img {
       width: 25px;
       margin-right: 10px;
@@ -312,13 +339,13 @@ body,
         border-radius: 32px;
         height: 100%;
       }
-      border: 1px solid #f6f6f6;
+      border: 1px solid var(--color-user-avatar-border, #f6f6f6);
 
-      background-color: #ececec;
+      background-color: var(--color-user-avatar-bg, #ececec);
     }
     .w1 {
       font-size: 14px;
-
+      color: var(--color-text-on-header);
       line-height: 20px;
 
       margin-left: 8px;
@@ -337,16 +364,26 @@ body,
   height: calc(100vh - @headerHeight);
   overflow: hidden;
   padding-top: 12px;
+  background-color: var(--color-bg-sidebar);
   display: flex;
   flex-direction: column;
   transition: width 0.2s;
   flex-shrink: 0;
+  border-right: 1px solid var(--color-border-header);
   .m-side-scroll {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     :deep(.a-menu) {
-      border: none;
+      border: none !important;
+      background: transparent;
+    }
+    :deep(.a-menu-inline) {
+      border-inline-end: none !important;
+      background: transparent;
+    }
+    :deep(.a-menu-submenu) {
+      background: transparent;
     }
   }
   &.m-side-collapsed {
@@ -362,9 +399,9 @@ body,
   height: 28px;
   border-radius: 4px;
   cursor: pointer;
-  color: #999;
+  color: var(--color-sidebar-trigger-color, #999);
   font-size: 14px;
-  background: #fff;
+  background: var(--color-sidebar-trigger-bg, #fff);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
   z-index: 10;
@@ -387,12 +424,12 @@ body,
   flex: 1;
   height: calc(100vh - @headerHeight);
   padding: 16px;
-  background-color: #f2f4f7;
+  background-color: var(--color-bg-app, #f2f4f7);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   .p-page {
-    background-color: #fff;
+    background-color: var(--color-bg-card, #fff);
     padding: 16px;
     margin-top: 16px;
     flex: 1;
@@ -412,7 +449,7 @@ body,
     font-size: 12px;
     a{
       text-decoration: none;
-    color: #999;
+    color: var(--color-footer-link, #999);
 
     }
   }

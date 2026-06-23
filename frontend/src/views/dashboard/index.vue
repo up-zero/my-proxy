@@ -409,8 +409,8 @@ onUnmounted(() => {
   .summary-card,
   .panel-card {
     border-radius: 18px;
-    background: #ffffff;
-    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.06);
+    background: var(--color-bg-card, #ffffff);
+    box-shadow: 0 10px 40px var(--color-shadow-card, rgba(15, 23, 42, 0.06));
   }
 
   .summary-card {
@@ -423,18 +423,18 @@ onUnmounted(() => {
 
   .summary-label {
     font-size: 13px;
-    color: #667085;
+    color: var(--color-text-secondary, #667085);
   }
 
   .summary-value {
     font-size: 30px;
     font-weight: 700;
-    color: #101828;
+    color: var(--color-text-primary, #101828);
     line-height: 1.1;
   }
 
   .summary-sub {
-    color: #98a2b3;
+    color: var(--color-text-muted, #98a2b3);
     font-size: 12px;
   }
 
@@ -496,12 +496,12 @@ onUnmounted(() => {
     h3 {
       margin: 0;
       font-size: 18px;
-      color: #101828;
+      color: var(--color-text-primary, #101828);
     }
 
     p {
       margin: 4px 0 0;
-      color: #98a2b3;
+      color: var(--color-text-muted, #98a2b3);
       font-size: 12px;
     }
   }
@@ -516,11 +516,11 @@ onUnmounted(() => {
 
     span {
       font-weight: 700;
-      color: #101828;
+      color: var(--color-text-primary, #101828);
     }
 
     em {
-      color: #98a2b3;
+      color: var(--color-text-muted, #98a2b3);
       font-size: 12px;
       font-style: normal;
       justify-self: start;
@@ -530,13 +530,13 @@ onUnmounted(() => {
   .panel-metric {
     font-size: 28px;
     font-weight: 700;
-    color: #101828;
+    color: var(--color-text-primary, #101828);
     line-height: 1;
 
     &.small {
       font-size: 13px;
       font-weight: 500;
-      color: #98a2b3;
+      color: var(--color-text-muted, #98a2b3);
       line-height: 1.4;
     }
   }
@@ -545,7 +545,7 @@ onUnmounted(() => {
     display: flex;
     gap: 16px;
     margin-top: 10px;
-    color: #667085;
+    color: var(--color-text-secondary, #667085);
     font-size: 12px;
 
     .dot {
@@ -587,9 +587,9 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #98a2b3;
+    color: var(--color-text-muted, #98a2b3);
     border-radius: 14px;
-    background: #f8fafc;
+    background: var(--color-bg-card-secondary, #f8fafc);
   }
 
   .node-item {
@@ -597,7 +597,7 @@ onUnmounted(() => {
     gap: 12px;
     padding: 12px 14px;
     border-radius: 16px;
-    background: #f8fafc;
+    background: var(--color-bg-card-secondary, #f8fafc);
     min-width: 0;
     min-height: 0;
   }
@@ -638,7 +638,7 @@ onUnmounted(() => {
     min-width: 0;
 
     strong {
-      color: #101828;
+      color: var(--color-text-primary, #101828);
       font-size: 15px;
       max-width: 180px;
       overflow: hidden;
@@ -669,7 +669,7 @@ onUnmounted(() => {
     display: flex;
     flex-wrap: wrap;
     gap: 10px 14px;
-    color: #667085;
+    color: var(--color-text-secondary, #667085);
     font-size: 12px;
   }
 }

@@ -150,6 +150,7 @@ async function handleSave() {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
+    color: var(--color-text-primary, #101828);
   }
 }
 
@@ -161,13 +162,13 @@ async function handleSave() {
 
 .settings-item {
   padding: 16px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--color-border, #f0f0f0);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--color-bg-card-secondary, #fafafa);
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: #d9d9d9;
+    border-color: var(--color-item-hover-border, #d9d9d9);
   }
 
   .item-label {
@@ -179,6 +180,7 @@ async function handleSave() {
     .label-text {
       font-weight: 500;
       font-size: 14px;
+      color: var(--color-text-primary, #101828);
     }
 
     .default-tag {
@@ -188,7 +190,7 @@ async function handleSave() {
 
   .item-desc {
     font-size: 12px;
-    color: #888;
+    color: var(--color-text-muted, #888);
     margin-bottom: 12px;
   }
 
@@ -202,6 +204,6 @@ async function handleSave() {
 .settings-footer {
   margin-top: 32px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border, #f0f0f0);
 }
 </style>

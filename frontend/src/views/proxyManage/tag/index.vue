@@ -187,15 +187,15 @@ function batchDelItems() {
   }
 
   .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
-    background-color: #fafafa;
+    background-color: var(--color-table-stripe, #fafafa);
   }
 
   .m-table :deep(.ant-table-thead) > tr > th {
-    background-color: #fff !important;
+    background-color: var(--color-table-header, #fff) !important;
   }
 
   .m-table :deep(.ant-table-tbody) > tr:hover td {
-    background-color: #f0f8ff !important;
+    background-color: var(--color-table-hover, #f0f8ff) !important;
   }
 
   .mr-2 {

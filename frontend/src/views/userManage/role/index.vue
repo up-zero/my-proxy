@@ -148,11 +148,11 @@ const delItem = (row: RoleItem) => {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: #101828;
+    color: var(--color-text-primary, #101828);
   }
   p {
     margin: 6px 0 0;
-    color: #98a2b3;
+    color: var(--color-text-muted, #98a2b3);
     font-size: 13px;
   }
 }
@@ -164,20 +164,20 @@ const delItem = (row: RoleItem) => {
 }
 
 .role-card {
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--color-border, #f0f0f0);
   border-radius: 12px;
   padding: 16px 20px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: var(--color-bg-card, #fff);
+  box-shadow: var(--color-shadow-card-heavy, 0 2px 8px rgba(0, 0, 0, 0.04));
   transition: box-shadow 0.2s;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px var(--color-shadow-card-hover, rgba(0, 0, 0, 0.08));
   }
 
   &.is-admin {
     border-color: #1677ff;
-    background: linear-gradient(135deg, #f0f7ff, #fff);
+    background: linear-gradient(135deg, var(--color-role-admin-start, #f0f7ff), var(--color-bg-card, #fff));
   }
 }
 
@@ -197,11 +197,11 @@ const delItem = (row: RoleItem) => {
 .role-name {
   font-size: 16px;
   font-weight: 600;
-  color: #101828;
+  color: var(--color-text-primary, #101828);
 }
 
 .role-desc {
-  color: #667085;
+  color: var(--color-text-secondary, #667085);
   font-size: 13px;
   margin-bottom: 12px;
 }
