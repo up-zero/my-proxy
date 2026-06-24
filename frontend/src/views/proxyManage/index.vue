@@ -3,20 +3,20 @@
     <!-- 搜索 -->
     <a-form :model="state.query" class="m-search">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
-          <fileUpload @success="getList" />
-          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">{{ t("common.export") }}</a-button>
-          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">{{ t("common.delete") }}</a-button>
-        </div>
         <div style="display: flex; align-items: center;">
           <a-input v-model:value="state.query.name" :placeholder="t('proxy.inputProxyName')" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
-          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear :placeholder="t('proxy.selectTags')" style="width: 240px; margin-right: 8px;">
+          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear :placeholder="t('proxy.selectTags')" style="width: 240px; margin-right: 8px;" @pressEnter="getList">
             <a-select-option v-for="item in state.tagList" :key="item.uuid" :value="item.uuid">
               {{ item.name }}
             </a-select-option>
           </a-select>
           <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
+        </div>
+        <div>
+          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
+          <fileUpload @success="getList" />
+          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">{{ t("common.export") }}</a-button>
+          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">{{ t("common.delete") }}</a-button>
         </div>
       </div>
     </a-form>

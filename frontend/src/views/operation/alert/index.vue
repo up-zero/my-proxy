@@ -2,7 +2,7 @@
   <div class="p-page">
     <a-form :model="state.query" class="m-search">
       <div class="search-row">
-        <div class="search-right">
+        <div class="search-left">
           <a-input v-model:value="state.query.keyword" :placeholder="t('alert.keywordPlaceholder')" style="width: 280px; margin-right: 8px" @pressEnter="getList" />
           <a-select v-model:value="state.query.level" allow-clear :placeholder="t('alert.level')" style="width: 150px; margin-right: 8px">
             <a-select-option value="INFO">INFO</a-select-option>
@@ -159,11 +159,11 @@ function sourceText(source: string) {
 
   .search-row {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     align-items: center;
   }
 
-  .search-right {
+  .search-left {
     display: flex;
     align-items: center;
   }

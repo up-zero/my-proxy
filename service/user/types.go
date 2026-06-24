@@ -26,6 +26,10 @@ type EditPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required"` // 新密码
 }
 
+type ListRequest struct {
+	Keyword string `json:"keyword"`
+}
+
 type ListReply struct {
 	*models.UserBasic
 }

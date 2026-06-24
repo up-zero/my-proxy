@@ -3,6 +3,12 @@
     <a-form :model="state.query" class="m-search">
       <div class="search-row">
         <div class="search-left">
+          <a-input
+            v-model:value="state.query.keyword"
+            :placeholder="t('audit.keywordPlaceholder')"
+            style="width: 280px; margin-right: 8px"
+            @pressEnter="getList"
+          />
           <a-select
             v-model:value="state.query.module"
             allow-clear
@@ -30,14 +36,6 @@
             <a-select-option value="DISABLE">{{ t('audit.actionDisable') }}</a-select-option>
             <a-select-option value="IMPORT">{{ t('audit.actionImport') }}</a-select-option>
           </a-select>
-        </div>
-        <div class="search-right">
-          <a-input
-            v-model:value="state.query.keyword"
-            :placeholder="t('audit.keywordPlaceholder')"
-            style="width: 280px; margin-right: 8px"
-            @pressEnter="getList"
-          />
           <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
         </div>
       </div>
@@ -243,10 +241,6 @@ function actionColor(action: string) {
     align-items: center;
   }
 
-  .search-right {
-    display: flex;
-    align-items: center;
-  }
 
   .m-table {
     flex: 1;

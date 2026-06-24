@@ -3,9 +3,18 @@
     <!-- 搜索 -->
 
     <a-form :inline="true" :model="state.query" class="m-search">
-      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px">
+      <div class="search-row">
+        <div class="search-left">
+          <a-input
+            v-model:value="state.query.keyword"
+            :placeholder="t('user.searchPlaceholder')"
+            style="width: 220px; margin-right: 8px"
+            @pressEnter="getList"
+          />
+          <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
+        </div>
         <div>
-          <a-button type="primary" @click="toAddPage" style="margin-right: 10px">{{ t("common.add") }}</a-button>
+          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
           <a-popconfirm
             :title="t('user.batchDeleteConfirm')"
             :disabled="selectedRowKeys.length === 0"
@@ -72,7 +81,7 @@ interface DataItem {
 }
 
 const QUERY = (): any => ({
-  search: "",
+  keyword: "",
   page: 1,
   per_page: 10,
   position: 1,
@@ -210,6 +219,25 @@ function batchDelItems() {
 
 <style lang="less" scoped>
 .p-page {
+  .m-search {
+    margin-bottom: 10px;
+  }
+
+  .search-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .search-left {
+    display: flex;
+    align-items: center;
+  }
+
+  .mr-2 {
+    margin-right: 10px;
+  }
+
   .state-span {
     &::before {
       content: "";

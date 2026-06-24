@@ -139,7 +139,7 @@ func router() *gin.Engine {
 		authUser := auth.Group("/user")
 		authUser.Use(middleware.AdminAuthCheck())
 		// 用户列表
-		authUser.POST("/list", user.List)
+		authUser.POST("/list", BindH(user.List))
 		// 新增用户
 		authUser.POST("/create", BindH(user.Create))
 		// 修改用户

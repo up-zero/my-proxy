@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -153,10 +154,14 @@ func EditPassword(c *gin.Context, in *EditPasswordRequest) {
 }
 
 // List 用户列表
-func List(c *gin.Context) {
+func List(c *gin.Context, in *ListRequest) {
 	list := make([]*models.UserBasic, 0)
-	if err := models.DB.Model(new(models.UserBasic)).Where("level != ?", models.UserLevelRoot).
-		Find(&list).Error; err != nil {
+	tx := models.DB.Model(new(models.UserBasic)).Where("level != ?", models.UserLevelRoot)
+	if keyword := strings.TrimSpace(in.Keyword); keyword != "" {
+		like := "%" + keyword + "%"
+		tx = tx.Where("username like ?", like)
+	}
+	if err := tx.Find(&list).Error; err != nil {
 		logger.Error("[db] get user list error.", zap.Error(err))
 		util.ResponseError(c, err)
 		return

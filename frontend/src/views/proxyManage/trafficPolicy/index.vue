@@ -2,17 +2,7 @@
   <div class="p-page">
     <a-form :model="state.query" class="m-search">
       <div class="search-row">
-        <div>
-          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
-          <a-popconfirm
-            :title="t('trafficPolicy.batchDeleteConfirm')"
-            :disabled="selectedRowKeys.length === 0"
-            @confirm="batchDelItems"
-          >
-            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("common.delete") }}</a-button>
-          </a-popconfirm>
-        </div>
-        <div class="search-right">
+        <div class="search-left">
           <a-input v-model:value="state.query.name" :placeholder="t('trafficPolicy.inputPolicyName')" style="width: 220px; margin-right: 8px" @pressEnter="getList" />
           <a-select v-model:value="state.query.scope_type" allow-clear :placeholder="t('trafficPolicy.scopeType')" style="width: 160px; margin-right: 8px">
             <a-select-option value="ALL">{{ t('trafficPolicy.scopeAll') }}</a-select-option>
@@ -24,6 +14,16 @@
             <a-select-option value="DISABLED">{{ t('common.disabled') }}</a-select-option>
           </a-select>
           <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
+        </div>
+        <div>
+          <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
+          <a-popconfirm
+            :title="t('trafficPolicy.batchDeleteConfirm')"
+            :disabled="selectedRowKeys.length === 0"
+            @confirm="batchDelItems"
+          >
+            <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("common.delete") }}</a-button>
+          </a-popconfirm>
         </div>
       </div>
     </a-form>
@@ -231,7 +231,7 @@ async function delItem(row: DataItem) {
     justify-content: space-between;
     align-items: center;
   }
-  .search-right {
+  .search-left {
     display: flex;
     align-items: center;
   }

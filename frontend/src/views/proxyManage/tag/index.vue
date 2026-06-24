@@ -2,6 +2,15 @@
   <div class="p-page">
     <a-form :inline="true" :model="state.query" class="m-search">
       <div class="search-row">
+        <div class="search-left">
+          <a-input
+            v-model:value="state.query.name"
+            :placeholder="t('tag.inputTagName')"
+            style="width: 220px; margin-right: 8px"
+            @pressEnter="getList"
+          />
+          <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
+        </div>
         <div>
           <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
           <a-popconfirm
@@ -11,15 +20,6 @@
           >
             <a-button type="primary" danger :disabled="selectedRowKeys.length === 0">{{ t("common.delete") }}</a-button>
           </a-popconfirm>
-        </div>
-        <div class="search-right">
-          <a-input
-            v-model:value="state.query.name"
-            :placeholder="t('tag.inputTagName')"
-            style="width: 220px; margin-right: 8px"
-            @pressEnter="getList"
-          />
-          <a-button type="primary" @click="getList">{{ t("common.search") }}</a-button>
         </div>
       </div>
     </a-form>
@@ -181,7 +181,7 @@ function batchDelItems() {
     align-items: center;
   }
 
-  .search-right {
+  .search-left {
     display: flex;
     align-items: center;
   }
