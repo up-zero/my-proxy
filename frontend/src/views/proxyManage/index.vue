@@ -27,7 +27,8 @@
       :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
         selectedRowKeys: selectedRowKeys,
         onChange: onSelectChange,
-      }" size="middle" @change="handleTableChange">
+      }" size="middle" @change="handleTableChange"
+      :rowClassName="(record: any) => currentRecord?.uuid === record.uuid ? 'row-selected' : ''">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'state'">
           <span class="state-span danger" v-if="record.state === 'STOPPED'">{{ t("proxy.statusStopped") }}</span>
@@ -95,7 +96,7 @@
             </a-input>
           </a-form-item>
         </div>
-        
+
         <a-table :data-source="quickLinks" :columns="linkColumns" bordered size="middle" :pagination="false">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
@@ -264,6 +265,11 @@ const showQuickAccessModal = (record: any) => {
   currentRecord.value = record;
   currentPort.value = record.listen_port;
   quickAccessModalVisible.value = true;
+};
+
+// 清除行选中
+const clearRowSelection = () => {
+  currentRecord.value = null;
 };
 
 const getNum = (num:number) => {
@@ -530,6 +536,19 @@ const delBatch = () => {
 
   .m-table :deep(.ant-table-tbody) > tr:hover td {
     background-color: var(--color-table-hover, #f0f8ff) !important; /* 鼠标悬停 */
+  }
+
+  /* 选中行高亮 */
+  .m-table :deep(.ant-table-tbody) > tr.row-selected td {
+    background-color: var(--color-table-selected, #e6f7ff) !important;
+  }
+  .m-table :deep(.ant-table-tbody) > tr.row-selected td:first-child {
+    border-left: 3px solid #1890ff;
+  }
+
+  /* 选中行且鼠标悬停时，保持选中样式优先 */
+  .m-table :deep(.ant-table-tbody) > tr.row-selected:hover td {
+    background-color: var(--color-table-selected-hover, #bae7ff) !important;
   }
 
   .mr-2 {
