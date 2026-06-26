@@ -207,7 +207,7 @@ func Status(c *gin.Context, in *StatusRequest) {
 	}
 	if in.Name != "" {
 		tasks = sliceutil.Filter(tasks, func(pt *serve.ProxyTask) bool {
-			return strings.Contains(pt.Name, in.Name)
+			return strings.Contains(strings.ToLower(pt.Name), strings.ToLower(in.Name))
 		})
 	}
 	if len(in.TagUuidList) > 0 {
