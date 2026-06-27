@@ -514,12 +514,24 @@ const delBatch = () => {
 
 <style lang="less" scoped>
 .p-page {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
   .table {
     height: 30vh;
   }
 
   .m-search {
     margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+
+  .m-table {
+    flex: 1;
+    min-height: 0;
   }
 
   .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
@@ -549,6 +561,35 @@ const delBatch = () => {
   /* 选中行且鼠标悬停时，保持选中样式优先 */
   .m-table :deep(.ant-table-tbody) > tr.row-selected:hover td {
     background-color: var(--color-table-selected-hover, #bae7ff) !important;
+  }
+
+  .m-table :deep(.ant-table-tbody > tr > td) {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+  .m-table :deep(.ant-table-thead > tr > th) {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .m-table :deep(.ant-table-body) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(128, 128, 128, 0.3);
+      border-radius: 3px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(128, 128, 128, 0.5);
+    }
   }
 
   .mr-2 {

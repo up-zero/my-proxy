@@ -59,9 +59,8 @@
         </template>
         <template v-else-if="column.key === 'status'">
           <a-switch
+            size="small"
             :checked="record.status === 'ENABLED'"
-            :checked-children="t('common.enabled')"
-            :un-checked-children="t('common.disabled')"
             @change="(checked: boolean) => toggleStatus(record, checked)"
           />
         </template>
@@ -223,8 +222,15 @@ async function delItem(row: DataItem) {
 
 <style lang="less" scoped>
 .p-page {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
   .m-search {
     margin-bottom: 10px;
+    flex-shrink: 0;
   }
   .search-row {
     display: flex;
@@ -237,6 +243,39 @@ async function delItem(row: DataItem) {
   }
   .mr-2 {
     margin-right: 10px;
+  }
+  .m-table {
+    flex: 1;
+    min-height: 0;
+
+    :deep(.ant-table-tbody > tr > td) {
+      padding-top: 7px;
+      padding-bottom: 7px;
+    }
+    :deep(.ant-table-thead > tr > th) {
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    :deep(.ant-table-body) {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(128, 128, 128, 0.3);
+        border-radius: 3px;
+      }
+      &::-webkit-scrollbar-thumb:hover {
+        background: rgba(128, 128, 128, 0.5);
+      }
+    }
   }
   .limit-cell {
     display: flex;

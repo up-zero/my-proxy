@@ -31,6 +31,7 @@
       :pagination="false"
       class="m-table"
       size="middle"
+      :scroll="{ y: 'calc(100vh - 320px)' }"
       :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
       row-key="uuid"
     >
@@ -171,8 +172,15 @@ function batchDelItems() {
 
 <style lang="less" scoped>
 .p-page {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
   .m-search {
     margin-bottom: 10px;
+    flex-shrink: 0;
   }
 
   .search-row {
@@ -186,16 +194,50 @@ function batchDelItems() {
     align-items: center;
   }
 
-  .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
-    background-color: var(--color-table-stripe, #fafafa);
-  }
+  .m-table {
+    flex: 1;
+    min-height: 0;
 
-  .m-table :deep(.ant-table-thead) > tr > th {
-    background-color: var(--color-table-header, #fff) !important;
-  }
+    :deep(.ant-table-tbody) > tr:nth-child(even) {
+      background-color: var(--color-table-stripe, #fafafa);
+    }
 
-  .m-table :deep(.ant-table-tbody) > tr:hover td {
-    background-color: var(--color-table-hover, #f0f8ff) !important;
+    :deep(.ant-table-thead) > tr > th {
+      background-color: var(--color-table-header, #fff) !important;
+    }
+
+    :deep(.ant-table-tbody) > tr:hover td {
+      background-color: var(--color-table-hover, #f0f8ff) !important;
+    }
+
+    :deep(.ant-table-tbody > tr > td) {
+      padding-top: 7px;
+      padding-bottom: 7px;
+    }
+    :deep(.ant-table-thead > tr > th) {
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    :deep(.ant-table-body) {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(128, 128, 128, 0.3);
+        border-radius: 3px;
+      }
+      &::-webkit-scrollbar-thumb:hover {
+        background: rgba(128, 128, 128, 0.5);
+      }
+    }
   }
 
   .mr-2 {
