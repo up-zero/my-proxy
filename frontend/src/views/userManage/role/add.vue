@@ -116,7 +116,8 @@ const permGroups = [
     groupKey: "settings", 
     groupName: "routes.systemSettings",
     perms: [
-      { key: "settings.manage", nameKey: "role.permItems.settings" },
+      { key: "basic_settings.manage", nameKey: "role.permItems.basicSettings" },
+      { key: "node.manage", nameKey: "role.permItems.nodeManage" },
     ]
   },
 ];

@@ -40,6 +40,7 @@ var localizedMessages = map[string]map[string]string{
 		"task uuid is required":      "task_uuid 不能为空",
 		"task is not running":        "当前任务未运行",
 		"API route not found":        "接口不存在",
+		"cannot delete local node":   "不能删除本地节点",
 	},
 	LanguageEnUS: {
 		MsgOk:                        "Success",
@@ -59,6 +60,7 @@ var localizedMessages = map[string]map[string]string{
 		"task uuid is required":      "task_uuid is required",
 		"task is not running":        "Task is not running",
 		"API route not found":        "API route not found",
+		"cannot delete local node":   "Cannot delete the local node",
 	},
 }
 

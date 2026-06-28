@@ -19,6 +19,7 @@ import (
 	sysconfig "github.com/up-zero/my-proxy/service/config"
 	"github.com/up-zero/my-proxy/service/dashboard"
 	"github.com/up-zero/my-proxy/service/info"
+	"github.com/up-zero/my-proxy/service/node"
 	"github.com/up-zero/my-proxy/service/proxy"
 	"github.com/up-zero/my-proxy/service/role"
 	"github.com/up-zero/my-proxy/service/serve"
@@ -52,6 +53,7 @@ func router() *gin.Engine {
 
 	auth := api.Group("/")
 	auth.Use(middleware.LoginAuthCheck())
+	auth.Use(middleware.NodeProxy())
 	// 仪表盘
 	auth.GET("/dashboard/overview", dashboard.Overview)
 	// 修改密码
@@ -170,6 +172,20 @@ func router() *gin.Engine {
 		authSettings.POST("/get", sysconfig.Get)
 		// 更新系统设置
 		authSettings.POST("/update", BindH(sysconfig.Update))
+	}
+
+	// 节点管理
+	{
+		authNode := auth.Group("/node")
+		authNode.Use(middleware.AdminAuthCheck())
+		// 节点列表
+		authNode.POST("/list", node.List)
+		// 新增节点
+		authNode.POST("/create", BindH(node.Create))
+		// 修改节点
+		authNode.POST("/update", BindH(node.Update))
+		// 删除节点
+		authNode.POST("/delete", BindH(node.Delete))
 	}
 
 	// 前端静态代理

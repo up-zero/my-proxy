@@ -2,16 +2,17 @@ import { createRouter, createWebHistory } from "vue-router";
 
 // 权限常量（按菜单项）
 export const PERMS = {
-  dashboardView: "dashboard.view",        // 仪表盘
-  proxyView: "proxy.view",                // 代理列表
-  tagManage: "tag.manage",                // 标签管理
-  trafficPolicy: "traffic_policy.manage", // 限速配额
-  terminalView: "terminal.view",          // Web 终端
-  alertView: "alert.view",                // 告警通知
-  auditView: "audit.view",                // 日志审计
-  userManage: "user.manage",              // 用户列表
-  roleManage: "role.manage",              // 权限策略
-  settingsManage: "settings.manage",      // 系统设置
+  dashboardView: "dashboard.view",          // 仪表盘
+  proxyView: "proxy.view",                  // 代理列表
+  tagManage: "tag.manage",                  // 标签管理
+  trafficPolicy: "traffic_policy.manage",   // 限速配额
+  terminalView: "terminal.view",            // Web 终端
+  alertView: "alert.view",                  // 告警通知
+  auditView: "audit.view",                  // 日志审计
+  userManage: "user.manage",                // 用户列表
+  roleManage: "role.manage",                // 权限策略
+  basicSettings: "basic_settings.manage",   // 基础配置
+  nodeManage: "node.manage",                // 节点管理
 };
 
 const router = createRouter({
@@ -182,23 +183,51 @@ const router = createRouter({
         isMenu: true,
         titleKey: "routes.systemSettings",
         icon: "SettingOutlined",
-        perm: PERMS.settingsManage,
       },
       redirect: "/system/settings",
       children: [
         {
           path: "/system/settings",
-          name: "systemSettings",
+          name: "basicSettings",
           meta: {
             isMenu: true,
-            titleKey: "routes.systemSettings",
-            perm: PERMS.settingsManage,
+            titleKey: "routes.basicSettings",
+            perm: PERMS.basicSettings,
           },
           component: () => import("../views/system/settings/index.vue"),
+        },
+        {
+          path: "/system/node",
+          name: "nodeManage",
+          meta: {
+            isMenu: true,
+            titleKey: "routes.nodeManage",
+            perm: PERMS.nodeManage,
+          },
+          component: () => import("../views/system/node/index.vue"),
         },
       ],
     },
   ],
+});
+
+// 导航守卫：子节点不允许访问系统设置
+router.beforeEach((to, _from, next) => {
+  if (to.path.startsWith("/system")) {
+    try {
+      const raw = localStorage.getItem("my-proxy:currentNode");
+      if (raw) {
+        const node = JSON.parse(raw);
+        if (node.uuid && node.uuid !== "node-local" && !node.isLocal) {
+          next("/dashboard");
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  next();
 });
 
 export default router;

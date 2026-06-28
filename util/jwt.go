@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -14,6 +15,19 @@ func (uc *UserClaim) GenerateToken(expireAt int64) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
 	tokenString, err := token.SignedString([]byte(JwtKey))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+// GenerateTokenWithKey 使用指定密钥生成 token（用于节点间代理调用）
+func (uc *UserClaim) GenerateTokenWithKey(expireAt int64, secretKey string) (string, error) {
+	uc.StandardClaims = jwt.StandardClaims{
+		ExpiresAt: expireAt,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
+	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", err
 	}

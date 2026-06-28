@@ -1,9 +1,5 @@
 <template>
   <div class="settings-page">
-    <div class="settings-header">
-      <h3>{{ t("settings.title") }}</h3>
-    </div>
-
     <a-spin :spinning="state.isLoading">
       <div class="settings-list">
         <div v-for="item in state.items" :key="item.key" class="settings-item">
@@ -15,33 +11,53 @@
           </div>
           <div class="item-desc">{{ getItemDesc(item.key) }}</div>
           <div class="item-control">
+            <!-- JWT 密钥：文本输入 + 复制图标 -->
+            <template v-if="isJwtItem(item.key)">
+              <a-input-password
+                v-model:value="editTextValues[item.key]"
+                style="width: 360px"
+              />
+              <a-button type="text" size="small" @click="copyToClipboard(editTextValues[item.key])">
+                <template #icon><copy-outlined /></template>
+              </a-button>
+            </template>
             <!-- 服务端口 -->
-            <a-input-number
-              v-if="isPortItem(item.key)"
-              v-model:value="editValues[item.key]"
-              :min="1"
-              :max="65535"
-              :precision="0"
-              style="width: 160px"
-            />
+            <template v-else-if="isPortItem(item.key)">
+              <a-input-number
+                v-model:value="editValues[item.key]"
+                :min="1"
+                :max="65535"
+                :precision="0"
+                style="width: 160px"
+              />
+              <a-button
+                v-if="!isDefault(item)"
+                type="link"
+                size="small"
+                @click="resetItem(item)"
+              >
+                {{ t("settings.resetDefault") }}
+              </a-button>
+            </template>
             <!-- 天数 -->
-            <a-input-number
-              v-else
-              v-model:value="editValues[item.key]"
-              :min="1"
-              :max="3650"
-              :precision="0"
-              style="width: 160px"
-              :addon-after="t('settings.unit.days')"
-            />
-            <a-button
-              v-if="!isDefault(item)"
-              type="link"
-              size="small"
-              @click="resetItem(item)"
-            >
-              {{ t("settings.resetDefault") }}
-            </a-button>
+            <template v-else>
+              <a-input-number
+                v-model:value="editValues[item.key]"
+                :min="1"
+                :max="3650"
+                :precision="0"
+                style="width: 160px"
+                :addon-after="t('settings.unit.days')"
+              />
+              <a-button
+                v-if="!isDefault(item)"
+                type="link"
+                size="small"
+                @click="resetItem(item)"
+              >
+                {{ t("settings.resetDefault") }}
+              </a-button>
+            </template>
           </div>
         </div>
       </div>
@@ -59,12 +75,14 @@
 import { getSystemSettings, updateSystemSettings, type ConfigItem } from "@/api/config";
 import { useAppI18n } from "@/i18n";
 import { message } from "ant-design-vue";
+import { CopyOutlined } from "@ant-design/icons-vue";
 import { onMounted, reactive } from "vue";
 
 const { t } = useAppI18n();
 
 // 需要特殊处理的配置项 key
 const PORT_CONFIG_KEY = "SERVER_PORT_KEY";
+const JWT_CONFIG_KEY = "JWT_SECRET_KEY";
 
 const state = reactive({
   isLoading: false,
@@ -72,8 +90,10 @@ const state = reactive({
   items: [] as ConfigItem[],
 });
 
-// 编辑中的值（key -> number）
+// 编辑中的数值（端口、天数）
 const editValues: Record<string, number> = reactive({});
+// 编辑中的文本值（JWT 密钥等）
+const editTextValues: Record<string, string> = reactive({});
 
 onMounted(() => {
   loadSettings();
@@ -87,14 +107,17 @@ async function loadSettings() {
     state.items = items;
     // 初始化编辑值
     for (const item of items) {
-      // 清理端口值中的前导冒号（兼容旧数据）
-      let valueStr = item.value;
-      if (item.key === PORT_CONFIG_KEY) {
-        while (valueStr.startsWith(':')) {
-          valueStr = valueStr.substring(1);
+      if (item.key === JWT_CONFIG_KEY) {
+        editTextValues[item.key] = item.value || "";
+      } else {
+        let valueStr = item.value;
+        if (item.key === PORT_CONFIG_KEY) {
+          while (valueStr.startsWith(':')) {
+            valueStr = valueStr.substring(1);
+          }
         }
+        editValues[item.key] = parseInt(valueStr) || parseInt(item.default_value) || 0;
       }
-      editValues[item.key] = parseInt(valueStr) || parseInt(item.default_value) || 0;
     }
   } finally {
     state.isLoading = false;
@@ -110,6 +133,7 @@ function getItemDesc(key: string): string {
 }
 
 function isDefault(item: ConfigItem): boolean {
+  if (item.key === JWT_CONFIG_KEY) return false;
   const currentVal = editValues[item.key];
   const defaultVal = parseInt(item.default_value);
   return currentVal === defaultVal;
@@ -123,14 +147,30 @@ function isPortItem(key: string): boolean {
   return key === PORT_CONFIG_KEY;
 }
 
+function isJwtItem(key: string): boolean {
+  return key === JWT_CONFIG_KEY;
+}
+
+function copyToClipboard(text: string) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    message.success(t("settings.copySuccess"));
+  }).catch(() => {
+    message.error(t("settings.copyFail"));
+  });
+}
+
 async function handleSave() {
   try {
     state.saving = true;
-    const items = state.items.map((item) => ({
-      key: item.key,
-      value: String(editValues[item.key] ?? item.value),
-    }));
+    const items = state.items.map((item) => {
+      if (item.key === JWT_CONFIG_KEY) {
+        return { key: item.key, value: editTextValues[item.key] ?? item.value };
+      }
+      return { key: item.key, value: String(editValues[item.key] ?? item.value) };
+    });
     await updateSystemSettings(items);
+    // JWT 密钥修改后需要重启服务才能生效
     message.success(t("settings.saveSuccess"));
     await loadSettings();
   } finally {

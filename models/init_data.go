@@ -15,6 +15,8 @@ func initData() {
 	initRoleData()
 	// 初始化用户
 	initUserData()
+	// 初始化本地节点
+	initLocalNode()
 }
 
 // initJwtSecret 初始化 JWT 签名密钥
@@ -103,5 +105,19 @@ func initUserData() {
 	}
 	if err := DB.FirstOrCreate(ub, &UserBasic{Username: ub.Username}).Error; err != nil {
 		panic(err)
+	}
+}
+
+func initLocalNode() {
+	localNode := &NodeBasic{
+		Uuid:      "node-local",
+		Name:      "Local",
+		Address:   "",
+		SecretKey: "",
+		Enabled:   true,
+		IsLocal:   true,
+	}
+	if err := DB.FirstOrCreate(localNode, &NodeBasic{Uuid: "node-local"}).Error; err != nil {
+		logger.Error("[init] create local node error.", zap.Error(err))
 	}
 }

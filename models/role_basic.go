@@ -8,16 +8,18 @@ import (
 
 // Permission keys（菜单级别）
 const (
-	PermDashboardView  = "dashboard.view"        // 仪表盘
-	PermProxyView      = "proxy.view"            // 代理列表
-	PermTagManage      = "tag.manage"            // 标签管理
-	PermTrafficPolicy  = "traffic_policy.manage" // 限速配额
-	PermAlertView      = "alert.view"            // 告警通知
-	PermAuditView      = "audit.view"            // 日志审计
-	PermTerminalView   = "terminal.view"         // Web 终端
-	PermUserManage     = "user.manage"           // 用户列表
-	PermRoleManage     = "role.manage"           // 权限策略
-	PermSettingsManage = "settings.manage"       // 系统设置
+	PermDashboardView = "dashboard.view"        // 仪表盘
+	PermProxyView     = "proxy.view"            // 代理列表
+	PermTagManage     = "tag.manage"            // 标签管理
+	PermTrafficPolicy = "traffic_policy.manage" // 限速配额
+	PermAlertView     = "alert.view"            // 告警通知
+	PermAuditView     = "audit.view"            // 日志审计
+	PermTerminalView  = "terminal.view"         // Web 终端
+	PermUserManage    = "user.manage"           // 用户列表
+	PermRoleManage    = "role.manage"           // 权限策略
+
+	PermBasicSettings = "basic_settings.manage" // 基础配置
+	PermNodeManage    = "node.manage"           // 节点管理
 )
 
 // AllPermissions returns all available permission keys
@@ -32,7 +34,8 @@ func AllPermissions() []string {
 		PermTerminalView,
 		PermUserManage,
 		PermRoleManage,
-		PermSettingsManage,
+		PermBasicSettings,
+		PermNodeManage,
 	}
 }
 

@@ -15,6 +15,21 @@ export function getStoredToken(): string {
   return localStorage.getItem(`${config.name}:token`) || "";
 }
 
+function getCurrentNodeUuid(): string | null {
+  try {
+    const raw = localStorage.getItem(`${config.name}:currentNode`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.uuid && parsed.uuid !== "node-local" && !parsed.isLocal) {
+        return parsed.uuid;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export interface TerminalConnParams {
   host: string;
   port: string;
@@ -66,6 +81,12 @@ request.interceptors.request.use((conf) => {
   conf.headers.set("language", getCurrentLocale());
   if (token) {
     conf.headers.set("Authorization", token);
+  }
+
+  // 非本地节点时注入 X-Node-Id（具体是否转发由后端中间件判断）
+  const nodeUuid = getCurrentNodeUuid();
+  if (nodeUuid) {
+    conf.headers.set("X-Node-Id", nodeUuid);
   }
 
   return conf;

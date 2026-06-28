@@ -21,6 +21,7 @@ var knownConfigs = []configDef{
 	{Key: util.ServerPortKey, DefaultValue: util.DefaultServerPort},
 	{Key: util.ConfigKeyAuditRetentionDays, DefaultValue: util.DefaultAuditRetentionDays},
 	{Key: util.ConfigKeyAlertRetentionDays, DefaultValue: util.DefaultAlertRetentionDays},
+	{Key: util.ConfigKeyJwtSecret, DefaultValue: ""},
 }
 
 // defaultMap 快速查找默认值
@@ -62,6 +63,11 @@ func Update(c *gin.Context, in *UpdateRequest) {
 			logger.Error("[config] update config error.", zap.String("key", item.Key), zap.Error(err))
 			util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 			return
+		}
+		// JWT 密钥变更时同步更新内存中的密钥（重启后也会从 DB 重新加载）
+		if item.Key == util.ConfigKeyJwtSecret && item.Value != "" {
+			util.JwtKey = item.Value
+			logger.Info("[config] JWT secret key updated")
 		}
 	}
 	util.ResponseOk(c)

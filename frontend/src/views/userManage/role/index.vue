@@ -102,7 +102,8 @@ function getPermDisplayName(perm: string): string {
     "terminal.view": t("role.permItems.terminal"),
     "user.manage": t("role.permItems.userList"),
     "role.manage": t("role.permItems.permPolicy"),
-    "settings.manage": t("role.permItems.settings"),
+    "basic_settings.manage": t("role.permItems.basicSettings"),
+    "node.manage": t("role.permItems.nodeManage"),
   };
   return permNames[perm] || perm;
 }

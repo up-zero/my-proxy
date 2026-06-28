@@ -8,12 +8,31 @@
       <!-- header -->
       <a-affix :offset="0">
         <div class="m-header f-between">
-          <div class="u-icon f-icon icon-logo">
-            <img src="@/assets/favicon.ico" alt="" />My Proxy
+          <div class="m-header-left f-flex f-flex-aligm-center">
+            <div class="u-icon f-icon icon-logo">
+              <img src="@/assets/favicon.ico" alt="" />My Proxy
+            </div>
           </div>
           <div class="m-header-right">
             <ThemeSwitcher />
             <LanguageSwitcher variant="compact" />
+            <!-- 节点选择器 -->
+            <a-dropdown trigger="click">
+              <button class="node-trigger" type="button">
+                <ApartmentOutlined />
+                <span>{{ currentNodeLabel }}</span>
+              </button>
+              <template #overlay>
+                <a-menu @click="onNodeMenuClick">
+                  <a-menu-item v-for="item in nodeOptions" :key="item.value" :disabled="item.disabled">
+                    <div class="node-option">
+                      <span>{{ item.label }}</span>
+                      <a-tag v-if="item.data?.isLocal" color="blue" size="small" style="margin-left:8px;font-size:10px;line-height:16px">{{ t("node.localTag") }}</a-tag>
+                    </div>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
             <a-dropdown trigger="hover">
               <div class="m-user f-between f-flex-aligm-center">
                 <div class="u-img">
@@ -115,10 +134,11 @@
 import passwordBox from '@/views/userManage/changePassword.vue'
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
+import { getNodeList, type NodeItem } from "@/api/node";
 import { useAppI18n } from "@/i18n";
 import { useRoute, useRouter } from "vue-router";
 import store from "./stores";
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import antThemeLib from "ant-design-vue/es/theme";
 import {
   DashboardOutlined,
@@ -179,6 +199,52 @@ const user = store.useUserStore();
 const route = useRoute();
 const router = useRouter();
 const passwordBoxRef = ref();
+const globalStore = store.useGlobalStore();
+
+// 节点选择
+const nodeList = ref<NodeItem[]>([]);
+const currentNodeUuid = ref(globalStore.currentNode.uuid);
+
+const nodeOptions = computed(() =>
+  nodeList.value.map((n) => ({
+    value: n.uuid,
+    label: n.name,
+    data: { isLocal: n.is_local },
+    disabled: !n.enabled,
+  }))
+);
+
+const currentNodeLabel = computed(() => {
+  const node = nodeList.value.find((n) => n.uuid === currentNodeUuid.value);
+  return node ? node.name : globalStore.currentNode.name;
+});
+
+onMounted(async () => {
+  try {
+    const res = await getNodeList();
+    nodeList.value = res.data?.list || [];
+    // 如果缓存的节点不在列表中，回退到 Local
+    const found = nodeList.value.find((n) => n.uuid === currentNodeUuid.value && n.enabled);
+    if (!found) {
+      const localNode = nodeList.value.find((n) => n.is_local);
+      if (localNode) {
+        currentNodeUuid.value = localNode.uuid;
+        globalStore.setCurrentNode({ uuid: localNode.uuid, name: localNode.name, isLocal: localNode.is_local });
+      }
+    }
+  } catch {
+    // ignore
+  }
+});
+
+function onNodeMenuClick({ key }: { key: string }) {
+  const node = nodeList.value.find((n) => n.uuid === key);
+  if (node) {
+    currentNodeUuid.value = node.uuid;
+    globalStore.setCurrentNode({ uuid: node.uuid, name: node.name, isLocal: node.is_local });
+    router.go(0);
+  }
+}
 
 // 监听路由变化，自动更新展开的子菜单
 watch(() => route.path, () => {
@@ -198,7 +264,10 @@ const getMenu = (menus: any) => {
   menus.forEach((item: any) => {
     // 标记为 isMenu 才显示在菜单中
     const hasPerm = !item.meta?.perm || user.hasPermission(item.meta.perm);
-    if (item.meta?.isMenu && hasPerm) {
+    // 子节点时隐藏系统设置
+    const isSystemMenu = item.path === '/system' || item.path?.startsWith('/system');
+    const nodeAllows = !isSystemMenu || globalStore.isLocalNode;
+    if (item.meta?.isMenu && hasPerm && nodeAllows) {
       let menu = {
         name: item.meta?.titleKey ? t(item.meta.titleKey) : item.name,
         path: item.path,
@@ -329,6 +398,9 @@ html.theme-dark {
       margin-right: 10px;
     }
   }
+  .m-header-left {
+    // logo only, no extra gap needed
+  }
   .m-user {
     outline: none;
     .u-img {
@@ -357,6 +429,27 @@ html.theme-dark {
   display: flex;
   align-items: center;
   gap: 14px;
+
+  .node-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border-light, #e5e7eb);
+    background: var(--color-bg-card-secondary, #f8fafc);
+    color: var(--color-text-primary, #344054);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--color-btn-hover-border, #cbd5e1);
+      background: var(--color-btn-hover-bg, #eef2f7);
+    }
+  }
 }
 .m-side {
   position: relative;
