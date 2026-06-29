@@ -21,7 +21,7 @@
    English | <a href="./README_zh.md">中文</a>
 </p>
 
-A LAN proxy tool that supports proxy forwarding for TCP, UDP, HTTP, SOCKS5, and other protocols, making it suitable for most network environments. It provides both CLI and WebUI configuration modes, greatly simplifying proxy setup.
+A LAN proxy tool that supports proxy forwarding for TCP, UDP, HTTP, SOCKS5, and other protocols, making it suitable for most network environments. It provides both CLI and WebUI configuration modes, greatly simplifying proxy setup. Supports multi-node management — control multiple my-proxy instances from a single dashboard.
 
 ## WebUI Mode
 

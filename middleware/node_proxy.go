@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -148,6 +149,16 @@ func NodeProxy() gin.HandlerFunc {
 			return
 		}
 
+		// 子节点返回认证失败时，不转发 60400 到前端（避免触发前端退出登录），
+		// 替换为通用错误提示
+		if isAuthError(respBody) {
+			logger.Warn("[node-proxy] child node returned auth error, node secret key may be incorrect",
+				zap.String("node_id", nodeId))
+			util.ResponseMsg(c, util.CodeErr, util.LocalizeMessage(c, "node auth failed"))
+			c.Abort()
+			return
+		}
+
 		// 仅回写安全的响应头（Content-Type 等，跳过 CORS / 逐跳头）
 		for key, values := range resp.Header {
 			keyLower := strings.ToLower(key)
@@ -167,4 +178,15 @@ func NodeProxy() gin.HandlerFunc {
 		c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 		c.Abort()
 	}
+}
+
+// isAuthError 检查响应体是否为子节点认证失败（避免 60400 触发前端退出登录）
+func isAuthError(body []byte) bool {
+	var resp struct {
+		Code int `json:"code"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return false
+	}
+	return resp.Code == util.CodeErrAuth
 }

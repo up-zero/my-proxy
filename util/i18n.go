@@ -41,6 +41,7 @@ var localizedMessages = map[string]map[string]string{
 		"task is not running":        "当前任务未运行",
 		"API route not found":        "接口不存在",
 		"cannot delete local node":   "不能删除本地节点",
+		"node auth failed":           "子节点认证失败，请检查节点密钥配置",
 	},
 	LanguageEnUS: {
 		MsgOk:                        "Success",
@@ -61,6 +62,7 @@ var localizedMessages = map[string]map[string]string{
 		"task is not running":        "Task is not running",
 		"API route not found":        "API route not found",
 		"cannot delete local node":   "Cannot delete the local node",
+		"node auth failed":           "Child node authentication failed, please verify the node secret key",
 	},
 }
 
