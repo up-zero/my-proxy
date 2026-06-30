@@ -17,7 +17,7 @@
                 v-model:value="editTextValues[item.key]"
                 style="width: 360px"
               />
-              <a-button type="text" size="small" @click="copyToClipboard(editTextValues[item.key])">
+              <a-button type="text" size="small" class="copy-icon-btn" @click="copyToClipboard(editTextValues[item.key])">
                 <template #icon><copy-outlined /></template>
               </a-button>
             </template>
@@ -238,6 +238,18 @@ async function handleSave() {
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+
+  .copy-icon-btn {
+    color: var(--color-text-muted, #8c8c8c);
+    font-size: 15px;
+    padding: 0 4px;
+    min-width: auto;
+    line-height: 1;
+
+    &:hover {
+      color: var(--color-primary, #1677ff) !important;
+    }
   }
 }
 

@@ -33,11 +33,18 @@
           <a-tag v-if="record.is_local" color="blue">{{ t("node.localTag") }}</a-tag>
           <span v-else>-</span>
         </template>
+        <template v-else-if="column.key === 'address'">
+          <span v-if="record.address">{{ record.address }}</span>
+          <span v-else>--</span>
+        </template>
         <template v-else-if="column.key === 'secret_key'">
-          <span class="secret-masked">••••••••</span>
-          <a-button type="link" size="small" @click="copySecret(record.secret_key)">
-            <template #icon><copy-outlined /></template>
-          </a-button>
+          <template v-if="record.secret_key">
+            <span class="secret-masked">••••••••</span>
+            <a-button type="text" size="small" class="copy-icon-btn" @click="copySecret(record.secret_key)">
+              <template #icon><copy-outlined /></template>
+            </a-button>
+          </template>
+          <span v-else>--</span>
         </template>
         <template v-else-if="column.key === 'enabled'">
           <a-tag :color="record.enabled ? 'green' : 'default'">
@@ -227,6 +234,18 @@ function copySecret(text: string) {
     font-family: monospace;
     letter-spacing: 2px;
     color: var(--color-text-muted, #999);
+  }
+
+  .copy-icon-btn {
+    color: var(--color-text-muted, #8c8c8c);
+    font-size: 15px;
+    padding: 0 4px;
+    min-width: auto;
+    line-height: 1;
+
+    &:hover {
+      color: var(--color-primary, #1677ff) !important;
+    }
   }
 
   .m-table {
