@@ -136,6 +136,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
 import { getNodeList, type NodeItem } from "@/api/node";
 import { useAppI18n } from "@/i18n";
+import config from "@/config";
 import { useRoute, useRouter } from "vue-router";
 import store from "./stores";
 import { computed, onMounted, ref, watch } from "vue";
@@ -219,7 +220,7 @@ const currentNodeLabel = computed(() => {
   return node ? node.name : globalStore.currentNode.name;
 });
 
-onMounted(async () => {
+async function fetchNodeList() {
   try {
     const res = await getNodeList();
     nodeList.value = res.data?.list || [];
@@ -235,6 +236,13 @@ onMounted(async () => {
   } catch {
     // ignore
   }
+}
+
+onMounted(() => {
+  // 已登录状态下（有 token），直接加载节点列表
+  if (localStorage.getItem(`${config.name}:token`)) {
+    fetchNodeList();
+  }
 });
 
 function onNodeMenuClick({ key }: { key: string }) {
@@ -247,7 +255,7 @@ function onNodeMenuClick({ key }: { key: string }) {
 }
 
 // 监听路由变化，自动更新展开的子菜单
-watch(() => route.path, () => {
+watch(() => route.path, (newPath) => {
   const matched = route.matched;
   const keys: string[] = [];
   for (const record of matched) {
@@ -256,6 +264,11 @@ watch(() => route.path, () => {
     }
   }
   menuOpenKeys.value = keys;
+
+  // 离开登录页后（登录成功），且已持有 token，加载节点列表
+  if (newPath !== '/login' && nodeList.value.length === 0 && localStorage.getItem(`${config.name}:token`)) {
+    fetchNodeList();
+  }
 }, { immediate: true });
 
 const getMenu = (menus: any) => {
