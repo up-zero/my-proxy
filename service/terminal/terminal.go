@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/up-zero/my-proxy/logger"
+	"github.com/up-zero/my-proxy/models"
 	"github.com/up-zero/my-proxy/util"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
@@ -570,8 +572,125 @@ func (h *Hub) watchAuthExpiry(tc *Conn, sessionID string, expireAt int64) {
 	}
 }
 
+// proxyTerminalToNode 将终端 WebSocket 代理到子节点
+func proxyTerminalToNode(c *gin.Context, nodeUuid string) {
+	// 查询节点信息
+	node := &models.NodeBasic{Uuid: nodeUuid}
+	if err := node.First(); err != nil {
+		logger.Warn("[terminal] node not found", zap.String("node_uuid", nodeUuid), zap.Error(err))
+		util.ResponseError(c, fmt.Errorf("node not found: %s", nodeUuid))
+		return
+	}
+
+	if !node.Enabled {
+		logger.Warn("[terminal] node is disabled", zap.String("node_uuid", nodeUuid))
+		util.ResponseError(c, fmt.Errorf("node is disabled: %s", nodeUuid))
+		return
+	}
+
+	// 生成超管 token（使用目标节点的密钥）
+	claim := &util.UserClaim{
+		Username: "admin",
+		Level:    models.UserLevelRoot,
+		RoleID:   "role-admin",
+	}
+	token, err := claim.GenerateTokenWithKey(time.Now().Add(24*time.Hour).Unix(), node.SecretKey)
+	if err != nil {
+		logger.Error("[terminal] generate token error", zap.String("node_uuid", nodeUuid), zap.Error(err))
+		util.ResponseError(c, fmt.Errorf("failed to generate node token"))
+		return
+	}
+
+	// 构建子节点的 WebSocket URL
+	targetURL := url.URL{
+		Scheme: "ws",
+		Host:   node.Address,
+		Path:   "/api/v1/ws/terminal",
+	}
+	// 透传原始查询参数（替换 token 为节点专用 token）
+	query := c.Request.URL.Query()
+	query.Set("token", token)
+	query.Del("node_uuid") // 子节点不再传递 node_uuid，避免无限递归
+	targetURL.RawQuery = query.Encode()
+
+	// 升级客户端 WebSocket
+	clientConn, err := GetHub().upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		logger.Error("[terminal] client websocket upgrade failed", zap.Error(err))
+		return
+	}
+
+	// 连接子节点 WebSocket
+	dialer := &websocket.Dialer{
+		HandshakeTimeout: 10 * time.Second,
+	}
+	nodeConn, _, err := dialer.Dial(targetURL.String(), nil)
+	if err != nil {
+		logger.Error("[terminal] dial node websocket failed",
+			zap.String("node_uuid", nodeUuid),
+			zap.String("target_url", targetURL.String()),
+			zap.Error(err))
+		errMsg := Message{
+			Type: "error",
+			Data: fmt.Sprintf("Failed to connect to node: %v", err),
+		}
+		if data, e := json.Marshal(errMsg); e == nil {
+			_ = clientConn.WriteMessage(websocket.TextMessage, data)
+		}
+		_ = clientConn.Close()
+		return
+	}
+
+	logger.Info("[terminal] proxying terminal to child node",
+		zap.String("node_uuid", nodeUuid),
+		zap.String("node_address", node.Address))
+
+	// 双向代理
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// client → node
+	go func() {
+		defer wg.Done()
+		defer nodeConn.Close()
+		for {
+			msgType, data, err := clientConn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if err := nodeConn.WriteMessage(msgType, data); err != nil {
+				return
+			}
+		}
+	}()
+
+	// node → client
+	go func() {
+		defer wg.Done()
+		defer clientConn.Close()
+		for {
+			msgType, data, err := nodeConn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if err := clientConn.WriteMessage(msgType, data); err != nil {
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
+}
+
 // WebsocketTerminal WebSocket 连接（终端）
 func WebsocketTerminal(c *gin.Context) {
+	// 非本地节点：代理 WebSocket 到子节点
+	nodeUuid := strings.TrimSpace(c.Query("node_uuid"))
+	if nodeUuid != "" && nodeUuid != "node-local" {
+		proxyTerminalToNode(c, nodeUuid)
+		return
+	}
+
 	host := c.Query("host")
 	port := c.Query("port")
 	username := c.Query("username")

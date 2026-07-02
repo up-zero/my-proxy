@@ -56,6 +56,12 @@ export function buildTerminalWebSocketUrl(params: TerminalConnParams): string {
     url.searchParams.set("token", token);
   }
 
+  // 非本地节点时传递 node_uuid，服务端根据此参数代理到子节点
+  const nodeUuid = getCurrentNodeUuid();
+  if (nodeUuid) {
+    url.searchParams.set("node_uuid", nodeUuid);
+  }
+
   return url.toString();
 }
 
