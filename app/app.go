@@ -174,12 +174,15 @@ func router() *gin.Engine {
 		authSettings.POST("/update", BindH(sysconfig.Update))
 	}
 
-	// 节点管理
+	// 节点列表（所有登录用户可访问）
+	auth.POST("/node/list", node.List)
+
+	// 节点管理（仅超管）
 	{
 		authNode := auth.Group("/node")
 		authNode.Use(middleware.AdminAuthCheck())
-		// 节点列表
-		authNode.POST("/list", node.List)
+		// 节点详情
+		authNode.POST("/detail", BindH(node.Detail))
 		// 新增节点
 		authNode.POST("/create", BindH(node.Create))
 		// 修改节点

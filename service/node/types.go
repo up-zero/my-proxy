@@ -8,8 +8,19 @@ type ListResponse struct {
 	List []NodeItem `json:"list"`
 }
 
-// NodeItem 节点项
+// NodeItem 节点列表项（不含密钥）
 type NodeItem struct {
+	Uuid      string `json:"uuid"`
+	Name      string `json:"name"`
+	Address   string `json:"address"`
+	Enabled   bool   `json:"enabled"`
+	IsLocal   bool   `json:"is_local"`
+	CreatedAt int64  `json:"created_at"`
+	UpdatedAt int64  `json:"updated_at"`
+}
+
+// NodeDetailItem 节点详情项（含密钥，仅超管可查看）
+type NodeDetailItem struct {
 	Uuid      string `json:"uuid"`
 	Name      string `json:"name"`
 	Address   string `json:"address"`
@@ -19,6 +30,14 @@ type NodeItem struct {
 	CreatedAt int64  `json:"created_at"`
 	UpdatedAt int64  `json:"updated_at"`
 }
+
+// DetailRequest 节点详情请求
+type DetailRequest struct {
+	Uuid string `json:"uuid" binding:"required"`
+}
+
+// DetailResponse 节点详情响应
+type DetailResponse = NodeDetailItem
 
 // CreateRequest 创建节点请求
 type CreateRequest struct {

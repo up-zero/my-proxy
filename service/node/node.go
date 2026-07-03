@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// List 获取节点列表
+// List 获取节点列表（不含密钥）
 func List(c *gin.Context) {
 	nodes, err := (&models.NodeBasic{}).All()
 	if err != nil {
@@ -26,7 +26,6 @@ func List(c *gin.Context) {
 			Uuid:      n.Uuid,
 			Name:      n.Name,
 			Address:   n.Address,
-			SecretKey: n.SecretKey,
 			Enabled:   n.Enabled,
 			IsLocal:   n.IsLocal,
 			CreatedAt: n.CreatedAt,
@@ -34,6 +33,26 @@ func List(c *gin.Context) {
 		})
 	}
 	util.ResponseOkWithData(c, &ListResponse{List: items})
+}
+
+// Detail 获取节点详情（含密钥，仅超管）
+func Detail(c *gin.Context, in *DetailRequest) {
+	node := &models.NodeBasic{Uuid: in.Uuid}
+	if err := node.First(); err != nil {
+		logger.Error("[node] detail error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDataNotExist, util.MsgErrDataNotExist)
+		return
+	}
+	util.ResponseOkWithData(c, &NodeDetailItem{
+		Uuid:      node.Uuid,
+		Name:      node.Name,
+		Address:   node.Address,
+		SecretKey: node.SecretKey,
+		Enabled:   node.Enabled,
+		IsLocal:   node.IsLocal,
+		CreatedAt: node.CreatedAt,
+		UpdatedAt: node.UpdatedAt,
+	})
 }
 
 // Create 创建节点

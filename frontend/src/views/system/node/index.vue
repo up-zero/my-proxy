@@ -38,9 +38,9 @@
           <span v-else>--</span>
         </template>
         <template v-else-if="column.key === 'secret_key'">
-          <template v-if="record.secret_key">
+          <template v-if="!record.is_local">
             <span class="secret-masked">••••••••</span>
-            <a-button type="text" size="small" class="copy-icon-btn" @click="copySecret(record.secret_key)">
+            <a-button type="text" size="small" class="copy-icon-btn" @click="copySecret(record)">
               <template #icon><copy-outlined /></template>
             </a-button>
           </template>
@@ -75,7 +75,7 @@
 </template>
 
 <script lang="ts" setup>
-import { getNodeList, deleteNode, type NodeItem } from "@/api/node";
+import { getNodeList, getNodeDetail, deleteNode, type NodeItem, type NodeDetail } from "@/api/node";
 import { parseTime } from "@/lib/util";
 import { message } from "ant-design-vue";
 import { CopyOutlined } from "@ant-design/icons-vue";
@@ -182,7 +182,11 @@ function toAddPage() {
 
 function editItem(row: NodeItem) {
   if (row.is_local) return;
-  addBoxRef.value.init(row);
+  // 先获取详情（含密钥），再打开编辑弹窗
+  getNodeDetail(row.uuid).then((res) => {
+    const detail: NodeDetail = res.data;
+    addBoxRef.value.init(detail);
+  });
 }
 
 function delItem(row: NodeItem) {
@@ -192,12 +196,17 @@ function delItem(row: NodeItem) {
   });
 }
 
-function copySecret(text: string) {
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    message.success(t("settings.copySuccess"));
-  }).catch(() => {
-    message.error(t("settings.copyFail"));
+function copySecret(row: NodeItem) {
+  // 列表不含密钥，需通过详情接口获取
+  getNodeDetail(row.uuid).then((res) => {
+    const detail: NodeDetail = res.data;
+    const text = detail.secret_key;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      message.success(t("settings.copySuccess"));
+    }).catch(() => {
+      message.error(t("settings.copyFail"));
+    });
   });
 }
 </script>
