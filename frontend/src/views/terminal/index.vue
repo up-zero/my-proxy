@@ -112,31 +112,6 @@
       width="520px"
     >
       <a-tabs v-model:activeKey="addTabType">
-        <a-tab-pane key="local" :tab="t('terminal.connectLocal')">
-          <a-form layout="vertical" class="terminal-form">
-            <a-form-item :label="t('terminal.sshPort')">
-              <a-input
-                v-model:value="localForm.port"
-                :placeholder="t('terminal.inputSshPort')"
-              />
-            </a-form-item>
-            <a-form-item :label="t('terminal.sshUsername')">
-              <a-input
-                v-model:value="localForm.username"
-                :placeholder="t('terminal.inputSshUsername')"
-              />
-            </a-form-item>
-            <a-form-item :label="t('terminal.sshPassword')">
-              <a-input-password
-                v-model:value="localForm.password"
-                :placeholder="t('terminal.inputSshPassword')"
-              />
-            </a-form-item>
-            <a-button type="primary" block @click="connectLocal">
-              {{ t("terminal.connectLocal") }}
-            </a-button>
-          </a-form>
-        </a-tab-pane>
         <a-tab-pane key="proxy" :tab="t('terminal.connectProxy')">
           <a-form layout="vertical" class="terminal-form">
             <a-form-item :label="t('terminal.selectProxy')">
@@ -186,6 +161,37 @@
             </a-button>
           </a-form>
         </a-tab-pane>
+        <a-tab-pane key="local" :tab="t('terminal.connectLocal')">
+          <a-form layout="vertical" class="terminal-form">
+            <a-form-item :label="t('terminal.sshHost')">
+              <a-input
+                v-model:value="localForm.host"
+                :placeholder="t('terminal.inputSshHost')"
+              />
+            </a-form-item>
+            <a-form-item :label="t('terminal.sshPort')">
+              <a-input
+                v-model:value="localForm.port"
+                :placeholder="t('terminal.inputSshPort')"
+              />
+            </a-form-item>
+            <a-form-item :label="t('terminal.sshUsername')">
+              <a-input
+                v-model:value="localForm.username"
+                :placeholder="t('terminal.inputSshUsername')"
+              />
+            </a-form-item>
+            <a-form-item :label="t('terminal.sshPassword')">
+              <a-input-password
+                v-model:value="localForm.password"
+                :placeholder="t('terminal.inputSshPassword')"
+              />
+            </a-form-item>
+            <a-button type="primary" block @click="connectLocal">
+              {{ t("terminal.connectLocal") }}
+            </a-button>
+          </a-form>
+        </a-tab-pane>
       </a-tabs>
     </a-modal>
   </div>
@@ -221,7 +227,7 @@ interface TerminalTab {
 const tabs = ref<TerminalTab[]>([]);
 const activeTabId = ref<string>("");
 const showAddDialog = ref(false);
-const addTabType = ref("local");
+const addTabType = ref("proxy");
 const terminalRefs = ref<Record<string, HTMLElement>>({});
 
 function setTerminalRef(id: string, el: HTMLElement) {
@@ -232,6 +238,7 @@ function setTerminalRef(id: string, el: HTMLElement) {
 
 // 本地连接表单
 const localForm = reactive({
+  host: "",
   port: "22",
   username: "root",
   password: "",
@@ -360,6 +367,7 @@ const STORAGE_KEY_LOCAL = "my-proxy:terminal:ssh:local";
 const STORAGE_KEY_PROXY_PREFIX = "my-proxy:terminal:ssh:proxy:";
 
 interface SshCredentials {
+  host: string;
   port: string;
   username: string;
   password: string;
@@ -376,9 +384,9 @@ function loadLocalSshCredentials(): SshCredentials | null {
 }
 
 // 保存本地 SSH 凭据
-function saveLocalSshCredentials(port: string, username: string, password: string) {
+function saveLocalSshCredentials(host: string, port: string, username: string, password: string) {
   try {
-    const credentials: SshCredentials = { port, username, password };
+    const credentials: SshCredentials = { host, port, username, password };
     localStorage.setItem(STORAGE_KEY_LOCAL, JSON.stringify(credentials));
   } catch (e) {
     console.error("Failed to save local SSH credentials:", e);
@@ -397,9 +405,9 @@ function loadProxySshCredentials(proxyUuid: string): SshCredentials | null {
 }
 
 // 保存代理 SSH 凭据
-function saveProxySshCredentials(proxyUuid: string, port: string, username: string, password: string) {
+function saveProxySshCredentials(proxyUuid: string, host: string, port: string, username: string, password: string) {
   try {
-    const credentials: SshCredentials = { port, username, password };
+    const credentials: SshCredentials = { host, port, username, password };
     const key = `${STORAGE_KEY_PROXY_PREFIX}${proxyUuid}`;
     localStorage.setItem(key, JSON.stringify(credentials));
   } catch (e) {
@@ -835,11 +843,11 @@ function reconnectTab(id: string) {
 // ===================== 连接操作 =====================
 function connectLocal() {
   // 保存本地 SSH 凭据
-  saveLocalSshCredentials(localForm.port, localForm.username, localForm.password);
+  saveLocalSshCredentials(localForm.host, localForm.port, localForm.username, localForm.password);
   
   addTab(
-    `${t("terminal.localhost")} (${localForm.port})`,
-    "127.0.0.1",
+    `${localForm.host} (${localForm.port})`,
+    localForm.host || "127.0.0.1",
     localForm.port,
     localForm.username,
     localForm.password
@@ -856,7 +864,7 @@ function connectProxy() {
   const sshPort = proxy.listen_port || proxyForm.port || "22";
 
   // 保存代理 SSH 凭据
-  saveProxySshCredentials(proxyForm.proxyUuid, sshPort, proxyForm.username, proxyForm.password);
+  saveProxySshCredentials(proxyForm.proxyUuid, proxy.listen_address || "127.0.0.1", sshPort, proxyForm.username, proxyForm.password);
 
   addTab(
     proxy.name || proxyForm.proxyUuid,
@@ -888,6 +896,7 @@ function filterProxyOption(input: string, option: any) {
 // 页面加载时恢复本地 SSH 凭据
 const cachedLocalCreds = loadLocalSshCredentials();
 if (cachedLocalCreds) {
+  localForm.host = cachedLocalCreds.host || "";
   localForm.port = cachedLocalCreds.port || "22";
   localForm.username = cachedLocalCreds.username || "root";
   localForm.password = cachedLocalCreds.password || "";

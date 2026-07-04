@@ -236,7 +236,7 @@ const messages: Record<AppLocale, MessageTree> = {
     terminal: {
       newTab: "新建终端",
       closeTab: "关闭终端",
-      connectLocal: "本地终端",
+      connectLocal: "SSH 终端",
       connectProxy: "代理终端",
       selectProxy: "选择代理",
       sshHost: "SSH 主机",
@@ -668,7 +668,7 @@ const messages: Record<AppLocale, MessageTree> = {
     terminal: {
       newTab: "New Terminal",
       closeTab: "Close Terminal",
-      connectLocal: "Local Terminal",
+      connectLocal: "SSH Terminal",
       connectProxy: "Proxy Terminal",
       selectProxy: "Select Proxy",
       sshHost: "SSH Host",
