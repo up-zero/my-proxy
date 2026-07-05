@@ -21,8 +21,8 @@
           <PlusOutlined class="new-tab-icon" />
           <span>{{ t("terminal.newTab") }}</span>
         </div>
-        <!-- 全局监控开关 -->
-        <div class="terminal-tab monitor-toggle" @click.stop>
+        <!-- 全局监控开关（子节点模式下隐藏） -->
+        <div v-if="!isChildNodeMode" class="terminal-tab monitor-toggle" @click.stop>
           <span class="toggle-label">{{ t("terminal.monitor") }}</span>
           <a-switch
             v-model:checked="monitorGlobalEnabled"
@@ -207,6 +207,7 @@ import "@xterm/xterm/css/xterm.css";
 import { getProxyStatus } from "@/api/proxy";
 import { createTerminalSocket } from "@/api/terminal";
 import type { TerminalConnInfo } from "@/api/terminal";
+import config from "@/config";
 
 const { t } = useAppI18n();
 
@@ -257,6 +258,22 @@ const proxyList = ref<any[]>([]);
 
 // ===================== 远程监控 =====================
 const monitorGlobalEnabled = ref(false);
+
+// 判断是否处于子节点模式（子节点时隐藏远程监控）
+const isChildNodeMode = computed(() => {
+  try {
+    const raw = localStorage.getItem(`${config.name}:currentNode`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.uuid && parsed.uuid !== "node-local" && !parsed.isLocal) {
+        return true;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+});
 
 // 磁盘信息
 interface DiskInfo {
