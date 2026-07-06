@@ -2,7 +2,12 @@
   <div class="settings-page">
     <a-spin :spinning="state.isLoading">
       <div class="settings-list">
-        <div v-for="item in state.items" :key="item.key" class="settings-item">
+        <div
+          v-for="item in state.items"
+          :key="item.key"
+          class="settings-item"
+          :class="{ 'settings-item--full': isJwtItem(item.key) }"
+        >
           <div class="item-label">
             <span class="label-text">{{ getItemLabel(item.key) }}</span>
             <a-tag v-if="isDefault(item)" color="blue" size="small" class="default-tag">
@@ -29,6 +34,22 @@
                 :max="65535"
                 :precision="0"
                 style="width: 160px"
+              />
+              <a-button
+                v-if="!isDefault(item)"
+                type="link"
+                size="small"
+                @click="resetItem(item)"
+              >
+                {{ t("settings.resetDefault") }}
+              </a-button>
+            </template>
+            <!-- Token 有效期：下拉选择 -->
+            <template v-else-if="isTokenExpiryItem(item.key)">
+              <a-select
+                v-model:value="editValues[item.key]"
+                style="width: 180px"
+                :options="tokenExpiryOptions"
               />
               <a-button
                 v-if="!isDefault(item)"
@@ -76,13 +97,23 @@ import { getSystemSettings, updateSystemSettings, type ConfigItem } from "@/api/
 import { useAppI18n } from "@/i18n";
 import { message } from "ant-design-vue";
 import { CopyOutlined } from "@ant-design/icons-vue";
-import { onMounted, reactive } from "vue";
+import { onMounted, reactive, computed } from "vue";
 
 const { t } = useAppI18n();
 
 // 需要特殊处理的配置项 key
 const PORT_CONFIG_KEY = "SERVER_PORT_KEY";
 const JWT_CONFIG_KEY = "JWT_SECRET_KEY";
+const TOKEN_EXPIRY_KEY = "TOKEN_EXPIRY_DAYS";
+
+// Token 有效期下拉选项
+const tokenExpiryOptions = computed(() => [
+  { label: t("settings.tokenExpiry.day1"), value: 1 },
+  { label: t("settings.tokenExpiry.day7"), value: 7 },
+  { label: t("settings.tokenExpiry.day30"), value: 30 },
+  { label: t("settings.tokenExpiry.day90"), value: 90 },
+  { label: t("settings.tokenExpiry.never"), value: -1 },
+]);
 
 const state = reactive({
   isLoading: false,
@@ -151,6 +182,10 @@ function isJwtItem(key: string): boolean {
   return key === JWT_CONFIG_KEY;
 }
 
+function isTokenExpiryItem(key: string): boolean {
+  return key === TOKEN_EXPIRY_KEY;
+}
+
 function copyToClipboard(text: string) {
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
@@ -184,31 +219,28 @@ async function handleSave() {
   width: 100%;
 }
 
-.settings-header {
-  margin-bottom: 24px;
-  h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--color-text-primary, #101828);
-  }
-}
-
 .settings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 .settings-item {
-  padding: 16px;
+  padding: 20px 24px;
   border: 1px solid var(--color-border, #f0f0f0);
   border-radius: 8px;
   background: var(--color-bg-card-secondary, #fafafa);
   transition: border-color 0.2s;
+  display: flex;
+  flex-direction: column;
 
   &:hover {
     border-color: var(--color-item-hover-border, #d9d9d9);
+  }
+
+  // JWT 密钥项占满整行
+  &--full {
+    grid-column: 1 / -1;
   }
 
   .item-label {
@@ -218,43 +250,53 @@ async function handleSave() {
     margin-bottom: 4px;
 
     .label-text {
-      font-weight: 500;
+      font-weight: 600;
       font-size: 14px;
       color: var(--color-text-primary, #101828);
     }
 
     .default-tag {
       font-size: 11px;
+      flex-shrink: 0;
     }
   }
 
   .item-desc {
     font-size: 12px;
     color: var(--color-text-muted, #888);
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    flex: 1;
   }
 
   .item-control {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
   }
+}
 
-  .copy-icon-btn {
-    color: var(--color-text-muted, #8c8c8c);
-    font-size: 15px;
-    padding: 0 4px;
-    min-width: auto;
-    line-height: 1;
+// JWT 密钥输入框自适应宽度
+.settings-item--full :deep(.ant-input-affix-wrapper) {
+  max-width: 520px;
+}
 
-    &:hover {
-      color: var(--color-primary, #1677ff) !important;
-    }
+.copy-icon-btn {
+  color: var(--color-text-muted, #8c8c8c);
+  font-size: 15px;
+  padding: 0 4px;
+  min-width: auto;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--color-primary, #1677ff) !important;
   }
 }
 
 .settings-footer {
-  margin-top: 32px;
+  margin-top: 28px;
   padding-top: 16px;
   border-top: 1px solid var(--color-border, #f0f0f0);
 }

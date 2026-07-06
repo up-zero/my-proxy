@@ -21,6 +21,7 @@ var knownConfigs = []configDef{
 	{Key: util.ServerPortKey, DefaultValue: util.DefaultServerPort},
 	{Key: util.ConfigKeyAuditRetentionDays, DefaultValue: util.DefaultAuditRetentionDays},
 	{Key: util.ConfigKeyAlertRetentionDays, DefaultValue: util.DefaultAlertRetentionDays},
+	{Key: util.ConfigKeyTokenExpiryDays, DefaultValue: util.DefaultTokenExpiryDays},
 	{Key: util.ConfigKeyJwtSecret, DefaultValue: ""},
 }
 

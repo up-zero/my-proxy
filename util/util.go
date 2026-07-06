@@ -24,12 +24,15 @@ var (
 	ConfigKeyAuditRetentionDays = "AUDIT_RETENTION_DAYS"
 	// ConfigKeyAlertRetentionDays 告警通知存储时长（天）
 	ConfigKeyAlertRetentionDays = "ALERT_RETENTION_DAYS"
+	// ConfigKeyTokenExpiryDays Token 有效期（天），0 表示永不过期
+	ConfigKeyTokenExpiryDays = "TOKEN_EXPIRY_DAYS"
 
 	// ---- 系统设置默认值 ----
 
 	DefaultAuditRetentionDays = "90"    // 日志审计默认 90 天
 	DefaultAlertRetentionDays = "90"    // 告警通知默认 90 天
 	DefaultServerPort         = "12312" // 服务端口默认值
+	DefaultTokenExpiryDays    = "1"     // Token 有效期默认 1 天
 )
 
 // GetDbPath 获取数据库路径

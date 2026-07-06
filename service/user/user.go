@@ -35,14 +35,21 @@ func Login(c *gin.Context, in *LoginRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+	// 读取 Token 有效期配置（天），0 表示永不过期
+	tokenExpiryDays := models.GetConfigInt(util.ConfigKeyTokenExpiryDays, 1)
+
 	// 生成 token
-	token, err := uc.GenerateToken(time.Now().Add(time.Hour * 24).Unix())
+	token, err := uc.GenerateToken(getTokenExpireAt(tokenExpiryDays))
 	if err != nil {
 		util.ResponseMsg(c, util.CodeErr, err.Error())
 		return
 	}
-	// 生成 refreshToken
-	refreshToken, err := uc.GenerateToken(time.Now().Add(time.Hour * 24 * 2).Unix())
+	// 生成 refreshToken（有效期是 token 的 2 倍，永不过期则同样永不过期）
+	refreshTokenExpiryDays := tokenExpiryDays
+	if tokenExpiryDays > 0 {
+		refreshTokenExpiryDays = tokenExpiryDays * 2
+	}
+	refreshToken, err := uc.GenerateToken(getTokenExpireAt(refreshTokenExpiryDays))
 	if err != nil {
 		util.ResponseMsg(c, util.CodeErr, err.Error())
 		return
@@ -95,14 +102,21 @@ func RefreshToken(c *gin.Context, in *RefreshTokenRequest) {
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
+	// 读取 Token 有效期配置（天），0 表示永不过期
+	tokenExpiryDays := models.GetConfigInt(util.ConfigKeyTokenExpiryDays, 1)
+
 	// 生成 token
-	token, err := uc.GenerateToken(time.Now().Add(time.Hour * 24).Unix())
+	token, err := uc.GenerateToken(getTokenExpireAt(tokenExpiryDays))
 	if err != nil {
 		util.ResponseMsg(c, util.CodeErr, err.Error())
 		return
 	}
-	// 生成 refreshToken
-	refreshToken, err := uc.GenerateToken(time.Now().Add(time.Hour * 24 * 2).Unix())
+	// 生成 refreshToken（有效期是 token 的 2 倍，永不过期则同样永不过期）
+	refreshTokenExpiryDays := tokenExpiryDays
+	if tokenExpiryDays > 0 {
+		refreshTokenExpiryDays = tokenExpiryDays * 2
+	}
+	refreshToken, err := uc.GenerateToken(getTokenExpireAt(refreshTokenExpiryDays))
 	if err != nil {
 		util.ResponseMsg(c, util.CodeErr, err.Error())
 		return
@@ -131,6 +145,15 @@ func RefreshToken(c *gin.Context, in *RefreshTokenRequest) {
 		RoleName:     roleName,
 		Permissions:  permissions,
 	})
+}
+
+// getTokenExpireAt 根据配置的天数返回 Unix 时间戳。
+// days<0（即 -1）表示永不过期，返回 0（JWT 不设置 ExpiresAt）。
+func getTokenExpireAt(days int) int64 {
+	if days < 0 {
+		return 0
+	}
+	return time.Now().Add(time.Duration(days) * 24 * time.Hour).Unix()
 }
 
 // EditPassword 修改密码

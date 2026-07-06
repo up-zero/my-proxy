@@ -8,10 +8,12 @@ import (
 
 // GenerateToken 生成token
 //
-//	expireAt: 过期时间，时间戳，秒
+//	expireAt: 过期时间，时间戳，秒；传 0 表示永不过期
 func (uc *UserClaim) GenerateToken(expireAt int64) (string, error) {
-	uc.StandardClaims = jwt.StandardClaims{
-		ExpiresAt: expireAt,
+	if expireAt > 0 {
+		uc.StandardClaims = jwt.StandardClaims{
+			ExpiresAt: expireAt,
+		}
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
 	tokenString, err := token.SignedString([]byte(JwtKey))
@@ -23,8 +25,10 @@ func (uc *UserClaim) GenerateToken(expireAt int64) (string, error) {
 
 // GenerateTokenWithKey 使用指定密钥生成 token（用于节点间代理调用）
 func (uc *UserClaim) GenerateTokenWithKey(expireAt int64, secretKey string) (string, error) {
-	uc.StandardClaims = jwt.StandardClaims{
-		ExpiresAt: expireAt,
+	if expireAt > 0 {
+		uc.StandardClaims = jwt.StandardClaims{
+			ExpiresAt: expireAt,
+		}
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
 	tokenString, err := token.SignedString([]byte(secretKey))
