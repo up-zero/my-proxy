@@ -28,6 +28,8 @@ type EditPasswordRequest struct {
 
 type ListRequest struct {
 	Keyword string `json:"keyword"`
+	Page    int    `json:"page" default:"1"`
+	PerPage int    `json:"per_page" default:"20"`
 }
 
 type ListReply struct {

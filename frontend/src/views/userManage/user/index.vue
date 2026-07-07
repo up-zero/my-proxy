@@ -31,12 +31,13 @@
       :dataSource="state.list"
       :columns="columns"
       bordered
-      :pagination="false"
+      :pagination="pagination"
       class="m-table"
       size="middle"
       :scroll="{ y: 'calc(100vh - 320px)' }"
       :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
       row-key="uuid"
+      @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'role_id'">
@@ -81,11 +82,30 @@ interface DataItem {
   updated_at: string;
 }
 
+const PAGE_SIZE_KEY = "my-proxy:user-page-size";
+const PAGE_SIZE_OPTIONS = ["20", "50", "100", "200", "500"];
+
+function readStoredPageSize() {
+  try {
+    const value = Number(localStorage.getItem(PAGE_SIZE_KEY));
+    return [20, 50, 100, 200, 500].includes(value) ? value : 20;
+  } catch {
+    return 20;
+  }
+}
+
+function savePageSize(pageSize: number) {
+  try {
+    localStorage.setItem(PAGE_SIZE_KEY, String(pageSize));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 const QUERY = (): any => ({
   keyword: "",
   page: 1,
-  per_page: 10,
-  position: 1,
+  per_page: readStoredPageSize(),
 });
 const addBoxRef = ref();
 const { t } = useAppI18n();
@@ -160,6 +180,14 @@ const columns = computed(() => [
     key: "operation",
   },
 ]);
+
+const pagination = computed(() => ({
+  current: state.query.page,
+  pageSize: state.query.per_page,
+  total: state.total,
+  showSizeChanger: true,
+  pageSizeOptions: PAGE_SIZE_OPTIONS,
+}));
 /*****************表格******************* */
 
 // 获取列表
@@ -167,17 +195,25 @@ async function getList() {
   try {
     state.isLoading = true;
     const res = await getUserList(state.query);
-    if (!res.data) return;
-    state.list = res.data.map((it: any, index: number) => {
+    const data = res.data || {};
+    const list = Array.isArray(data) ? data : data.list || [];
+    state.total = Array.isArray(data) ? list.length : data.count || 0;
+    state.list = list.map((it: any, index: number) => {
       return {
         ...it,
-        index: index + 1,
+        index: (state.query.page - 1) * state.query.per_page + index + 1,
       };
     });
-    state.total = res.data?.length;
   } finally {
     state.isLoading = false;
   }
+}
+
+function handleTableChange(pageInfo: any) {
+  state.query.page = pageInfo.current;
+  state.query.per_page = pageInfo.pageSize;
+  savePageSize(state.query.per_page);
+  getList();
 }
 
 //  新增

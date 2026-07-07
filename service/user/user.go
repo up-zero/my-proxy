@@ -184,13 +184,19 @@ func List(c *gin.Context, in *ListRequest) {
 		like := "%" + keyword + "%"
 		tx = tx.Where("username like ?", like)
 	}
-	if err := tx.Find(&list).Error; err != nil {
+	var count int64
+	if err := tx.Count(&count).Error; err != nil {
+		logger.Error("[db] get user count error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	if err := tx.Order("created_at desc").Offset((in.Page - 1) * in.PerPage).Limit(in.PerPage).Find(&list).Error; err != nil {
 		logger.Error("[db] get user list error.", zap.Error(err))
-		util.ResponseError(c, err)
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
 	}
 
-	util.ResponseOkWithList(c, list)
+	util.ResponseOkWithList(c, list, count)
 }
 
 // Create 创建用户
