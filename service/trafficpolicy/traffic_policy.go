@@ -228,7 +228,13 @@ func List(c *gin.Context, in *ListRequest) {
 	if status := strings.TrimSpace(in.Status); status != "" {
 		tx = tx.Where("status = ?", strings.ToUpper(status))
 	}
-	if err := tx.Order("created_at desc").Find(&list).Error; err != nil {
+	var count int64
+	if err := tx.Count(&count).Error; err != nil {
+		logger.Error("[db] get traffic policy count error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
+		return
+	}
+	if err := tx.Order("created_at desc").Offset((in.Page - 1) * in.PerPage).Limit(in.PerPage).Find(&list).Error; err != nil {
 		logger.Error("[db] get traffic policy list error.", zap.Error(err))
 		util.ResponseMsg(c, util.CodeErrDB, util.MsgErrDB)
 		return
@@ -240,7 +246,7 @@ func List(c *gin.Context, in *ListRequest) {
 			item.QuotaUsed = quotaUsed
 		}
 	}
-	util.ResponseOkWithList(c, list)
+	util.ResponseOkWithList(c, list, count)
 }
 
 func Create(c *gin.Context, in *SaveRequest) {

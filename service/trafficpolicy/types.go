@@ -4,6 +4,8 @@ type ListRequest struct {
 	Name      string `json:"name"`
 	ScopeType string `json:"scope_type"`
 	Status    string `json:"status"`
+	Page      int    `json:"page" default:"1"`
+	PerPage   int    `json:"per_page" default:"20"`
 }
 
 type SaveRequest struct {

@@ -32,12 +32,13 @@
       :dataSource="state.list"
       :columns="columns"
       bordered
-      :pagination="false"
+      :pagination="pagination"
       class="m-table"
       size="middle"
       :scroll="{ x: 1320, y: 'calc(100vh - 320px)' }"
       rowKey="uuid"
       :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
+      @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'scope'">
@@ -108,10 +109,32 @@ interface DataItem {
   created_at: number;
 }
 
+const PAGE_SIZE_KEY = "my-proxy:traffic-policy-page-size";
+const PAGE_SIZE_OPTIONS = ["20", "50", "100", "200", "500"];
+
+function readStoredPageSize() {
+  try {
+    const value = Number(localStorage.getItem(PAGE_SIZE_KEY));
+    return [20, 50, 100, 200, 500].includes(value) ? value : 20;
+  } catch {
+    return 20;
+  }
+}
+
+function savePageSize(pageSize: number) {
+  try {
+    localStorage.setItem(PAGE_SIZE_KEY, String(pageSize));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 const QUERY = () => ({
   name: "",
   scope_type: undefined as string | undefined,
   status: undefined as string | undefined,
+  page: 1,
+  per_page: readStoredPageSize(),
 });
 
 const { t } = useAppI18n();
@@ -121,6 +144,7 @@ const state = reactive({
   isLoading: false,
   query: QUERY(),
   list: [] as DataItem[],
+  total: 0,
   tagList: [] as any[],
   proxyList: [] as any[],
 });
@@ -142,6 +166,14 @@ const columns = computed(() => [
   { title: t("common.operation"), dataIndex: "operation", key: "operation", width: 150, fixed: "right" },
 ]);
 
+const pagination = computed(() => ({
+  current: state.query.page,
+  pageSize: state.query.per_page,
+  total: state.total,
+  showSizeChanger: true,
+  pageSizeOptions: PAGE_SIZE_OPTIONS,
+}));
+
 async function loadTags() {
   const res = await getTagList({});
   state.tagList = res.data || [];
@@ -156,10 +188,23 @@ async function getList() {
   try {
     state.isLoading = true;
     const res = await getTrafficPolicyList(state.query);
-    state.list = (res.data || []).map((it: DataItem, index: number) => ({ ...it, index: index + 1 }));
+    const data = res.data || {};
+    const list = Array.isArray(data) ? data : data.list || [];
+    state.total = Array.isArray(data) ? list.length : data.count || 0;
+    state.list = list.map((it: DataItem, index: number) => ({
+      ...it,
+      index: (state.query.page - 1) * state.query.per_page + index + 1,
+    }));
   } finally {
     state.isLoading = false;
   }
+}
+
+function handleTableChange(pageInfo: any) {
+  state.query.page = pageInfo.current;
+  state.query.per_page = pageInfo.pageSize;
+  savePageSize(state.query.per_page);
+  getList();
 }
 
 function toAddPage() {
