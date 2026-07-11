@@ -6,6 +6,7 @@ const (
 	ProxyTypeUdp    = "UDP"
 	ProxyTypeHttp   = "HTTP"
 	ProxyTypeSocks5 = "SOCKS5"
+	ProxyTypeTcpUdp = "TCP_UDP" // TCP+UDP 双协议（仅用于创建时选择，落库时拆分为两条）
 )
 
 // 代理状态
@@ -50,7 +51,7 @@ func (table *ProxyBasic) CountForName() (int64, error) {
 	return cnt, err
 }
 
-// CountForPort 端口判重
+// CountForPort 端口判重（同协议+同端口才视为重复，不同协议可共用端口）
 func (table *ProxyBasic) CountForPort() (int64, error) {
 	var cnt int64
 	tx := DB.Model(table)
@@ -62,6 +63,9 @@ func (table *ProxyBasic) CountForPort() (int64, error) {
 	}
 	if table.ListenPort != "" {
 		tx = tx.Where("listen_port = ?", table.ListenPort)
+	}
+	if table.Type != "" {
+		tx = tx.Where("type = ?", table.Type)
 	}
 	err := tx.Count(&cnt).Error
 	return cnt, err

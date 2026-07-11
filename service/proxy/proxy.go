@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/convertutil"
@@ -148,7 +149,7 @@ func normalizeProxyBasic(pb *models.ProxyBasic) {
 
 func isSupportedProxyType(proxyType string) bool {
 	switch proxyType {
-	case models.ProxyTypeTcp, models.ProxyTypeUdp, models.ProxyTypeHttp, models.ProxyTypeSocks5:
+	case models.ProxyTypeTcp, models.ProxyTypeUdp, models.ProxyTypeHttp, models.ProxyTypeSocks5, models.ProxyTypeTcpUdp:
 		return true
 	default:
 		return false
@@ -249,6 +250,11 @@ func sortTasks(tasks []*serve.ProxyTask, field string, order string) {
 				return pi > pj
 			}
 			return pi < pj
+		case "created_at":
+			if order == "descend" {
+				return tasks[i].CreatedAt > tasks[j].CreatedAt
+			}
+			return tasks[i].CreatedAt < tasks[j].CreatedAt
 		default:
 			return false
 		}
@@ -301,6 +307,8 @@ func savePreValid(pb *models.ProxyBasic) error {
 
 // create 创建代理
 func create(pb *models.ProxyBasic) error {
+	pb.CreatedAt = time.Now().UnixMilli()
+
 	// 代理信息校验
 	if err := savePreValid(pb); err != nil {
 		return err
@@ -339,6 +347,13 @@ func Create(c *gin.Context, in *CreateRequest) {
 		util.ResponseError(c, err)
 		return
 	}
+
+	// TCP_UDP 类型：拆分创建 TCP 和 UDP 两条代理
+	if pb.Type == models.ProxyTypeTcpUdp {
+		createTcpUdpProxy(c, pb)
+		return
+	}
+
 	pb.Uuid = idutil.UUIDGenerate()
 	pb.State = models.ProxyStateStopped
 
@@ -350,6 +365,49 @@ func Create(c *gin.Context, in *CreateRequest) {
 	}
 
 	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionCreate, pb.Name, pb.Uuid, fmt.Sprintf("新增代理：%s，类型：%s，监听端口：%s", pb.Name, pb.Type, pb.ListenPort))
+
+	util.ResponseOk(c)
+}
+
+// createTcpUdpProxy 创建 TCP+UDP 双协议代理（拆分为两条记录）
+func createTcpUdpProxy(c *gin.Context, pb *models.ProxyBasic) {
+	baseName := pb.Name
+
+	// 创建 TCP 代理
+	tcpPb := new(models.ProxyBasic)
+	if err := convertutil.CopyProperties(pb, tcpPb); err != nil {
+		logger.Error("[gotool] copy properties error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+	tcpPb.Uuid = idutil.UUIDGenerate()
+	tcpPb.Type = models.ProxyTypeTcp
+	tcpPb.Name = baseName + " (TCP)"
+	tcpPb.State = models.ProxyStateStopped
+	if err := create(tcpPb); err != nil {
+		logger.Error("[sys] tcp proxy basic create error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionCreate, tcpPb.Name, tcpPb.Uuid, fmt.Sprintf("新增代理：%s，类型：%s，监听端口：%s", tcpPb.Name, tcpPb.Type, tcpPb.ListenPort))
+
+	// 创建 UDP 代理
+	udpPb := new(models.ProxyBasic)
+	if err := convertutil.CopyProperties(pb, udpPb); err != nil {
+		logger.Error("[gotool] copy properties error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+	udpPb.Uuid = idutil.UUIDGenerate()
+	udpPb.Type = models.ProxyTypeUdp
+	udpPb.Name = baseName + " (UDP)"
+	udpPb.State = models.ProxyStateStopped
+	if err := create(udpPb); err != nil {
+		logger.Error("[sys] udp proxy basic create error.", zap.Error(err))
+		util.ResponseError(c, err)
+		return
+	}
+	audit.LogWithContext(c, models.AuditModuleProxy, models.AuditActionCreate, udpPb.Name, udpPb.Uuid, fmt.Sprintf("新增代理：%s，类型：%s，监听端口：%s", udpPb.Name, udpPb.Type, udpPb.ListenPort))
 
 	util.ResponseOk(c)
 }

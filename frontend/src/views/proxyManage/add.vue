@@ -26,6 +26,7 @@
         <a-select v-model:value="ruleForm.type" :placeholder="t('proxy.selectProxyType')">
           <a-select-option value="TCP">TCP</a-select-option>
           <a-select-option value="UDP">UDP</a-select-option>
+          <a-select-option value="TCP_UDP">TCP/UDP</a-select-option>
           <a-select-option value="HTTP">HTTP</a-select-option>
           <a-select-option value="SOCKS5">SOCKS5</a-select-option>
         </a-select>

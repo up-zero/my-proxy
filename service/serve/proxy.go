@@ -891,9 +891,9 @@ func (task *ProxyTask) Status() ([]*ProxyTask, error) {
 			list = append(list, value.(*ProxyTask))
 			return true
 		})
-		// 按名称升序
+		// 按创建时间降序
 		sort.Slice(list, func(i, j int) bool {
-			return list[i].Name < list[j].Name
+			return list[i].CreatedAt > list[j].CreatedAt
 		})
 		for _, item := range list {
 			item.TrafficIn = item.bytesIn.Load()
