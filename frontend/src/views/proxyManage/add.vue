@@ -35,13 +35,13 @@
         <a-input v-model:value="ruleForm.listen_address" placeholder="default 0.0.0.0"/>
       </a-form-item>
       <a-form-item ref="listen_port" :label="t('proxy.listenPort')" name="listen_port">
-        <a-input v-model:value="ruleForm.listen_port" />
+        <a-input v-model:value="ruleForm.listen_port" :placeholder="t('proxy.inputListenPort')" />
       </a-form-item>
       <a-form-item v-if="!isSocks5Type" ref="target_address" :label="t('proxy.targetAddress')" name="target_address">
-        <a-input v-model:value="ruleForm.target_address" />
+        <a-input v-model:value="ruleForm.target_address" :placeholder="t('proxy.inputTargetAddress')" />
       </a-form-item>
       <a-form-item v-if="!isSocks5Type" ref="target_port" :label="t('proxy.targetPort')" name="target_port">
-        <a-input v-model:value="ruleForm.target_port" />
+        <a-input v-model:value="ruleForm.target_port" :placeholder="t('proxy.inputTargetPort')" />
       </a-form-item>
       <a-form-item v-if="isSocks5Type" :label="t('proxy.socks5Auth')">
         <span class="form-tip">{{ t("proxy.socks5AuthTip") }}</span>
