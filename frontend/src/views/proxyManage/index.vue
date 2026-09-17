@@ -100,7 +100,8 @@
         <a-table :data-source="quickLinks" :columns="linkColumns" bordered size="middle" :pagination="false">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a-button type="primary" :disabled="record.disabled" @click="openLink(record.url)">{{ record.label }}</a-button>
+              <a-button type="primary" :disabled="record.disabled || launchingUrl === record.url" :loading="launchingUrl === record.url"
+                @click.stop="openLink(record.url, $event)">{{ record.label }}</a-button>
             </template>
           </template>
         </a-table>
@@ -254,9 +255,38 @@ const generateWinScpUrl = (ip: string, port: string) => {
   return `winscp-sftp://${user}@${host}:${port}/`;
 };
 
+// 快捷访问防抖：避免重复点击或按钮焦点残留按键导致重复唤起本机应用
+const launchingUrl = ref("");
+let launcherFrame: HTMLIFrameElement | null = null;
+
 // 打开链接
-const openLink = (url: string) => {
-  window.open(url, "_blank");
+const openLink = (url: string, event?: MouseEvent) => {
+  // 冷却期内忽略重复触发，防止重复弹出系统“打开应用”确认框
+  if (!url || launchingUrl.value) return;
+
+  // 点击后立即取消按钮焦点，避免后续按 Enter/Space 再次触发点击
+  (event?.currentTarget as HTMLElement | null)?.blur();
+
+  launchingUrl.value = url;
+  window.setTimeout(() => {
+    if (launchingUrl.value === url) {
+      launchingUrl.value = "";
+    }
+  }, 3000);
+
+  // http(s) 链接：新标签页打开
+  if (/^https?:/i.test(url)) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  // 自定义协议（mobaxterm: / winscp-sftp:）：改用隐藏 iframe 唤起本机应用，
+  // 避免 window.open 打开空白标签页、以及被浏览器排队后延迟重复弹出确认框
+  launcherFrame?.remove();
+  launcherFrame = document.createElement("iframe");
+  launcherFrame.style.cssText = "display:none;width:0;height:0;border:0;";
+  launcherFrame.src = url;
+  document.body.appendChild(launcherFrame);
 };
 
 // 显示快捷访问弹窗
