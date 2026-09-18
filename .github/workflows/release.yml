@@ -1,0 +1,52 @@
+name: Release
+
+# 推送 v* 标签（如 v1.2.0）时自动构建多平台产物，
+# 并创建包含构建产物与自动生成说明的草稿 Release。
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build artifacts and create draft release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build release artifacts
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          bash scripts/build-release.sh --version "$VERSION" --tag "$GITHUB_REF_NAME" --clean
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/release/${{ github.ref_name }}/my-proxy-*.tar.gz
+            dist/release/${{ github.ref_name }}/my-proxy-*.zip
+            dist/release/${{ github.ref_name }}/checksums.txt
