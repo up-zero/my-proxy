@@ -46,6 +46,8 @@ func router() *gin.Engine {
 
 	// 详细信息
 	api.POST("/info", info.Info)
+	// 登录密码加密公钥
+	api.GET("/public-key", user.PublicKey)
 	// 登录
 	api.POST("/login", BindH(user.Login))
 	// 刷新token

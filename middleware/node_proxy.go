@@ -18,6 +18,7 @@ import (
 // 不应被代理转发的路径前缀（始终由主节点本地处理）
 var localOnlyPathPrefixes = []string{
 	"/api/v1/login",
+	"/api/v1/public-key",
 	"/api/v1/refresh/token",
 	"/api/v1/edit/password",
 	"/api/v1/node/",

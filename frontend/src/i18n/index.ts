@@ -94,6 +94,7 @@ const messages: Record<AppLocale, MessageTree> = {
       pleaseInputUsername: "请输入账号",
       pleaseInputPassword: "请输入密码",
       loginRequired: "请登录!",
+      encryptFailed: "密码加密失败，请刷新页面后重试",
     },
     branding: {
       loginTitle: "My Proxy",
@@ -538,6 +539,7 @@ const messages: Record<AppLocale, MessageTree> = {
       pleaseInputUsername: "Please enter username",
       pleaseInputPassword: "Please enter password",
       loginRequired: "Please sign in!",
+      encryptFailed: "Failed to encrypt the password. Please refresh and try again.",
     },
     branding: {
       loginTitle: "My Proxy",

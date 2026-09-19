@@ -18,6 +18,14 @@ import (
 
 // Login 用户登录
 func Login(c *gin.Context, in *LoginRequest) {
+	// 密码解密（前端 RSA 加密后传输，仅接受密文）
+	password, err := util.RSADecrypt(in.Password)
+	if err != nil {
+		logger.Warn("[auth] decrypt login password error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErr, util.MsgErrUsernameOrPassword)
+		return
+	}
+	in.Password = password
 	// 用户鉴权
 	uc := new(util.UserClaim)
 	ub := &models.UserBasic{Username: in.Username, Password: in.Password}
@@ -154,6 +162,17 @@ func getTokenExpireAt(days int) int64 {
 		return 0
 	}
 	return time.Now().Add(time.Duration(days) * 24 * time.Hour).Unix()
+}
+
+// PublicKey 获取登录密码加密公钥
+func PublicKey(c *gin.Context) {
+	publicKey, err := util.RSAPublicKeyPEM()
+	if err != nil {
+		logger.Error("[crypto] generate rsa public key error.", zap.Error(err))
+		util.ResponseMsg(c, util.CodeErr, util.MsgErr)
+		return
+	}
+	util.ResponseOkWithData(c, &PublicKeyResponse{PublicKey: publicKey})
 }
 
 // EditPassword 修改密码

@@ -1,10 +1,13 @@
 import request from "../lib/request";
+import { encryptPassword } from "../lib/crypto";
 
-export function login(data: any) {
+export async function login(data: any) {
+  // 密码 RSA 加密后传输（后端仅接受密文）
+  const password = await encryptPassword(data?.password ?? "");
   return request({
     url: "/v1/login",
     method: "post",
-    data,
+    data: { ...data, password },
   });
 }
 

@@ -4,7 +4,11 @@ import "github.com/up-zero/my-proxy/models"
 
 type LoginRequest struct {
 	Username string `json:"username"` // 用户名
-	Password string `json:"password"` // 密码
+	Password string `json:"password"` // 密码（RSA 加密后的 base64 密文，必填）
+}
+
+type PublicKeyResponse struct {
+	PublicKey string `json:"public_key"` // RSA 公钥（PEM 格式）
 }
 
 type LoginResponse struct {
