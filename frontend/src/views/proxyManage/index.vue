@@ -57,22 +57,40 @@
           <a @click="showQuickAccessModal(record)" class="port-link single-line-text">{{ record.listen_port }}</a>
         </template>
         <template v-else-if="column.key === 'operation'">
-          <div class="operation-actions">
-            <a-popconfirm v-if="state.list.length" :title="t('proxy.confirmDelete')" @confirm="delItem(record)">
-              <a-button type="link" danger>{{ t("proxy.actionDelete") }}</a-button>
-            </a-popconfirm>
-            <a-button type="link" @click="editItem(record)">{{ t("proxy.actionEdit") }}</a-button>
-            <a-popconfirm v-if="record.state === 'STOPPED'" :title="t('proxy.confirmStart')" @confirm="startItem(record)">
-              <a-button type="link">{{ t("proxy.actionStart") }}</a-button>
-            </a-popconfirm>
-            <a-popconfirm v-if="record.state === 'RUNNING'" :title="t('proxy.confirmStop')" @confirm="stopItem(record)">
-              <a-button type="link">{{ t("proxy.actionStop") }}</a-button>
-            </a-popconfirm>
-            <a-popconfirm v-if="state.list.length" :title="t('proxy.confirmRestart')" @confirm="restartItem(record)">
-              <a-button type="link">{{ t("proxy.actionRestart") }}</a-button>
-            </a-popconfirm>
-            <a-button type="link" :disabled="record.state !== 'RUNNING'" @click="captureItem(record)">{{ t("proxy.actionCapture") }}</a-button>
-          </div>
+          <a-dropdown :trigger="['click']" placement="bottomRight">
+            <a-button type="link" class="operation-more-btn">
+              {{ t("common.operation") }}<down-outlined />
+            </a-button>
+            <template #overlay>
+              <a-menu @click="onOperationMenuClick(record, $event)">
+                <a-menu-item key="edit">
+                  <template #icon><edit-outlined /></template>
+                  {{ t("proxy.actionEdit") }}
+                </a-menu-item>
+                <a-menu-item v-if="record.state === 'STOPPED'" key="start">
+                  <template #icon><play-circle-outlined /></template>
+                  {{ t("proxy.actionStart") }}
+                </a-menu-item>
+                <a-menu-item v-if="record.state === 'RUNNING'" key="stop">
+                  <template #icon><pause-circle-outlined /></template>
+                  {{ t("proxy.actionStop") }}
+                </a-menu-item>
+                <a-menu-item key="restart">
+                  <template #icon><reload-outlined /></template>
+                  {{ t("proxy.actionRestart") }}
+                </a-menu-item>
+                <a-menu-item key="capture" :disabled="record.state !== 'RUNNING'">
+                  <template #icon><camera-outlined /></template>
+                  {{ t("proxy.actionCapture") }}
+                </a-menu-item>
+                <a-menu-divider />
+                <a-menu-item key="delete" danger>
+                  <template #icon><delete-outlined /></template>
+                  {{ t("proxy.actionDelete") }}
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
         </template>
       </template>
     </a-table>
@@ -125,7 +143,17 @@ import {
 } from "@/api/proxy";
 import { getTagList } from "@/api/tag";
 import addBox from "./add.vue";
-import { ExclamationCircleOutlined, InfoCircleOutlined } from "@ant-design/icons-vue";
+import {
+  CameraOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons-vue";
 import { message, Modal } from "ant-design-vue";
 import { createVNode, onMounted, reactive, ref, computed } from "vue";
 import { downloadJson } from "@/lib/download";
@@ -412,7 +440,7 @@ const columns = computed(() => {
       title: t("common.operation"),
       dataIndex: "operation",
       key: "operation",
-      width: 260,
+      width: 110,
       // slots: { customRender: "operation" },
     },
   ];
@@ -539,6 +567,42 @@ const delBatch = () => {
       console.log("Cancel");
     },
   });
+};
+
+// 操作二次确认弹窗
+const confirmAction = (title: string, onOk: () => void, danger = false) => {
+  Modal.confirm({
+    title: () => title,
+    icon: danger ? () => createVNode(ExclamationCircleOutlined) : undefined,
+    okText: () => t("common.confirm"),
+    okType: danger ? "danger" : "primary",
+    cancelText: () => t("common.cancel"),
+    onOk,
+  });
+};
+
+// 操作列下拉菜单点击
+const onOperationMenuClick = (record: any, { key }: any) => {
+  switch (key) {
+    case "edit":
+      editItem(record);
+      break;
+    case "start":
+      confirmAction(t("proxy.confirmStart"), () => startItem(record));
+      break;
+    case "stop":
+      confirmAction(t("proxy.confirmStop"), () => stopItem(record));
+      break;
+    case "restart":
+      confirmAction(t("proxy.confirmRestart"), () => restartItem(record));
+      break;
+    case "capture":
+      captureItem(record);
+      break;
+    case "delete":
+      confirmAction(t("proxy.confirmDelete"), () => delItem(record), true);
+      break;
+  }
 };
 </script>
 
@@ -673,14 +737,12 @@ const delBatch = () => {
     white-space: nowrap;
   }
 
-  .operation-actions {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
+  .operation-more-btn {
+    padding-inline: 0;
 
-    :deep(.ant-btn) {
-      padding-inline: 8px;
-      white-space: nowrap;
+    :deep(.anticon) {
+      margin-inline-start: 4px;
+      font-size: 10px;
     }
   }
 
