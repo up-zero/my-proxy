@@ -22,7 +22,7 @@
     </a-form>
 
     <!-- 表格 -->
-    <a-table :scroll="{ x: 1560, y: 'calc(100vh - 320px)' }" :dataSource="state.list" :columns="columns" bordered
+    <a-table :scroll="{ y: 'calc(100vh - 320px)' }" :dataSource="state.list" :columns="columns" bordered
       table-layout="fixed"
       :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
         selectedRowKeys: selectedRowKeys,
@@ -664,26 +664,6 @@ const onOperationMenuClick = (record: any, { key }: any) => {
   .m-table :deep(.ant-table-thead > tr > th) {
     padding-top: 12px;
     padding-bottom: 12px;
-  }
-
-  .m-table :deep(.ant-table-body) {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(128, 128, 128, 0.3);
-      border-radius: 3px;
-    }
-    &::-webkit-scrollbar-thumb:hover {
-      background: rgba(128, 128, 128, 0.5);
-    }
   }
 
   .mr-2 {
