@@ -107,7 +107,10 @@ const formSize = ref("default");
 const ruleFormRef = ref();
 const ruleForm = ref<RuleForm>(createForm());
 const tagList = ref([] as any[]);
-const modalTitle = computed(() => (ruleForm.value.uuid ? t("proxy.editProxy") : t("proxy.addProxy")));
+const isCopy = ref(false);
+const modalTitle = computed(() =>
+  isCopy.value ? t("proxy.copyProxy") : ruleForm.value.uuid ? t("proxy.editProxy") : t("proxy.addProxy")
+);
 const isSocks5Type = computed(() => ruleForm.value.type === "SOCKS5");
 
 const rules = computed(() => ({
@@ -180,10 +183,17 @@ const cancel = () => {
 
 const showbox = ref(false);
 
-const init = async (row?: RuleForm) => {
+// init 初始化弹窗；copy=true 为复制模式：带出当前配置但不携带 uuid，保存时调用新增接口
+const init = async (row?: RuleForm, copy = false) => {
   await loadTags();
+  isCopy.value = !!row && copy;
   if (row) {
-    ruleForm.value = { ...createForm(), ...row, tag_uuid_list: row.tag_uuid_list || [] };
+    ruleForm.value = {
+      ...createForm(),
+      ...row,
+      uuid: isCopy.value ? "" : row.uuid,
+      tag_uuid_list: row.tag_uuid_list || [],
+    };
   } else {
     ruleForm.value = createForm();
   }

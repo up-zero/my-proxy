@@ -67,6 +67,10 @@
                   <template #icon><edit-outlined /></template>
                   {{ t("proxy.actionEdit") }}
                 </a-menu-item>
+                <a-menu-item key="copy">
+                  <template #icon><copy-outlined /></template>
+                  {{ t("proxy.actionCopy") }}
+                </a-menu-item>
                 <a-menu-item v-if="record.state === 'STOPPED'" key="start">
                   <template #icon><play-circle-outlined /></template>
                   {{ t("proxy.actionStart") }}
@@ -145,6 +149,7 @@ import { getTagList } from "@/api/tag";
 import addBox from "./add.vue";
 import {
   CameraOutlined,
+  CopyOutlined,
   DeleteOutlined,
   DownOutlined,
   EditOutlined,
@@ -478,6 +483,10 @@ function toAddPage() {
 function editItem(row: DataItem) {
   addBoxRef.value.init(row);
 }
+//  复制：带出当前代理配置，保存时调用新增接口
+function copyItem(row: DataItem) {
+  addBoxRef.value.init(row, true);
+}
 
 // 删除
 const delItem = (row: DataItem) => {
@@ -586,6 +595,9 @@ const onOperationMenuClick = (record: any, { key }: any) => {
   switch (key) {
     case "edit":
       editItem(record);
+      break;
+    case "copy":
+      copyItem(record);
       break;
     case "start":
       confirmAction(t("proxy.confirmStart"), () => startItem(record));

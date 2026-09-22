@@ -148,6 +148,7 @@ const messages: Record<AppLocale, MessageTree> = {
     proxy: {
       addProxy: "添加代理",
       editProxy: "编辑代理",
+      copyProxy: "复制代理",
       proxyName: "代理名称",
       inputProxyName: "请输入代理名称",
       tags: "标签",
@@ -179,6 +180,7 @@ const messages: Record<AppLocale, MessageTree> = {
       deleteSelectedConfirm: "确定要删除选中的项？",
       actionDelete: "删除",
       actionEdit: "编辑",
+      actionCopy: "复制",
       actionStart: "启动",
       actionStop: "停止",
       actionRestart: "重启",
@@ -593,6 +595,7 @@ const messages: Record<AppLocale, MessageTree> = {
     proxy: {
       addProxy: "Add Proxy",
       editProxy: "Edit Proxy",
+      copyProxy: "Copy Proxy",
       proxyName: "Proxy Name",
       inputProxyName: "Enter proxy name",
       tags: "Tags",
@@ -624,6 +627,7 @@ const messages: Record<AppLocale, MessageTree> = {
       deleteSelectedConfirm: "Delete selected items?",
       actionDelete: "Delete",
       actionEdit: "Edit",
+      actionCopy: "Copy",
       actionStart: "Start",
       actionStop: "Stop",
       actionRestart: "Restart",
