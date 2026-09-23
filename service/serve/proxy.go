@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/subtle"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -11,8 +13,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -416,40 +418,29 @@ func buildSocks5Reply(reply byte, addr net.Addr) []byte {
 	return resp
 }
 
+// startHttp 启动 HTTP 动态代理
+//
+// 客户端将代理地址配置为 HTTP 代理后，可动态访问任意目标地址：
+//   - 普通 HTTP 请求：解析请求行中的绝对地址后转发（如 GET http://example.com/ HTTP/1.1）
+//   - HTTPS 请求：通过 CONNECT 方法建立隧道转发
+//   - WebSocket 等协议升级：透传 101 Switching Protocols，并桥接双向数据
 func (task *ProxyTask) startHttp() error {
-	scheme := "http"
-	if task.TargetPort == "443" {
-		scheme = "https"
+	transport := &http.Transport{
+		// 代理直连目标，不使用系统环境变量中的代理配置
+		Proxy:                 nil,
+		DialContext:           (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          256,
+		MaxIdleConnsPerHost:   32,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
-	targetURLStr := fmt.Sprintf("%s://%s", scheme, task.TargetAddress)
-	// 仅在端口不是协议默认端口时才追加端口号
-	if task.TargetPort != "" {
-		if (scheme == "https" && task.TargetPort != "443") || (scheme == "http" && task.TargetPort != "80") {
-			targetURLStr += ":" + task.TargetPort
-		}
-	}
-
-	targetURL, err := url.Parse(targetURLStr)
-	if err != nil {
-		logger.Error("[sys] reverse proxy invalid target URL", zap.String("url", targetURLStr), zap.Error(err))
-		return err
-	}
-
-	// 创建一个反向代理处理器
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-	// 修改Host头
-	director := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		director(req)
-		req.Host = targetURL.Host
-	}
-
-	// HTTP 中间件
-	handler := task.httpMiddleware(proxy)
+	task.httpTransport = transport
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort(task.ListenAddress, task.ListenPort),
-		Handler: handler, // 将处理器设置为 http middleware
+		Handler: http.HandlerFunc(task.handleHttpProxy),
 	}
 	task.httpServer = server
 	task.State = models.ProxyStateRunning
@@ -457,41 +448,305 @@ func (task *ProxyTask) startHttp() error {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("[sys] reverse http proxy ListenAndServe error", zap.Error(err))
+			logger.Error("[sys] http proxy ListenAndServe error", zap.Error(err))
 		}
 	}()
 
 	return nil
 }
 
-func (task *ProxyTask) httpMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		isCapturing := task.capture.IsCapturing(task.Uuid)
-		task.httpActive.Add(1)
-		defer task.httpActive.Add(-1)
+// handleHttpProxy HTTP 动态代理入口
+func (task *ProxyTask) handleHttpProxy(w http.ResponseWriter, r *http.Request) {
+	// 认证校验（可选）
+	if !task.checkHttpProxyAuth(r) {
+		w.Header().Set("Proxy-Authenticate", `Basic realm="my-proxy"`)
+		http.Error(w, "Proxy Authentication Required", http.StatusProxyAuthRequired)
+		return
+	}
 
-		// 抓包请求头（入站）
-		if isCapturing {
-			if dump, err := httputil.DumpRequest(r, false); err == nil {
-				task.capture.Publish(task.Uuid, "IN", models.ProxyTypeHttp, dump)
+	isCapturing := task.capture.IsCapturing(task.Uuid)
+	task.httpActive.Add(1)
+	defer task.httpActive.Add(-1)
+
+	if r.Method == http.MethodConnect {
+		task.handleHttpConnect(w, r, isCapturing)
+		return
+	}
+	task.handleHttpForward(w, r, isCapturing)
+}
+
+// checkHttpProxyAuth 校验 HTTP 代理认证信息（Basic 认证）
+func (task *ProxyTask) checkHttpProxyAuth(r *http.Request) bool {
+	if task.HttpUsername == "" && task.HttpPassword == "" {
+		return true
+	}
+	const prefix = "Basic "
+	auth := r.Header.Get("Proxy-Authorization")
+	if len(auth) <= len(prefix) || !strings.EqualFold(auth[:len(prefix)], prefix) {
+		return false
+	}
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(auth[len(prefix):]))
+	if err != nil {
+		return false
+	}
+	username, password, ok := strings.Cut(string(decoded), ":")
+	if !ok {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(username), []byte(task.HttpUsername)) == 1 &&
+		subtle.ConstantTimeCompare([]byte(password), []byte(task.HttpPassword)) == 1
+}
+
+// handleHttpConnect 处理 CONNECT 请求（HTTPS 隧道）
+func (task *ProxyTask) handleHttpConnect(w http.ResponseWriter, r *http.Request, isCapturing bool) {
+	// 目标地址，未显式指定端口时默认 443
+	targetAddr := r.Host
+	if targetAddr == "" {
+		targetAddr = r.URL.Host
+	}
+	if _, _, err := net.SplitHostPort(targetAddr); err != nil {
+		targetAddr = net.JoinHostPort(targetAddr, "443")
+	}
+
+	if isCapturing {
+		if dump, err := httputil.DumpRequest(r, false); err == nil {
+			task.capture.Publish(task.Uuid, "IN", models.ProxyTypeHttp, dump)
+		}
+	}
+
+	targetConn, err := net.DialTimeout("tcp", targetAddr, 10*time.Second)
+	if err != nil {
+		logger.Error("[sys] http connect target error", zap.String("target", targetAddr), zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer targetConn.Close()
+
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "hijacking not supported", http.StatusInternalServerError)
+		return
+	}
+	clientConn, buf, err := hijacker.Hijack()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	task.registerTcpConn(clientConn)
+	defer task.unregisterTcpConn(clientConn)
+	if buf != nil {
+		clientConn = &bufferedConn{Conn: clientConn, r: buf.Reader}
+	}
+
+	resp := []byte("HTTP/1.1 200 Connection Established\r\n\r\n")
+	if _, err := clientConn.Write(resp); err != nil {
+		return
+	}
+	task.recordPayload(&task.bytesOut, "OUT", models.ProxyTypeHttp, resp)
+
+	// 隧道数据双向转发
+	done := make(chan struct{}, 2)
+	go task.copyData(targetConn, clientConn, &task.bytesIn, "IN", models.ProxyTypeHttp, done)
+	go task.copyData(clientConn, targetConn, &task.bytesOut, "OUT", models.ProxyTypeHttp, done)
+	<-done
+}
+
+// handleHttpForward 转发普通 HTTP 请求（动态目标）
+func (task *ProxyTask) handleHttpForward(w http.ResponseWriter, r *http.Request, isCapturing bool) {
+	// 动态代理要求请求行为绝对地址
+	if r.URL == nil || r.URL.Host == "" {
+		http.Error(w, "this is an HTTP dynamic proxy, the request url must be absolute", http.StatusBadRequest)
+		return
+	}
+
+	if isCapturing {
+		if dump, err := httputil.DumpRequest(r, false); err == nil {
+			task.capture.Publish(task.Uuid, "IN", models.ProxyTypeHttp, dump)
+		}
+	}
+
+	outReq := r.Clone(r.Context())
+	outReq.RequestURI = ""
+	outReq.Close = false
+	// 协议升级（WebSocket 等）需要保留 Upgrade 相关头部
+	upgradeProtocol := r.Header.Get("Upgrade")
+	isUpgrade := upgradeProtocol != "" && headerValuesContainsToken(r.Header.Values("Connection"), "upgrade")
+	removeHopByHopHeaders(outReq.Header)
+	if isUpgrade {
+		outReq.Header.Set("Connection", "Upgrade")
+		outReq.Header.Set("Upgrade", upgradeProtocol)
+	}
+
+	// 包装 r.Body 并拦截数据流
+	if r.Body != nil {
+		outReq.Body = &httpReadCloser{
+			rc:          r.Body,
+			task:        task,
+			isCapturing: isCapturing,
+		}
+	}
+
+	resp, err := task.httpTransport.RoundTrip(outReq)
+	if err != nil {
+		logger.Error("[sys] http proxy round trip error", zap.String("target", outReq.URL.String()), zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// 协议升级：将客户端连接与目标连接桥接
+	if resp.StatusCode == http.StatusSwitchingProtocols {
+		task.handleHttpUpgrade(w, resp, isCapturing)
+		return
+	}
+
+	removeHopByHopHeaders(resp.Header)
+	copyHeader(w.Header(), resp.Header)
+	task.publishHttpResponseHeader(resp.StatusCode, w.Header(), isCapturing)
+	w.WriteHeader(resp.StatusCode)
+
+	writer := &httpCountingWriter{
+		w:    w,
+		task: task,
+	}
+	// 流式响应（Content-Length 未知）实时写出，避免缓冲导致客户端等待
+	if resp.ContentLength < 0 {
+		if flusher, ok := w.(http.Flusher); ok {
+			writer.flusher = flusher
+		}
+	}
+	if _, err := io.Copy(writer, resp.Body); err != nil {
+		logger.Error("[sys] http proxy copy response body error", zap.String("target", outReq.URL.String()), zap.Error(err))
+	}
+}
+
+// handleHttpUpgrade 处理协议升级（WebSocket 等），桥接客户端与目标连接
+func (task *ProxyTask) handleHttpUpgrade(w http.ResponseWriter, resp *http.Response, isCapturing bool) {
+	upgradedConn, ok := resp.Body.(io.ReadWriteCloser)
+	if !ok {
+		http.Error(w, "target response does not support protocol upgrade", http.StatusBadGateway)
+		return
+	}
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "hijacking not supported", http.StatusInternalServerError)
+		return
+	}
+	clientConn, buf, err := hijacker.Hijack()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	task.registerTcpConn(clientConn)
+	defer task.unregisterTcpConn(clientConn)
+	if buf != nil {
+		clientConn = &bufferedConn{Conn: clientConn, r: buf.Reader}
+	}
+
+	// 回写 101 响应
+	var respBuf bytes.Buffer
+	fmt.Fprintf(&respBuf, "HTTP/1.1 %d %s\r\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+	resp.Header.Write(&respBuf)
+	respBuf.WriteString("\r\n")
+	if _, err := clientConn.Write(respBuf.Bytes()); err != nil {
+		return
+	}
+	if isCapturing {
+		task.capture.Publish(task.Uuid, "OUT", models.ProxyTypeHttp, respBuf.Bytes())
+	}
+
+	// 双向桥接
+	done := make(chan struct{}, 2)
+	go task.copyData(upgradedConn, clientConn, &task.bytesIn, "IN", models.ProxyTypeHttp, done)
+	go task.copyData(clientConn, upgradedConn, &task.bytesOut, "OUT", models.ProxyTypeHttp, done)
+	<-done
+}
+
+// publishHttpResponseHeader 抓包响应头（出站）
+func (task *ProxyTask) publishHttpResponseHeader(statusCode int, header http.Header, isCapturing bool) {
+	if !isCapturing {
+		return
+	}
+	var headerBuf bytes.Buffer
+	// 状态行
+	fmt.Fprintf(&headerBuf, "HTTP/1.1 %d %s\r\n", statusCode, http.StatusText(statusCode))
+	header.Write(&headerBuf)
+	headerBuf.WriteString("\r\n") // 头部结束
+
+	task.capture.Publish(task.Uuid, "OUT", models.ProxyTypeHttp, headerBuf.Bytes())
+}
+
+// headerValuesContainsToken 判断头部值中是否包含指定 token（大小写不敏感）
+func headerValuesContainsToken(values []string, token string) bool {
+	for _, value := range values {
+		for _, item := range strings.Split(value, ",") {
+			if strings.EqualFold(strings.TrimSpace(item), token) {
+				return true
 			}
 		}
+	}
+	return false
+}
 
-		// 包装 r.Body 并拦截数据流
-		if r.Body != nil {
-			r.Body = &httpReadCloser{
-				rc:          r.Body,
-				task:        task,
-				isCapturing: isCapturing,
+// removeHopByHopHeaders 移除逐跳头部（RFC 7230 6.1）
+func removeHopByHopHeaders(header http.Header) {
+	for _, value := range header.Values("Connection") {
+		for _, name := range strings.Split(value, ",") {
+			if name = strings.TrimSpace(name); name != "" {
+				header.Del(name)
 			}
 		}
+	}
+	for _, name := range []string{
+		"Connection",
+		"Proxy-Connection",
+		"Keep-Alive",
+		"Proxy-Authenticate",
+		"Proxy-Authorization",
+		"Te",
+		"Trailer",
+		"Transfer-Encoding",
+		"Upgrade",
+	} {
+		header.Del(name)
+	}
+}
 
-		next.ServeHTTP(&httpResponseWriter{
-			ResponseWriter: w,
-			task:           task,
-			isCapturing:    isCapturing,
-		}, r)
-	})
+// copyHeader 复制头部
+func copyHeader(dst, src http.Header) {
+	for key, values := range src {
+		for _, value := range values {
+			dst.Add(key, value)
+		}
+	}
+}
+
+// bufferedConn 包装连接，优先消费 Hijack 缓冲区中已缓存的数据，避免隧道/升级时丢包
+type bufferedConn struct {
+	net.Conn
+	r *bufio.Reader
+}
+
+func (c *bufferedConn) Read(p []byte) (int, error) {
+	return c.r.Read(p)
+}
+
+// httpCountingWriter 响应体写出包装：统计出站流量并抓包
+type httpCountingWriter struct {
+	w       io.Writer
+	task    *ProxyTask
+	flusher http.Flusher
+}
+
+func (w *httpCountingWriter) Write(p []byte) (int, error) {
+	n, err := w.w.Write(p)
+	if n > 0 {
+		w.task.recordPayload(&w.task.bytesOut, "OUT", models.ProxyTypeHttp, p[:n])
+		if w.flusher != nil {
+			w.flusher.Flush()
+		}
+	}
+	return n, err
 }
 
 type httpReadCloser struct {
@@ -516,70 +771,6 @@ func (r *httpReadCloser) Read(p []byte) (int, error) {
 
 func (r *httpReadCloser) Close() error {
 	return r.rc.Close()
-}
-
-type httpResponseWriter struct {
-	http.ResponseWriter
-	task        *ProxyTask
-	isCapturing bool
-	headersSent bool
-	statusCode  int
-}
-
-func (w *httpResponseWriter) WriteHeader(statusCode int) {
-	if w.headersSent {
-		return
-	}
-	w.headersSent = true
-	w.statusCode = statusCode
-
-	if w.isCapturing {
-		var headerBuf bytes.Buffer
-		// 状态行
-		fmt.Fprintf(&headerBuf, "HTTP/1.1 %d %s\r\n", statusCode, http.StatusText(statusCode))
-		w.Header().Write(&headerBuf)
-		headerBuf.WriteString("\r\n") // 头部结束
-
-		w.task.capture.Publish(w.task.Uuid, "OUT", models.ProxyTypeHttp, headerBuf.Bytes())
-	}
-
-	w.ResponseWriter.WriteHeader(statusCode)
-}
-
-func (w *httpResponseWriter) Write(b []byte) (int, error) {
-	if !w.headersSent {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	n, err := w.ResponseWriter.Write(b)
-	if n > 0 {
-		// 统计（出站）
-		w.task.bytesOut.Add(int64(n))
-		w.task.applyTrafficPolicy("OUT", int64(n))
-
-		// 抓包（出站）
-		if w.isCapturing {
-			w.task.capture.Publish(w.task.Uuid, "OUT", models.ProxyTypeHttp, b[:n])
-		}
-	}
-	return n, err
-}
-
-// Flush 流式输出
-func (w *httpResponseWriter) Flush() {
-	if f, ok := w.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
-	}
-}
-
-// Hijack 处理器接管底层连接，用于 WebSocket、协议升级、低级连接等
-func (w *httpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	h, ok := w.ResponseWriter.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf("ResponseWriter does not implement Hijacker: %T", w.ResponseWriter)
-	}
-	w.headersSent = true
-	return h.Hijack()
 }
 
 func (task *ProxyTask) recordPayload(counter *atomic.Int64, direction string, protocol string, payload []byte) {
@@ -610,12 +801,13 @@ func (task *ProxyTask) applyTrafficPolicy(direction string, bytes int64) {
 //
 // # Params:
 //
-//	dst: 目标连接
-//	src: 源连接
+//	dst: 目标写入
+//	src: 源读取
 //	counter: 计数器
 //	direction: 数据方向，IN-入站 OUT-出站
+//	protocol: 协议类型
 //	done: 完成信号
-func (task *ProxyTask) copyData(dst, src net.Conn, counter *atomic.Int64, direction string, protocol string, done chan struct{}) {
+func (task *ProxyTask) copyData(dst io.Writer, src io.Reader, counter *atomic.Int64, direction string, protocol string, done chan struct{}) {
 	defer func() {
 		select {
 		case done <- struct{}{}:
@@ -853,17 +1045,28 @@ func (task *ProxyTask) stopUdp() error {
 }
 
 func (task *ProxyTask) stopHttpProxy() error {
+	// 发送停止信号
 	close(task.stopChan)
+	// 关闭空闲连接
+	if task.httpTransport != nil {
+		task.httpTransport.CloseIdleConnections()
+	}
+	var err error
 	if task.httpServer != nil {
 		// 优雅关闭
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := task.httpServer.Shutdown(ctx); err != nil {
-			logger.Error("[sys] reverse http proxy shutdown error", zap.Error(err))
-			return err
+		if err = task.httpServer.Shutdown(ctx); err != nil {
+			logger.Error("[sys] http proxy shutdown error", zap.Error(err))
 		}
 	}
-	return nil
+	// 关闭已建立的隧道连接（CONNECT、协议升级）
+	task.mu.Lock()
+	for conn := range task.tcpActiveConn {
+		conn.Close()
+	}
+	task.mu.Unlock()
+	return err
 }
 
 // Restart 重启任务

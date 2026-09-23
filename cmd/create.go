@@ -6,6 +6,8 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/up-zero/gotool/convertutil"
@@ -40,9 +42,10 @@ var createCmd = &cobra.Command{
 			pb.Name = args[0]
 		}
 
-		// 代理配置完整，直接创建
+		// 代理配置完整，直接创建（SOCKS5、HTTP 为动态代理，无需目标地址和端口）
+		dynamicType := strings.EqualFold(pb.Type, models.ProxyTypeSocks5) || strings.EqualFold(pb.Type, models.ProxyTypeHttp)
 		if pb.Name != "" && pb.Type != "" && pb.ListenPort != "" &&
-			pb.TargetAddress != "" && pb.TargetPort != "" {
+			(dynamicType || (pb.TargetAddress != "" && pb.TargetPort != "")) {
 			req := new(proxy.CreateRequest)
 			convertutil.CopyProperties(pb, req)
 			if err := proxyClient.Create(req); err != nil {

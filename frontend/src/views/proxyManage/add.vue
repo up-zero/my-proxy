@@ -37,10 +37,10 @@
       <a-form-item ref="listen_port" :label="t('proxy.listenPort')" name="listen_port">
         <a-input v-model:value="ruleForm.listen_port" :placeholder="t('proxy.inputListenPort')" />
       </a-form-item>
-      <a-form-item v-if="!isSocks5Type" ref="target_address" :label="t('proxy.targetAddress')" name="target_address">
+      <a-form-item v-if="!isDynamicType" ref="target_address" :label="t('proxy.targetAddress')" name="target_address">
         <a-input v-model:value="ruleForm.target_address" :placeholder="t('proxy.inputTargetAddress')" />
       </a-form-item>
-      <a-form-item v-if="!isSocks5Type" ref="target_port" :label="t('proxy.targetPort')" name="target_port">
+      <a-form-item v-if="!isDynamicType" ref="target_port" :label="t('proxy.targetPort')" name="target_port">
         <a-input v-model:value="ruleForm.target_port" :placeholder="t('proxy.inputTargetPort')" />
       </a-form-item>
       <a-form-item v-if="isSocks5Type" :label="t('proxy.socks5Auth')">
@@ -54,6 +54,18 @@
       </a-form-item>
       <a-form-item v-if="isSocks5Type" :label="t('proxy.description')">
         <span class="form-tip">{{ t("proxy.socks5Tip") }}</span>
+      </a-form-item>
+      <a-form-item v-if="isHttpType" :label="t('proxy.httpAuth')">
+        <span class="form-tip">{{ t("proxy.httpAuthTip") }}</span>
+      </a-form-item>
+      <a-form-item v-if="isHttpType" :label="t('proxy.httpUsername')" name="http_username">
+        <a-input v-model:value="ruleForm.http_username" :placeholder="t('proxy.inputHttpUsername')" />
+      </a-form-item>
+      <a-form-item v-if="isHttpType" :label="t('proxy.httpPassword')" name="http_password">
+        <a-input-password v-model:value="ruleForm.http_password" :placeholder="t('proxy.inputHttpPassword')" />
+      </a-form-item>
+      <a-form-item v-if="isHttpType" :label="t('proxy.description')">
+        <span class="form-tip">{{ t("proxy.httpTip") }}</span>
       </a-form-item>
     </a-form>
     <template #footer>
@@ -84,6 +96,8 @@ interface RuleForm {
   target_port: string;
   socks5_username: string;
   socks5_password: string;
+  http_username: string;
+  http_password: string;
   state?: any;
 }
 
@@ -101,6 +115,8 @@ const createForm = (): RuleForm => ({
   target_port: "",
   socks5_username: "",
   socks5_password: "",
+  http_username: "",
+  http_password: "",
 });
 
 const formSize = ref("default");
@@ -112,12 +128,15 @@ const modalTitle = computed(() =>
   isCopy.value ? t("proxy.copyProxy") : ruleForm.value.uuid ? t("proxy.editProxy") : t("proxy.addProxy")
 );
 const isSocks5Type = computed(() => ruleForm.value.type === "SOCKS5");
+const isHttpType = computed(() => ruleForm.value.type === "HTTP");
+// 动态代理（SOCKS5、HTTP）：无需配置目标地址和目标端口
+const isDynamicType = computed(() => isSocks5Type.value || isHttpType.value);
 
 const rules = computed(() => ({
   name: [{ required: true, message: t("password.pleaseInput"), trigger: "blur" }],
   listen_port: [{ required: true, message: t("password.pleaseInput"), trigger: "blur" }],
-  target_address: isSocks5Type.value ? [] : [{ required: true, message: t("password.pleaseInput"), trigger: "blur" }],
-  target_port: isSocks5Type.value ? [] : [{ required: true, message: t("password.pleaseInput"), trigger: "blur" }],
+  target_address: isDynamicType.value ? [] : [{ required: true, message: t("password.pleaseInput"), trigger: "blur" }],
+  target_port: isDynamicType.value ? [] : [{ required: true, message: t("password.pleaseInput"), trigger: "blur" }],
   type: [{ required: true, message: t("password.pleaseInput"), trigger: "change" }],
 }));
 
@@ -127,10 +146,20 @@ watch(
     if (type === "SOCKS5") {
       ruleForm.value.target_address = "";
       ruleForm.value.target_port = "";
+      ruleForm.value.http_username = "";
+      ruleForm.value.http_password = "";
+      ruleFormRef.value?.clearValidate?.(["target_address", "target_port"]);
+    } else if (type === "HTTP") {
+      ruleForm.value.target_address = "";
+      ruleForm.value.target_port = "";
+      ruleForm.value.socks5_username = "";
+      ruleForm.value.socks5_password = "";
       ruleFormRef.value?.clearValidate?.(["target_address", "target_port"]);
     } else {
       ruleForm.value.socks5_username = "";
       ruleForm.value.socks5_password = "";
+      ruleForm.value.http_username = "";
+      ruleForm.value.http_password = "";
     }
   }
 );
@@ -147,10 +176,12 @@ const submitForm = async (formEl: any | undefined) => {
     .then(() => {
       const payload = {
         ...ruleForm.value,
-        target_address: isSocks5Type.value ? "" : ruleForm.value.target_address,
-        target_port: isSocks5Type.value ? "" : ruleForm.value.target_port,
+        target_address: isDynamicType.value ? "" : ruleForm.value.target_address,
+        target_port: isDynamicType.value ? "" : ruleForm.value.target_port,
         socks5_username: isSocks5Type.value ? ruleForm.value.socks5_username : "",
         socks5_password: isSocks5Type.value ? ruleForm.value.socks5_password : "",
+        http_username: isHttpType.value ? ruleForm.value.http_username : "",
+        http_password: isHttpType.value ? ruleForm.value.http_password : "",
       };
       if (ruleForm.value.uuid) {
         editProxy(payload).then(() => {

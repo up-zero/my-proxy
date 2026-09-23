@@ -136,14 +136,28 @@ func normalizeProxyBasic(pb *models.ProxyBasic) {
 	pb.TargetPort = strings.TrimSpace(pb.TargetPort)
 	pb.Socks5Username = strings.TrimSpace(pb.Socks5Username)
 	pb.Socks5Password = strings.TrimSpace(pb.Socks5Password)
+	pb.HttpUsername = strings.TrimSpace(pb.HttpUsername)
+	pb.HttpPassword = strings.TrimSpace(pb.HttpPassword)
 
-	if pb.Type == models.ProxyTypeSocks5 {
+	switch pb.Type {
+	case models.ProxyTypeSocks5:
+		// SOCKS5 为动态代理，无需目标地址和端口
 		pb.TargetAddress = ""
 		pb.TargetPort = ""
-	} else {
-		// 非 SOCKS5 类型清空认证字段
+		pb.HttpUsername = ""
+		pb.HttpPassword = ""
+	case models.ProxyTypeHttp:
+		// HTTP 为动态代理，无需目标地址和端口
+		pb.TargetAddress = ""
+		pb.TargetPort = ""
 		pb.Socks5Username = ""
 		pb.Socks5Password = ""
+	default:
+		// 其他类型清空认证字段
+		pb.Socks5Username = ""
+		pb.Socks5Password = ""
+		pb.HttpUsername = ""
+		pb.HttpPassword = ""
 	}
 }
 
@@ -169,7 +183,8 @@ func validateProxyBasicFields(pb *models.ProxyBasic) error {
 	if pb.ListenPort == "" {
 		return fmt.Errorf("listen_port is required")
 	}
-	if pb.Type != models.ProxyTypeSocks5 {
+	// SOCKS5、HTTP 为动态代理，无需目标地址和端口
+	if pb.Type != models.ProxyTypeSocks5 && pb.Type != models.ProxyTypeHttp {
 		if pb.TargetAddress == "" {
 			return fmt.Errorf("target_address is required")
 		}
@@ -450,6 +465,8 @@ func Edit(c *gin.Context, in *EditRequest) {
 			"target_port":     pb.TargetPort,
 			"socks5_username": pb.Socks5Username,
 			"socks5_password": pb.Socks5Password,
+			"http_username":   pb.HttpUsername,
+			"http_password":   pb.HttpPassword,
 			"state":           pb.State,
 		}).Error; err != nil {
 			return err

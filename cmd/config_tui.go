@@ -134,11 +134,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// 校验必填字段
 			m.err = ""
+			proxyType := m.selector.options[m.selector.cursor]
 			for index, input := range m.inputs {
 				if index == 1 {
 					continue
 				}
-				if m.selector.options[m.selector.cursor] == models.ProxyTypeSocks5 && (index == 3 || index == 4) {
+				// SOCKS5、HTTP 为动态代理，无需目标地址和端口
+				if (proxyType == models.ProxyTypeSocks5 || proxyType == models.ProxyTypeHttp) && (index == 3 || index == 4) {
 					continue
 				}
 				if input.Value() == "" {

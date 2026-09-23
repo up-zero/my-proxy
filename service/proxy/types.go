@@ -18,6 +18,8 @@ type CreateRequest struct {
 	TargetPort     string   `json:"target_port"`             // 目标端口
 	Socks5Username string   `json:"socks5_username"`         // SOCKS5 认证用户名
 	Socks5Password string   `json:"socks5_password"`         // SOCKS5 认证密码
+	HttpUsername   string   `json:"http_username"`           // HTTP 认证用户名
+	HttpPassword   string   `json:"http_password"`           // HTTP 认证密码
 }
 
 type EditRequest struct {
@@ -31,6 +33,8 @@ type EditRequest struct {
 	TargetPort     string   `json:"target_port"`             // 目标端口
 	Socks5Username string   `json:"socks5_username"`         // SOCKS5 认证用户名
 	Socks5Password string   `json:"socks5_password"`         // SOCKS5 认证密码
+	HttpUsername   string   `json:"http_username"`           // HTTP 认证用户名
+	HttpPassword   string   `json:"http_password"`           // HTTP 认证密码
 }
 
 type DeleteRequest struct {
