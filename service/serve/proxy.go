@@ -418,9 +418,14 @@ func buildSocks5Reply(reply byte, addr net.Addr) []byte {
 	return resp
 }
 
-// startHttp 启动 HTTP 动态代理
+// startHttp 启动 HTTP 代理
 //
-// 客户端将代理地址配置为 HTTP 代理后，可动态访问任意目标地址：
+// 按是否配置目标地址分为两种模式：
+//   - 固定转发（填写了目标地址）：客户端直接访问本代理地址，目标由服务端指定，
+//     转发时使用配置的目标地址与上游协议，Host 与上游 TLS 的 SNI 均为配置的域名，无需客户端改造
+//   - 动态代理（未填写目标地址）：客户端将代理地址配置为 HTTP 代理，可动态访问任意目标地址
+//
+// 两种模式均支持：
 //   - 普通 HTTP 请求：解析请求行中的绝对地址后转发（如 GET http://example.com/ HTTP/1.1）
 //   - HTTPS 请求：通过 CONNECT 方法建立隧道转发
 //   - WebSocket 等协议升级：透传 101 Switching Protocols，并桥接双向数据
@@ -455,10 +460,10 @@ func (task *ProxyTask) startHttp() error {
 	return nil
 }
 
-// handleHttpProxy HTTP 动态代理入口
+// handleHttpProxy HTTP 代理入口
 func (task *ProxyTask) handleHttpProxy(w http.ResponseWriter, r *http.Request) {
-	// 认证校验（可选）
-	if !task.checkHttpProxyAuth(r) {
+	// 认证校验（可选）；固定转发时目标由服务端指定，客户端不会携带 Proxy-Authorization，故不校验
+	if !task.IsHttpFixedForward() && !task.checkHttpProxyAuth(r) {
 		w.Header().Set("Proxy-Authenticate", `Basic realm="my-proxy"`)
 		http.Error(w, "Proxy Authentication Required", http.StatusProxyAuthRequired)
 		return
@@ -499,13 +504,18 @@ func (task *ProxyTask) checkHttpProxyAuth(r *http.Request) bool {
 
 // handleHttpConnect 处理 CONNECT 请求（HTTPS 隧道）
 func (task *ProxyTask) handleHttpConnect(w http.ResponseWriter, r *http.Request, isCapturing bool) {
-	// 目标地址，未显式指定端口时默认 443
-	targetAddr := r.Host
-	if targetAddr == "" {
-		targetAddr = r.URL.Host
-	}
-	if _, _, err := net.SplitHostPort(targetAddr); err != nil {
-		targetAddr = net.JoinHostPort(targetAddr, "443")
+	// 目标地址：固定转发使用服务端配置的目标地址；动态代理使用请求中的地址，未显式指定端口时默认 443
+	targetAddr := ""
+	if task.IsHttpFixedForward() {
+		targetAddr = net.JoinHostPort(task.TargetAddress, task.TargetPort)
+	} else {
+		targetAddr = r.Host
+		if targetAddr == "" {
+			targetAddr = r.URL.Host
+		}
+		if _, _, err := net.SplitHostPort(targetAddr); err != nil {
+			targetAddr = net.JoinHostPort(targetAddr, "443")
+		}
 	}
 
 	if isCapturing {
@@ -551,10 +561,13 @@ func (task *ProxyTask) handleHttpConnect(w http.ResponseWriter, r *http.Request,
 	<-done
 }
 
-// handleHttpForward 转发普通 HTTP 请求（动态目标）
+// handleHttpForward 转发普通 HTTP 请求
+//
+//   - 固定转发（已配置目标地址）：目标固定为服务端配置值，Host 使用配置的域名，客户端只需访问本代理
+//   - 动态代理（未配置目标地址）：要求请求行为绝对地址，按请求行中的地址转发
 func (task *ProxyTask) handleHttpForward(w http.ResponseWriter, r *http.Request, isCapturing bool) {
-	// 动态代理要求请求行为绝对地址
-	if r.URL == nil || r.URL.Host == "" {
+	if !task.IsHttpFixedForward() && (r.URL == nil || r.URL.Host == "") {
+		// 动态代理要求请求行为绝对地址
 		http.Error(w, "this is an HTTP dynamic proxy, the request url must be absolute", http.StatusBadRequest)
 		return
 	}
@@ -568,6 +581,16 @@ func (task *ProxyTask) handleHttpForward(w http.ResponseWriter, r *http.Request,
 	outReq := r.Clone(r.Context())
 	outReq.RequestURI = ""
 	outReq.Close = false
+	if task.IsHttpFixedForward() {
+		// 固定转发：目标地址由服务端配置，Host（及上游 TLS 的 SNI）使用配置的域名
+		scheme := task.UpstreamSchemeOrDefault()
+		outReq.URL.Scheme = scheme
+		outReq.URL.Host = net.JoinHostPort(task.TargetAddress, task.TargetPort)
+		outReq.Host = upstreamHostHeader(task.TargetAddress, task.TargetPort, scheme)
+		outReq.Header.Set("X-Forwarded-Host", r.Host)
+		outReq.Header.Set("X-Forwarded-Proto", "http")
+		appendXForwardedFor(outReq.Header, r.RemoteAddr)
+	}
 	// 协议升级（WebSocket 等）需要保留 Upgrade 相关头部
 	upgradeProtocol := r.Header.Get("Upgrade")
 	isUpgrade := upgradeProtocol != "" && headerValuesContainsToken(r.Header.Values("Connection"), "upgrade")
@@ -674,6 +697,29 @@ func (task *ProxyTask) publishHttpResponseHeader(statusCode int, header http.Hea
 	headerBuf.WriteString("\r\n") // 头部结束
 
 	task.capture.Publish(task.Uuid, "OUT", models.ProxyTypeHttp, headerBuf.Bytes())
+}
+
+// upstreamHostHeader 生成上游请求的 Host 头（协议默认端口时省略端口）
+func upstreamHostHeader(host, port, scheme string) string {
+	if port == "" ||
+		(scheme == models.ProxyUpstreamSchemeHttps && port == "443") ||
+		(scheme == models.ProxyUpstreamSchemeHttp && port == "80") {
+		return host
+	}
+	return net.JoinHostPort(host, port)
+}
+
+// appendXForwardedFor 将客户端地址追加到 X-Forwarded-For
+func appendXForwardedFor(header http.Header, remoteAddr string) {
+	clientIP := remoteAddr
+	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {
+		clientIP = host
+	}
+	if prior := header.Get("X-Forwarded-For"); prior != "" {
+		header.Set("X-Forwarded-For", prior+", "+clientIP)
+		return
+	}
+	header.Set("X-Forwarded-For", clientIP)
 }
 
 // headerValuesContainsToken 判断头部值中是否包含指定 token（大小写不敏感）

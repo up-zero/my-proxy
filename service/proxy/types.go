@@ -16,6 +16,7 @@ type CreateRequest struct {
 	ListenPort     string   `json:"listen_port"`             // 监听端口
 	TargetAddress  string   `json:"target_address"`          // 目标地址
 	TargetPort     string   `json:"target_port"`             // 目标端口
+	UpstreamScheme string   `json:"upstream_scheme"`         // 上游协议（仅 HTTP 固定转发使用）
 	Socks5Username string   `json:"socks5_username"`         // SOCKS5 认证用户名
 	Socks5Password string   `json:"socks5_password"`         // SOCKS5 认证密码
 	HttpUsername   string   `json:"http_username"`           // HTTP 认证用户名
@@ -31,6 +32,7 @@ type EditRequest struct {
 	ListenPort     string   `json:"listen_port"`             // 监听端口
 	TargetAddress  string   `json:"target_address"`          // 目标地址
 	TargetPort     string   `json:"target_port"`             // 目标端口
+	UpstreamScheme string   `json:"upstream_scheme"`         // 上游协议（仅 HTTP 固定转发使用）
 	Socks5Username string   `json:"socks5_username"`         // SOCKS5 认证用户名
 	Socks5Password string   `json:"socks5_password"`         // SOCKS5 认证密码
 	HttpUsername   string   `json:"http_username"`           // HTTP 认证用户名

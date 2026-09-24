@@ -28,7 +28,7 @@ type selector struct {
 
 func initialModel(pb *models.ProxyBasic) model {
 	m := model{
-		inputs:  make([]textinput.Model, 5),
+		inputs:  make([]textinput.Model, 6),
 		focused: 0,
 		selector: selector{
 			options: []string{"TCP", "UDP", "HTTP", "SOCKS5"},
@@ -74,6 +74,9 @@ func initialModel(pb *models.ProxyBasic) model {
 		case 4:
 			t.Placeholder = "eg: 8093"
 			t.SetValue(pb.TargetPort)
+		case 5:
+			t.Placeholder = "http/https (empty = auto)"
+			t.SetValue(pb.UpstreamScheme)
 		}
 		m.inputs[i] = t
 	}
@@ -136,12 +139,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = ""
 			proxyType := m.selector.options[m.selector.cursor]
 			for index, input := range m.inputs {
-				if index == 1 {
+				// 监听地址、上游协议为选填
+				if index == 1 || index == 5 {
 					continue
 				}
-				// SOCKS5、HTTP 为动态代理，无需目标地址和端口
-				if (proxyType == models.ProxyTypeSocks5 || proxyType == models.ProxyTypeHttp) && (index == 3 || index == 4) {
-					continue
+				if index == 3 || index == 4 {
+					// SOCKS5 为动态代理，无需目标地址和目标端口
+					if proxyType == models.ProxyTypeSocks5 {
+						continue
+					}
+					// HTTP 未填写目标地址和目标端口时为动态代理；填写了则视为固定转发，需两者都填
+					if proxyType == models.ProxyTypeHttp && m.inputs[3].Value() == "" && m.inputs[4].Value() == "" {
+						continue
+					}
 				}
 				if input.Value() == "" {
 					m.err = "All fields cannot be empty"
@@ -153,12 +163,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.pb.Uuid == "" {
 				// 新增
 				req := &proxy.CreateRequest{
-					Name:          m.inputs[0].Value(),
-					ListenAddress: m.inputs[1].Value(),
-					ListenPort:    m.inputs[2].Value(),
-					TargetAddress: m.inputs[3].Value(),
-					TargetPort:    m.inputs[4].Value(),
-					Type:          m.selector.options[m.selector.cursor],
+					Name:           m.inputs[0].Value(),
+					ListenAddress:  m.inputs[1].Value(),
+					ListenPort:     m.inputs[2].Value(),
+					TargetAddress:  m.inputs[3].Value(),
+					TargetPort:     m.inputs[4].Value(),
+					UpstreamScheme: m.inputs[5].Value(),
+					Type:           m.selector.options[m.selector.cursor],
 				}
 				if err := proxyClient.Create(req); err != nil {
 					m.err = err.Error()
@@ -167,13 +178,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				// 修改
 				req := &proxy.EditRequest{
-					Uuid:          m.pb.Uuid,
-					Name:          m.inputs[0].Value(),
-					ListenAddress: m.inputs[1].Value(),
-					ListenPort:    m.inputs[2].Value(),
-					TargetAddress: m.inputs[3].Value(),
-					TargetPort:    m.inputs[4].Value(),
-					Type:          m.selector.options[m.selector.cursor],
+					Uuid:           m.pb.Uuid,
+					Name:           m.inputs[0].Value(),
+					ListenAddress:  m.inputs[1].Value(),
+					ListenPort:     m.inputs[2].Value(),
+					TargetAddress:  m.inputs[3].Value(),
+					TargetPort:     m.inputs[4].Value(),
+					UpstreamScheme: m.inputs[5].Value(),
+					Type:           m.selector.options[m.selector.cursor],
 				}
 				if err := proxyClient.Edit(req); err != nil {
 					m.err = err.Error()
@@ -222,6 +234,7 @@ func (m model) View() string {
 		b.WriteString(fmt.Sprintf("Listen Port:    %s\n", m.inputs[2].Value()))
 		b.WriteString(fmt.Sprintf("Target Address: %s\n", m.inputs[3].Value()))
 		b.WriteString(fmt.Sprintf("Target Port:    %s\n", m.inputs[4].Value()))
+		b.WriteString(fmt.Sprintf("Upstream:       %s\n", m.inputs[5].Value()))
 		return b.String()
 	}
 
@@ -246,7 +259,7 @@ func (m model) View() string {
 	b.WriteString(selectorStyle.Render(selectLabel+strings.Join(selectorOptions, "  ")) + "\n")
 
 	// 渲染输入框
-	labels := []string{"Name:          ", "Listen Address:", "Listen Port:   ", "Target Address:", "Target Port:   "}
+	labels := []string{"Name:          ", "Listen Address:", "Listen Port:   ", "Target Address:", "Target Port:   ", "Upstream:      "}
 	for i, input := range m.inputs {
 		style := lipgloss.NewStyle().Padding(0, 1)
 		if m.focused == i+1 {

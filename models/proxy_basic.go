@@ -9,6 +9,12 @@ const (
 	ProxyTypeTcpUdp = "TCP_UDP" // TCP+UDP 双协议（仅用于创建时选择，落库时拆分为两条）
 )
 
+// 上游协议（仅 HTTP 固定转发使用）
+const (
+	ProxyUpstreamSchemeHttp  = "http"
+	ProxyUpstreamSchemeHttps = "https"
+)
+
 // 代理状态
 var (
 	ProxyStateRunning = "RUNNING"
@@ -29,6 +35,7 @@ type ProxyBasic struct {
 	Socks5Password string     `json:"socks5_password"`                                           // SOCKS5 认证密码
 	HttpUsername   string     `json:"http_username"`                                             // HTTP 认证用户名
 	HttpPassword   string     `json:"http_password"`                                             // HTTP 认证密码
+	UpstreamScheme string     `json:"upstream_scheme"`                                           // 上游协议：http/https，仅 HTTP 固定转发使用
 	State          string     `json:"state"`                                                     // 代理状态
 	FailDetail     string     `json:"fail_detail"`                                               // 代理失败详情
 	CreatedAt      int64      `gorm:"column:created_at; autoCreateTime:milli" json:"created_at"` // 创建时间，时间戳，毫秒
@@ -37,6 +44,22 @@ type ProxyBasic struct {
 
 func (table *ProxyBasic) TableName() string {
 	return "proxy_basic"
+}
+
+// IsHttpFixedForward HTTP 类型且配置了目标地址时为固定转发（反向代理），否则为动态代理
+func (table *ProxyBasic) IsHttpFixedForward() bool {
+	return table.Type == ProxyTypeHttp && table.TargetAddress != ""
+}
+
+// UpstreamSchemeOrDefault 获取上游协议，未显式配置时按目标端口推断
+func (table *ProxyBasic) UpstreamSchemeOrDefault() string {
+	if table.UpstreamScheme != "" {
+		return table.UpstreamScheme
+	}
+	if table.TargetPort == "443" {
+		return ProxyUpstreamSchemeHttps
+	}
+	return ProxyUpstreamSchemeHttp
 }
 
 // CountForName 保存时名称判重

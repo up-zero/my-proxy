@@ -138,6 +138,7 @@ func normalizeProxyBasic(pb *models.ProxyBasic) {
 	pb.Socks5Password = strings.TrimSpace(pb.Socks5Password)
 	pb.HttpUsername = strings.TrimSpace(pb.HttpUsername)
 	pb.HttpPassword = strings.TrimSpace(pb.HttpPassword)
+	pb.UpstreamScheme = strings.ToLower(strings.TrimSpace(pb.UpstreamScheme))
 
 	switch pb.Type {
 	case models.ProxyTypeSocks5:
@@ -146,12 +147,18 @@ func normalizeProxyBasic(pb *models.ProxyBasic) {
 		pb.TargetPort = ""
 		pb.HttpUsername = ""
 		pb.HttpPassword = ""
+		pb.UpstreamScheme = ""
 	case models.ProxyTypeHttp:
-		// HTTP 为动态代理，无需目标地址和端口
-		pb.TargetAddress = ""
-		pb.TargetPort = ""
+		// HTTP 支持两种模式：目标地址为空为动态代理；填写目标地址为固定转发（反向代理）
 		pb.Socks5Username = ""
 		pb.Socks5Password = ""
+		if pb.TargetAddress == "" {
+			pb.TargetPort = ""
+			pb.UpstreamScheme = ""
+		} else if pb.UpstreamScheme == "" {
+			// 未显式指定时按目标端口推断
+			pb.UpstreamScheme = pb.UpstreamSchemeOrDefault()
+		}
 	default:
 		// 其他类型清空认证字段
 		pb.Socks5Username = ""
@@ -183,14 +190,24 @@ func validateProxyBasicFields(pb *models.ProxyBasic) error {
 	if pb.ListenPort == "" {
 		return fmt.Errorf("listen_port is required")
 	}
-	// SOCKS5、HTTP 为动态代理，无需目标地址和端口
-	if pb.Type != models.ProxyTypeSocks5 && pb.Type != models.ProxyTypeHttp {
-		if pb.TargetAddress == "" {
-			return fmt.Errorf("target_address is required")
-		}
-		if pb.TargetPort == "" {
-			return fmt.Errorf("target_port is required")
-		}
+	// SOCKS5 为动态代理，无需目标地址和端口
+	if pb.Type == models.ProxyTypeSocks5 {
+		return nil
+	}
+	// HTTP 未填写目标地址时为动态代理
+	if pb.Type == models.ProxyTypeHttp && pb.TargetAddress == "" && pb.TargetPort == "" {
+		return nil
+	}
+	// 固定转发（TCP/UDP/HTTP）：目标地址和目标端口必填
+	if pb.TargetAddress == "" {
+		return fmt.Errorf("target_address is required")
+	}
+	if pb.TargetPort == "" {
+		return fmt.Errorf("target_port is required")
+	}
+	if pb.Type == models.ProxyTypeHttp &&
+		pb.UpstreamScheme != models.ProxyUpstreamSchemeHttp && pb.UpstreamScheme != models.ProxyUpstreamSchemeHttps {
+		return fmt.Errorf("upstream_scheme(%s) not support", pb.UpstreamScheme)
 	}
 	return nil
 }
@@ -463,6 +480,7 @@ func Edit(c *gin.Context, in *EditRequest) {
 			"listen_port":     pb.ListenPort,
 			"target_address":  pb.TargetAddress,
 			"target_port":     pb.TargetPort,
+			"upstream_scheme": pb.UpstreamScheme,
 			"socks5_username": pb.Socks5Username,
 			"socks5_password": pb.Socks5Password,
 			"http_username":   pb.HttpUsername,

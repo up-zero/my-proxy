@@ -17,12 +17,13 @@ import (
 )
 
 var (
-	proxyName  string
-	proxyType  string
-	listenAddr string
-	listenPort string
-	targetAddr string
-	targetPort string
+	proxyName      string
+	proxyType      string
+	listenAddr     string
+	listenPort     string
+	targetAddr     string
+	targetPort     string
+	upstreamScheme string
 )
 
 // createCmd represents the create command
@@ -31,21 +32,23 @@ var createCmd = &cobra.Command{
 	Short: "create a new proxy service",
 	Run: func(cmd *cobra.Command, args []string) {
 		pb := &models.ProxyBasic{
-			Name:          proxyName,
-			Type:          proxyType,
-			ListenAddress: listenAddr,
-			ListenPort:    listenPort,
-			TargetAddress: targetAddr,
-			TargetPort:    targetPort,
+			Name:           proxyName,
+			Type:           proxyType,
+			ListenAddress:  listenAddr,
+			ListenPort:     listenPort,
+			TargetAddress:  targetAddr,
+			TargetPort:     targetPort,
+			UpstreamScheme: upstreamScheme,
 		}
 		if len(args) > 0 {
 			pb.Name = args[0]
 		}
 
-		// 代理配置完整，直接创建（SOCKS5、HTTP 为动态代理，无需目标地址和端口）
-		dynamicType := strings.EqualFold(pb.Type, models.ProxyTypeSocks5) || strings.EqualFold(pb.Type, models.ProxyTypeHttp)
+		// 代理配置完整，直接创建（SOCKS5 为动态代理无需目标地址；HTTP 未填目标地址时为动态代理）
+		isSocks5 := strings.EqualFold(pb.Type, models.ProxyTypeSocks5)
+		isDynamicHttp := strings.EqualFold(pb.Type, models.ProxyTypeHttp) && pb.TargetAddress == ""
 		if pb.Name != "" && pb.Type != "" && pb.ListenPort != "" &&
-			(dynamicType || (pb.TargetAddress != "" && pb.TargetPort != "")) {
+			(isSocks5 || isDynamicHttp || (pb.TargetAddress != "" && pb.TargetPort != "")) {
 			req := new(proxy.CreateRequest)
 			convertutil.CopyProperties(pb, req)
 			if err := proxyClient.Create(req); err != nil {
@@ -74,4 +77,5 @@ func init() {
 	createCmd.Flags().StringVar(&listenPort, "lport", "", "listen port")
 	createCmd.Flags().StringVar(&targetAddr, "taddr", "", "target address")
 	createCmd.Flags().StringVar(&targetPort, "tport", "", "target port")
+	createCmd.Flags().StringVar(&upstreamScheme, "scheme", "", "upstream scheme for HTTP fixed forward: http/https (empty = auto)")
 }
