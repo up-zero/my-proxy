@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -236,7 +237,8 @@ func showAdminInfo() {
 }
 
 // NewApp 创建服务
-func NewApp(port string) {
+// host: 服务监听地址（通配地址时监听所有网卡）；port: 服务端口
+func NewApp(host, port string) {
 	// 初始化配置缓存
 	models.InitConfigCache()
 
@@ -245,20 +247,30 @@ func NewApp(port string) {
 		logger.Error("[sys] save server port error.", zap.Error(err))
 		return
 	}
+	// 保存服务监听地址
+	if err := (&models.ConfigBasic{}).SaveServerHost(host); err != nil {
+		logger.Error("[sys] save server host error.", zap.Error(err))
+		return
+	}
 	// 初始化代理
 	serve.NewProxy()
 	dashboard.Start()
 	trafficpolicy.StartRuntime()
 
 	// 监听退出信号
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	// 监听地址：通配地址时监听所有网卡，否则仅监听指定地址
+	listenAddr := ":" + port
+	if !util.IsWildcardHost(host) {
+		listenAddr = net.JoinHostPort(host, port)
+	}
 	// 启动服务
 	go func() {
 		r := router()
 		server := &http.Server{
 			Handler: r,
-			Addr:    ":" + port,
+			Addr:    listenAddr,
 		}
 		if err := server.ListenAndServe(); err != nil {
 			logger.Error(fmt.Sprintf("%s run error", util.AppName), zap.Any("ERROR", err))
@@ -267,7 +279,7 @@ func NewApp(port string) {
 	}()
 	// 启动成功
 	showAdminInfo()
-	logger.Info(fmt.Sprintf("%s started successfully", util.AppName), zap.String("port", port))
+	logger.Info(fmt.Sprintf("%s started successfully", util.AppName), zap.String("host", host), zap.String("port", port))
 	<-quit
 	logger.Error(fmt.Sprintf("%s stopped successfully", util.AppName))
 }

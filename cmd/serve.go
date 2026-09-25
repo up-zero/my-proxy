@@ -5,6 +5,8 @@ Copyright © 2025 getcharzp <getcharzp@gmail.com>
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/up-zero/my-proxy/app"
 	"github.com/up-zero/my-proxy/models"
@@ -19,11 +21,17 @@ var serveCmd = &cobra.Command{
 		if servePort == "" {
 			servePort = (&models.ConfigBasic{}).GetServerPort()
 		}
-		app.NewApp(servePort)
+		serveHost, _ := cmd.Flags().GetString("host")
+		serveHost = strings.TrimSpace(serveHost)
+		if serveHost == "" {
+			serveHost = (&models.ConfigBasic{}).GetServerHost()
+		}
+		app.NewApp(serveHost, servePort)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP("port", "p", "", "service port")
+	serveCmd.Flags().String("host", "", "service listen address, default 0.0.0.0 (all interfaces)")
 }

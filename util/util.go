@@ -18,6 +18,8 @@ var (
 
 	// ServerPortKey 服务端口 KEY
 	ServerPortKey = "SERVER_PORT_KEY"
+	// ServerHostKey 服务监听地址 KEY
+	ServerHostKey = "SERVER_HOST_KEY"
 	// ConfigKeyJwtSecret JWT 签名密钥 KEY
 	ConfigKeyJwtSecret = "JWT_SECRET_KEY"
 	// ConfigKeyAuditRetentionDays 日志审计存储时长（天）
@@ -29,11 +31,21 @@ var (
 
 	// ---- 系统设置默认值 ----
 
-	DefaultAuditRetentionDays = "90"    // 日志审计默认 90 天
-	DefaultAlertRetentionDays = "90"    // 告警通知默认 90 天
-	DefaultServerPort         = "12312" // 服务端口默认值
-	DefaultTokenExpiryDays    = "1"     // Token 有效期默认 1 天
+	DefaultAuditRetentionDays = "90"      // 日志审计默认 90 天
+	DefaultAlertRetentionDays = "90"      // 告警通知默认 90 天
+	DefaultServerPort         = "12312"   // 服务端口默认值
+	DefaultServerHost         = "0.0.0.0" // 服务监听地址默认值（监听所有网卡）
+	DefaultTokenExpiryDays    = "7"       // Token 有效期默认 7 天
 )
+
+// IsWildcardHost 判断监听地址是否为通配地址（即监听所有网卡）
+func IsWildcardHost(host string) bool {
+	switch host {
+	case "", "0.0.0.0", "::", "[::]":
+		return true
+	}
+	return false
+}
 
 // GetDbPath 获取数据库路径
 func GetDbPath() (string, error) {

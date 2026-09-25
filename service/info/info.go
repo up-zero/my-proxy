@@ -2,6 +2,7 @@ package info
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/gin-gonic/gin"
 	"github.com/up-zero/gotool/netutil"
@@ -18,17 +19,24 @@ func Info(c *gin.Context) {
 		Username:  "",
 		Password:  "",
 	}
-	// 地址
-	ips, err := netutil.Ipv4sLocal()
-	if err != nil {
-		logger.Error("[gotool] get ipv4 error.", zap.Error(err))
-		util.ResponseError(c, err)
-		return
-	}
+	// 端口、监听地址
 	serverPort := (&models.ConfigBasic{}).GetServerPort()
-	for _, ip := range ips {
-		// http://127.0.0.1:12321
-		reply.Addresses = append(reply.Addresses, fmt.Sprintf("http://%s:%s", ip, serverPort))
+	serverHost := (&models.ConfigBasic{}).GetServerHost()
+	if util.IsWildcardHost(serverHost) {
+		// 监听所有网卡：展示本机所有 IPv4 地址
+		ips, err := netutil.Ipv4sLocal()
+		if err != nil {
+			logger.Error("[gotool] get ipv4 error.", zap.Error(err))
+			util.ResponseError(c, err)
+			return
+		}
+		for _, ip := range ips {
+			// http://127.0.0.1:12321
+			reply.Addresses = append(reply.Addresses, fmt.Sprintf("http://%s", net.JoinHostPort(ip, serverPort)))
+		}
+	} else {
+		// 监听指定地址：仅展示该地址
+		reply.Addresses = []string{fmt.Sprintf("http://%s", net.JoinHostPort(serverHost, serverPort))}
 	}
 
 	// 用户信息

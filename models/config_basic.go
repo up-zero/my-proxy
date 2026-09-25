@@ -128,3 +128,17 @@ func (table *ConfigBasic) GetServerPort() string {
 func (table *ConfigBasic) SaveServerPort(port string) error {
 	return SetConfig(util.ServerPortKey, port)
 }
+
+// GetServerHost 获取服务监听地址
+func (table *ConfigBasic) GetServerHost() string {
+	host := strings.TrimSpace(GetConfig(util.ServerHostKey, util.DefaultServerHost))
+	if host == "" {
+		return util.DefaultServerHost
+	}
+	return host
+}
+
+// SaveServerHost 保存服务监听地址
+func (table *ConfigBasic) SaveServerHost(host string) error {
+	return SetConfig(util.ServerHostKey, strings.TrimSpace(host))
+}

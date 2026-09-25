@@ -42,6 +42,9 @@ A LAN proxy tool that supports proxy forwarding for TCP, UDP, HTTP, SOCKS5, and 
 my-proxy serve
 # Specify a custom service port
 my-proxy serve -p 12312
+# Specify the listen address (default 0.0.0.0, which listens on all network interfaces;
+# use 127.0.0.1 to only allow local access, or a specific NIC address for multiple network interfaces)
+my-proxy serve --host 127.0.0.1
 ```
 
 + Proxy status

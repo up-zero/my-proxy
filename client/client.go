@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 
@@ -37,7 +38,15 @@ func authHeaders() (map[string]string, error) {
 func serverURL(path string) (string, error) {
 	// 获取服务端口
 	serverPort := (&models.ConfigBasic{}).GetServerPort()
-	return fmt.Sprintf("http://127.0.0.1:%s%s", serverPort, path), nil
+	// 获取服务监听地址，通配地址（监听所有网卡）时使用回环地址访问
+	serverHost := (&models.ConfigBasic{}).GetServerHost()
+	switch serverHost {
+	case "", "0.0.0.0":
+		serverHost = "127.0.0.1"
+	case "::", "[::]":
+		serverHost = "::1"
+	}
+	return fmt.Sprintf("http://%s%s", net.JoinHostPort(serverHost, serverPort), path), nil
 }
 
 // Post 带鉴权的 post 请求
