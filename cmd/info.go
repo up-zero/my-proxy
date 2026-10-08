@@ -19,7 +19,7 @@ var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get detailed information",
 	Run: func(cmd *cobra.Command, args []string) {
-		// my-proxy 1.1.0
+		// my-proxy 1.2.1
 		fmt.Println(fmt.Sprintf("%s %s", util.AppName, util.AppVersion))
 		reply, err := info.Info()
 		if err != nil {
