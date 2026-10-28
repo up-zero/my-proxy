@@ -4,8 +4,10 @@
     <a-form :model="state.query" class="m-search">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center;">
-          <a-input v-model:value="state.query.name" :placeholder="t('proxy.inputProxyName')" style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
-          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear :placeholder="t('proxy.selectTags')" style="width: 240px; margin-right: 8px;" @pressEnter="getList">
+          <a-input v-model:value="state.query.name" :placeholder="t('proxy.inputProxyName')"
+            style="width: 200px; margin-right: 8px;" @pressEnter="getList"></a-input>
+          <a-select v-model:value="state.query.tag_uuid_list" mode="multiple" allow-clear
+            :placeholder="t('proxy.selectTags')" style="width: 240px; margin-right: 8px;" @pressEnter="getList">
             <a-select-option v-for="item in state.tagList" :key="item.uuid" :value="item.uuid">
               {{ item.name }}
             </a-select-option>
@@ -15,20 +17,20 @@
         <div>
           <a-button type="primary" @click="toAddPage" class="mr-2">{{ t("common.add") }}</a-button>
           <fileUpload @success="getList" />
-          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">{{ t("common.export") }}</a-button>
-          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">{{ t("common.delete") }}</a-button>
+          <a-button type="primary" ghost @click="handleExport" :disabled="!selectedRowKeys.length" class="mr-2">{{
+            t("common.export") }}</a-button>
+          <a-button type="primary" danger :disabled="!selectedRowKeys.length" @click="delBatch">{{ t("common.delete")
+            }}</a-button>
         </div>
       </div>
     </a-form>
 
     <!-- 表格 -->
     <a-table :scroll="{ y: 'calc(100vh - 320px)' }" :dataSource="state.list" :columns="columns" bordered
-      table-layout="fixed"
-      :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
+      table-layout="fixed" :pagination="false" rowKey="uuid" class="m-table" :row-selection="{
         selectedRowKeys: selectedRowKeys,
         onChange: onSelectChange,
-      }" size="middle" @change="handleTableChange"
-      :rowClassName="(record: any) => currentRecord?.uuid === record.uuid ? 'row-selected' : ''">
+      }" size="middle" @change="handleTableChange" :rowClassName="getRowClassName">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'state'">
           <span class="state-span danger" v-if="record.state === 'STOPPED'">{{ t("proxy.statusStopped") }}</span>
@@ -109,7 +111,8 @@
         <!-- SSH用户名输入框 -->
         <div style="margin-bottom: 16px;">
           <a-form-item :label="t('proxy.sshUsername')" class="quick-access-form-item" style="margin-bottom: 0;">
-            <a-input v-model:value="sshUser" @input="saveSshUser" :placeholder="t('proxy.inputSshUsername')" style="width: 300px;">
+            <a-input v-model:value="sshUser" @input="saveSshUser" :placeholder="t('proxy.inputSshUsername')"
+              style="width: 300px;">
               <template #addonAfter>
                 <a-tooltip :title="t('proxy.sshLoginTip')">
                   <info-circle-outlined />
@@ -122,8 +125,9 @@
         <a-table :data-source="quickLinks" :columns="linkColumns" bordered size="middle" :pagination="false">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a-button type="primary" :disabled="record.disabled || launchingUrl === record.url" :loading="launchingUrl === record.url"
-                @click.stop="openLink(record.url, $event)">{{ record.label }}</a-button>
+              <a-button type="primary" :disabled="record.disabled || launchingUrl === record.url"
+                :loading="launchingUrl === record.url" @click.stop="openLink(record.url, $event)">{{ record.label
+                }}</a-button>
             </template>
           </template>
         </a-table>
@@ -335,7 +339,19 @@ const clearRowSelection = () => {
   currentRecord.value = null;
 };
 
-const getNum = (num:number) => {
+// 待删除数据行：删除确认弹窗打开期间高亮，便于用户确认删除对象
+const pendingDeleteUuids = ref<string[]>([]);
+const clearPendingDelete = () => {
+  pendingDeleteUuids.value = [];
+};
+
+const getRowClassName = (record: any) => {
+  if (pendingDeleteUuids.value.includes(record.uuid)) return "row-deleting";
+  if (currentRecord.value?.uuid === record.uuid) return "row-selected";
+  return "";
+};
+
+const getNum = (num: number) => {
   if (num < 1024) {
     return num + 'B'
   } else if (num < 1024 * 1024) {
@@ -497,6 +513,54 @@ const delItem = (row: DataItem) => {
     });
   });
 };
+
+// 删除确认弹窗内容：列出待删除的代理名称
+const renderDeleteContent = (names: string[]) => {
+  return createVNode("div", { style: "margin-top: 8px;" }, [
+    createVNode(
+      "div",
+      { style: "color: rgba(0, 0, 0, 0.65); margin-bottom: 10px;" },
+      names.length === 1
+        ? t("proxy.deleteConfirmContent")
+        : t("proxy.deleteSelectedContent", { count: names.length })
+    ),
+    createVNode(
+      "div",
+      {
+        style:
+          "max-height: 160px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 6px;",
+      },
+      names.map((name) =>
+        createVNode(
+          "span",
+          {
+            key: name,
+            title: name,
+            style:
+              "display: inline-block; max-width: 100%; padding: 1px 8px; border-radius: 4px; background: #fff1f0; border: 1px solid #ffccc7; color: #cf1322; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+          },
+          name
+        )
+      )
+    ),
+  ]);
+};
+
+// 单条删除确认：弹窗中显示代理名称，同时高亮该数据行
+const confirmDeleteItem = (row: DataItem) => {
+  pendingDeleteUuids.value = [row.uuid];
+  Modal.confirm({
+    title: () => t("proxy.confirmDelete"),
+    icon: () => createVNode(ExclamationCircleOutlined),
+    content: () => renderDeleteContent([row.name]),
+    okText: () => t("common.confirm"),
+    okType: "danger",
+    cancelText: () => t("common.cancel"),
+    onOk: () => delItem(row),
+    // 确认、取消、关闭弹窗后都清除行高亮
+    afterClose: clearPendingDelete,
+  });
+};
 const startItem = (row: DataItem) => {
   startProxy({ name: row.name }).then(() => {
     getList();
@@ -557,24 +621,27 @@ const handleExport = async () => {
 
 };
 const delBatch = () => {
+  const rows = state.list.filter((it: any) => selectedRowKeys.value.includes(it.uuid));
+  if (!rows.length) return;
+  // 弹窗打开期间高亮所有待删除行
+  pendingDeleteUuids.value = rows.map((it: any) => it.uuid);
   Modal.confirm({
     title: () => t("proxy.deleteSelectedConfirm"),
     icon: () => createVNode(ExclamationCircleOutlined),
-    content: () => "",
+    content: () => renderDeleteContent(rows.map((it: any) => it.name)),
     okText: () => t("common.confirm"),
     okType: "danger",
     cancelText: () => t("common.cancel"),
     onOk() {
-      delBacthProxy({ uuid: selectedRowKeys.value }).then(() => {
+      return delBacthProxy({ uuid: rows.map((it: any) => it.uuid) }).then(() => {
+        selectedRowKeys.value = [];
         getList();
         message.success({
           content: t("common.success"),
         });
       });
     },
-    onCancel() {
-      console.log("Cancel");
-    },
+    afterClose: clearPendingDelete,
   });
 };
 
@@ -612,7 +679,7 @@ const onOperationMenuClick = (record: any, { key }: any) => {
       captureItem(record);
       break;
     case "delete":
-      confirmAction(t("proxy.confirmDelete"), () => delItem(record), true);
+      confirmDeleteItem(record);
       break;
   }
 };
@@ -640,39 +707,57 @@ const onOperationMenuClick = (record: any, { key }: any) => {
     min-height: 0;
   }
 
-  .m-table :deep(.ant-table-tbody) > tr:nth-child(even) {
-    background-color: var(--color-table-stripe, #fafafa); /* 设置偶数浅色斑马纹 */
+  .m-table :deep(.ant-table-tbody)>tr:nth-child(even) {
+    background-color: var(--color-table-stripe, #fafafa);
+    /* 设置偶数浅色斑马纹 */
   }
 
-  .m-table :deep(.ant-table-thead) > tr > th {
-    background-color: var(--color-table-header, #fff) !important; /* 表头 */
+  .m-table :deep(.ant-table-thead)>tr>th {
+    background-color: var(--color-table-header, #fff) !important;
+    /* 表头 */
   }
 
   .m-table :deep(.ant-table-cell) {
     white-space: nowrap;
   }
 
-  .m-table :deep(.ant-table-tbody) > tr:hover td {
-    background-color: var(--color-table-hover, #f0f8ff) !important; /* 鼠标悬停 */
+  .m-table :deep(.ant-table-tbody)>tr:hover td {
+    background-color: var(--color-table-hover, #f0f8ff) !important;
+    /* 鼠标悬停 */
   }
 
   /* 选中行高亮 */
-  .m-table :deep(.ant-table-tbody) > tr.row-selected td {
+  .m-table :deep(.ant-table-tbody)>tr.row-selected td {
     background-color: var(--color-table-selected, #e6f7ff) !important;
   }
-  .m-table :deep(.ant-table-tbody) > tr.row-selected td:first-child {
+
+  .m-table :deep(.ant-table-tbody)>tr.row-selected td:first-child {
     border-left: 3px solid #1890ff;
   }
 
   /* 选中行且鼠标悬停时，保持选中样式优先 */
-  .m-table :deep(.ant-table-tbody) > tr.row-selected:hover td {
+  .m-table :deep(.ant-table-tbody)>tr.row-selected:hover td {
     background-color: var(--color-table-selected-hover, #bae7ff) !important;
+  }
+
+  /* 待删除行高亮（删除确认弹窗打开期间） */
+  .m-table :deep(.ant-table-tbody)>tr.row-deleting td {
+    background-color: var(--color-table-deleting, #ffccc7) !important;
+  }
+
+  .m-table :deep(.ant-table-tbody)>tr.row-deleting td:first-child {
+    border-left: 3px solid #ff4d4f;
+  }
+
+  .m-table :deep(.ant-table-tbody)>tr.row-deleting:hover td {
+    background-color: var(--color-table-deleting-hover, #ffb3ad) !important;
   }
 
   .m-table :deep(.ant-table-tbody > tr > td) {
     padding-top: 7px;
     padding-bottom: 7px;
   }
+
   .m-table :deep(.ant-table-thead > tr > th) {
     padding-top: 12px;
     padding-bottom: 12px;
@@ -743,6 +828,7 @@ const onOperationMenuClick = (record: any, { key }: any) => {
     color: #1890ff;
     text-decoration: none;
     cursor: pointer;
+
     &:hover {
       color: #40a9ff;
       text-decoration: underline;
